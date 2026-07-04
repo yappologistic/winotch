@@ -111,6 +111,39 @@
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,22,0">
+                        <Grid x:Name="MediaPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Width="54" Height="54" CornerRadius="9" Background="{StaticResource NotchPanel}" ClipToBounds="True">
+                                <Grid>
+                                    <Image x:Name="MediaArtworkImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                                    <TextBlock x:Name="MediaArtworkFallback"
+                                               Text="Audio"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource NotchMutedText}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="MediaTitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="MediaArtistText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,7" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="MediaPreviousButton" Style="{StaticResource MediaIconButton}" ToolTip="Previous" Click="MediaPrevious_Click">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE100;" FontSize="14" />
+                                    </Button>
+                                    <Button x:Name="MediaPlayPauseButton" Style="{StaticResource MediaIconButton}" ToolTip="Play or pause" Click="MediaPlayPause_Click">
+                                        <TextBlock x:Name="MediaPlayPauseIcon" Style="{StaticResource IconText}" Text="&#xE768;" FontSize="14" />
+                                    </Button>
+                                    <Button x:Name="MediaNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" Click="MediaNext_Click">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE101;" FontSize="14" />
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
                         <TextBlock Text="Notifications" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
                         <TextBlock x:Name="NotificationStateText" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,4,0,8" />
                         <ListBox x:Name="NotificationList"

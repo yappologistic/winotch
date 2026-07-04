@@ -9,10 +9,12 @@ flowchart TD
     Window --> Status["Status Timer"]
     Status --> Battery["Windows Power Status"]
     Status --> Audio["Core Audio Endpoint Volume"]
+    Status --> Media["Windows Media Sessions"]
     Status --> Wifi["netsh wlan"]
     Status --> Notifications["UserNotificationListener"]
     Battery --> Window
     Audio --> Window
+    Media --> Window
     Wifi --> Window
     Notifications --> Window
 ```
@@ -26,6 +28,7 @@ flowchart LR
     Tokens --> Panel["Expanded Panel"]
     Shell --> Compact["Compact State"]
     Shell --> Expanded["Expanded State"]
+    Expanded --> Media["Now Playing Controls"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Volume and Wi-Fi Controls"]
 ```
@@ -58,12 +61,17 @@ Animation timings live in `ShellAnimationTiming`:
 
 Foreground detection uses Win32 window bounds/window placement and falls back to `Mini` for the desktop shell and Winotch's own window. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not force the full-width bar.
 
+## Media
+
+Winotch reads the focused Windows system media transport session through `GlobalSystemMediaTransportControlsSessionManager`. When a playable session appears or resumes, the same expanded capsule used for notifications pops open and shows artwork, title, artist, and previous/play-pause/next controls. The media row is hidden when Windows reports no active media session.
+
 ## Test Strategy
 
 The automated suite focuses on deterministic logic that would otherwise surface as visual bugs:
 
 - Wi-Fi netsh/profile parsing, de-duplication, blank values, and visible list limits.
 - Battery icon fill width, clamp behavior, charging color, and low-power thresholds.
+- Media snapshot display fallbacks, artwork fallback, and pop-up de-duplication for play/resume/track-change states.
 - Notification signature generation, first-run suppression, empty snapshot behavior, and repeat suppression.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.
 - Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot force full-bar mode.

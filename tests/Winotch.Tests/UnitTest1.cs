@@ -316,6 +316,65 @@ public class StatusParsingTests
     }
 
     [Theory]
+    [InlineData("", "", false, "Unknown title", "Unknown artist")]
+    [InlineData("Song", "", true, "Song", "Unknown artist")]
+    [InlineData("  Song  ", "  Artist  ", true, "Song", "Artist")]
+    public void MediaSnapshotFormatsDisplayTextAndPresence(
+        string title,
+        string artist,
+        bool hasMedia,
+        string expectedTitle,
+        string expectedArtist)
+    {
+        var snapshot = new MediaSnapshot(title, artist, null, MediaState.Playing, true, true, true, true);
+
+        Assert.Equal(hasMedia, snapshot.HasMedia);
+        Assert.Equal(expectedTitle, snapshot.DisplayTitle);
+        Assert.Equal(expectedArtist, snapshot.DisplayArtist);
+    }
+
+    [Fact]
+    public void MediaChangeTrackerPopsForPlayingMediaAndSuppressesRepeats()
+    {
+        var tracker = new MediaChangeTracker();
+        var playing = Media("Song", "Artist", MediaState.Playing);
+
+        Assert.True(tracker.ShouldPop(playing));
+        Assert.False(tracker.ShouldPop(playing));
+    }
+
+    [Fact]
+    public void MediaChangeTrackerPopsForTrackChangeAndResume()
+    {
+        var tracker = new MediaChangeTracker();
+        var first = Media("Song", "Artist", MediaState.Playing);
+        var paused = Media("Song", "Artist", MediaState.Paused);
+        var next = Media("Next", "Artist", MediaState.Playing);
+
+        Assert.True(tracker.ShouldPop(first));
+        Assert.False(tracker.ShouldPop(paused));
+        Assert.True(tracker.ShouldPop(first));
+        Assert.True(tracker.ShouldPop(next));
+    }
+
+    [Fact]
+    public void MediaChangeTrackerIgnoresEmptyOrPausedInitialSnapshots()
+    {
+        var tracker = new MediaChangeTracker();
+
+        Assert.False(tracker.ShouldPop(MediaSnapshot.Empty));
+        Assert.False(tracker.ShouldPop(Media("Song", "Artist", MediaState.Paused)));
+        Assert.True(tracker.ShouldPop(Media("Song", "Artist", MediaState.Playing)));
+    }
+
+    [Fact]
+    public void MediaArtworkReturnsNullForMissingArtwork()
+    {
+        Assert.Null(MediaArtwork.FromBytes(null));
+        Assert.Null(MediaArtwork.FromBytes([]));
+    }
+
+    [Theory]
     [InlineData(0, 60)]
     [InlineData(24, 60)]
     [InlineData(29, 60)]
@@ -379,4 +438,6 @@ public class StatusParsingTests
         Assert.InRange(ShellAnimationTiming.DetailRevealDelayMilliseconds, 1, ShellAnimationTiming.MotionMilliseconds - 1);
     }
 
+    private static MediaSnapshot Media(string title, string artist, MediaState state) =>
+        new(title, artist, null, state, true, true, true, true);
 }

@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, and Windows notifications in a compact black shell that expands on hover or notification activity.
+Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, and Windows notifications in a compact black shell that expands on hover, media playback, or notification activity.
 
 ## Stack
 
@@ -8,6 +8,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the p
 - Transparent, topmost desktop window for the notch shell
 - Windows Forms power status for battery
 - Core Audio COM interop for system volume
+- Windows system media transport controls for current audio metadata, artwork, and playback actions
 - `netsh wlan` for Wi-Fi status, network listing, and saved-profile connect attempts
 - `UserNotificationListener` for Windows toast notification access when the OS grants permission
 
@@ -27,7 +28,7 @@ From the repository root:
 dotnet run --project src/Winotch/Winotch.csproj
 ```
 
-Hover the notch to expand it. The volume slider changes the system master volume. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 ## Test
 
@@ -37,7 +38,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, notification pop-up dedupe behavior, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, media pop-up dedupe behavior, notification pop-up dedupe behavior, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Install
 

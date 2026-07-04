@@ -16,7 +16,10 @@ public partial class MainWindow : Window
     private readonly WifiService _wifi = new();
     private readonly NotificationService _notifications = new();
     private readonly NotificationChangeTracker _notificationChanges = new();
+    private readonly MediaService _media = new();
+    private readonly MediaChangeTracker _mediaChanges = new();
     private readonly AppBarReservationService _appBar = new();
+    private MediaSnapshot _mediaSnapshot = MediaSnapshot.Empty;
     private bool _expanded;
     private bool _updatingVolume;
     private int _animationFrameRate = 60;
@@ -30,6 +33,7 @@ public partial class MainWindow : Window
         _shellTimer.Tick += (_, _) => ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
         _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _notifications.NotificationsChanged += (_, _) => Dispatcher.Invoke(async () => await RefreshStatusAsync());
+        _media.MediaChanged += (_, _) => Dispatcher.Invoke(async () => await RefreshStatusAsync());
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
     }
@@ -71,6 +75,13 @@ public partial class MainWindow : Window
         _updatingVolume = false;
         VolumeText.Text = $"{volume:0}%";
 
+        var media = await _media.ReadAsync();
+        ApplyMedia(media);
+        if (_mediaChanges.ShouldPop(media))
+        {
+            ExpandTemporarily();
+        }
+
         var wifi = await _wifi.GetCurrentAsync();
         WifiText.Text = wifi.Name is null ? "Offline" : $"{wifi.Name} {wifi.SignalText}";
         var networks = (await _wifi.GetNetworksAsync()).ToList();
@@ -97,6 +108,30 @@ public partial class MainWindow : Window
         {
             ExpandTemporarily();
         }
+    }
+
+    private void ApplyMedia(MediaSnapshot media)
+    {
+        _mediaSnapshot = media;
+        MediaPanel.Visibility = media.HasMedia ? Visibility.Visible : Visibility.Collapsed;
+        NotificationList.Height = media.HasMedia ? 56 : 110;
+        if (!media.HasMedia)
+        {
+            MediaArtworkImage.Source = null;
+            return;
+        }
+
+        MediaTitleText.Text = media.DisplayTitle;
+        MediaArtistText.Text = media.DisplayArtist;
+        MediaPreviousButton.IsEnabled = media.CanPrevious;
+        MediaPlayPauseButton.IsEnabled = media.IsPlaying ? media.CanPause : media.CanPlay;
+        MediaNextButton.IsEnabled = media.CanNext;
+        MediaPlayPauseIcon.Text = media.IsPlaying ? "\uE769" : "\uE768";
+
+        var artwork = MediaArtwork.FromBytes(media.Thumbnail);
+        MediaArtworkImage.Source = artwork;
+        MediaArtworkImage.Visibility = artwork is null ? Visibility.Collapsed : Visibility.Visible;
+        MediaArtworkFallback.Visibility = artwork is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)
@@ -292,6 +327,27 @@ public partial class MainWindow : Window
         }
 
         WifiStateText.Text = await _wifi.ConnectAsync(network.Name);
+    }
+
+    private async void MediaPrevious_Click(object sender, RoutedEventArgs e)
+    {
+        await RunMediaActionAsync(_media.PreviousAsync);
+    }
+
+    private async void MediaPlayPause_Click(object sender, RoutedEventArgs e)
+    {
+        await RunMediaActionAsync(() => _media.TogglePlayPauseAsync(_mediaSnapshot));
+    }
+
+    private async void MediaNext_Click(object sender, RoutedEventArgs e)
+    {
+        await RunMediaActionAsync(_media.NextAsync);
+    }
+
+    private async Task RunMediaActionAsync(Func<Task> action)
+    {
+        await action();
+        await RefreshStatusAsync();
     }
 
     protected override void OnClosed(EventArgs e)
