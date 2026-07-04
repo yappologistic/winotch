@@ -37,37 +37,6 @@ public sealed class FileShelf
         return changed;
     }
 
-    public bool Remove(string path)
-    {
-        var normalized = NormalizePath(path);
-        if (normalized is null)
-        {
-            return false;
-        }
-
-        var index = _paths.FindIndex(item => string.Equals(item, normalized, StringComparison.OrdinalIgnoreCase));
-        if (index < 0)
-        {
-            return false;
-        }
-
-        _paths.RemoveAt(index);
-        return true;
-    }
-
-    public bool Clear()
-    {
-        if (_paths.Count == 0)
-        {
-            return false;
-        }
-
-        _paths.Clear();
-        return true;
-    }
-
-    public FileShelfSnapshot CreateSnapshot(int visibleLimit) => FileShelfSnapshot.Create(_paths, visibleLimit);
-
     private static string? NormalizePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -83,71 +52,6 @@ public sealed class FileShelf
         {
             return null;
         }
-    }
-}
-
-public sealed record FileShelfSnapshot(
-    IReadOnlyList<FileShelfTile> Tiles,
-    int TotalCount,
-    int OverflowCount)
-{
-    public bool HasItems => TotalCount > 0;
-
-    public static FileShelfSnapshot Create(IReadOnlyList<string> paths, int visibleLimit)
-    {
-        var limit = Math.Max(0, visibleLimit);
-        var tiles = paths.Take(limit).Select(FileShelfTile.FromPath).ToArray();
-        return new FileShelfSnapshot(tiles, paths.Count, Math.Max(0, paths.Count - limit));
-    }
-}
-
-public sealed record FileShelfTile(
-    string FullPath,
-    string DisplayName,
-    bool Exists,
-    bool IsDirectory)
-{
-    public static FileShelfTile FromPath(string path)
-    {
-        var isDirectory = Directory.Exists(path);
-        var exists = isDirectory || File.Exists(path);
-        return new FileShelfTile(
-            path,
-            FileShelfDisplay.NameFromPath(path),
-            exists,
-            isDirectory);
-    }
-}
-
-public static class FileShelfDisplay
-{
-    public const int DefaultMaxNameLength = 24;
-
-    public static string NameFromPath(string path)
-    {
-        var trimmed = path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        var name = Path.GetFileName(trimmed);
-        return TruncateName(string.IsNullOrWhiteSpace(name) ? path : name);
-    }
-
-    public static string TruncateName(string name, int maxLength = DefaultMaxNameLength)
-    {
-        var value = string.IsNullOrWhiteSpace(name) ? "Item" : name.Trim();
-        if (value.Length <= maxLength || maxLength < 8)
-        {
-            return value;
-        }
-
-        var extension = Path.GetExtension(value);
-        if (extension.Length is > 0 and <= 8 && maxLength > extension.Length + 4)
-        {
-            var prefixLength = maxLength - extension.Length - 3;
-            return string.Concat(value.AsSpan(0, prefixLength), "...", extension);
-        }
-
-        var headLength = (maxLength - 3) / 2;
-        var tailLength = maxLength - 3 - headLength;
-        return string.Concat(value.AsSpan(0, headLength), "...", value.AsSpan(value.Length - tailLength));
     }
 }
 

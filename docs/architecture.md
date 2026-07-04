@@ -149,7 +149,7 @@ When the camera mirror is open, `PriorityStatusTracker` suppresses the camera-ac
 
 Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI. The model is additive JSON: General, Toasts, Calendar, and Features groups normalize missing fields to defaults so older files keep working.
 
-Feature settings gate runtime work, not only visibility: shelf off ignores external file drops and hides shelf surfaces; clipboard off unregisters the Win32 listener; app mixer off skips audio-session enumeration; stats off stops sampling; follow-active-monitor off pins targeting to the primary monitor.
+Feature settings gate runtime work, not only visibility: shelf off ignores external file drops and hides the mini shelf badge; clipboard off unregisters the Win32 listener; app mixer off skips audio-session enumeration; stats off stops sampling; follow-active-monitor off pins targeting to the primary monitor.
 
 The tray surface is a WinForms `NotifyIcon` with Open Settings, Pause/Resume notch, Start with Windows, and Exit. Pause hides the overlay and releases any app-bar reservation; resume reapplies the detected shell mode. Exit is explicit from the tray so closing the settings window does not terminate the app.
 
@@ -171,7 +171,7 @@ The compact pill uses a deterministic priority: focus timer live activity wins, 
 
 The notch window accepts Explorer `CF_HDROP` file drags when the shelf feature is enabled. During drag enter/over, the normal expanded shell animation opens the notch and shows a highlighted drop target. Dropping stores only full paths in `FileShelf`, then persists them as JSON at `%LOCALAPPDATA%\Winotch\shelf.json` through `FileShelfStore`; missing or corrupt JSON falls back to an empty shelf.
 
-The expanded panel renders the shelf as horizontal tiles with shell icons from `SHGetFileInfo`, truncated display names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all button. Dragging a tile, or all existing shelf items, creates a WPF `DataObject` with `DataFormats.FileDrop` and calls `DragDrop.DoDragDrop` so Explorer, browsers, chat apps, and other Windows drop targets receive a real OS file drag. Dragging out does not remove shelf entries by default.
+When stored items exist, the mini notch shows a compact shelf count badge. The expanded panel does not render a shelf band.
 
 ## Test Strategy
 
@@ -186,7 +186,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
-- File shelf path de-duplication, JSON roundtrip and corrupt-file fallback, missing-file classification, deterministic display-name truncation, and visible-tile overflow.
+- File shelf path de-duplication, JSON roundtrip, and corrupt-file fallback.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.
 - System stats fixed windows, network delta/reset handling, byte/RAM formatting, and sparkline point mapping.
 - Camera mirror lifecycle transitions, cover/crop layout math, and self camera-alert suppression.

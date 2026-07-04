@@ -8,7 +8,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the a
 - Media: current Windows media session metadata, artwork, playback controls, and media-change toasts.
 - Notifications: Windows notification list, compact notification toasts, live action buttons when Windows exposes them, and OS quiet-state suppression.
 - Priority alerts: low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, microphone/camera activity, and focus completion toasts.
-- File shelf: drag files/folders into the notch, persist full paths, remove/clear items, and drag one or all shelved files back out.
+- File shelf: drag files/folders into the notch, persist full paths, and show a compact count badge in the mini notch.
 - Control center: output device switching, master volume, optional per-app mixer, microphone mute, brightness controls, and Wi-Fi profile connect.
 - Focus timer: 25/5, 50/10, or custom focus sessions with pause/resume/skip/stop, auto-cycle, persistence, and compact live state.
 - Clipboard history: in-memory text/link/image/file capture with privacy-format exclusions, thumbnail-only image storage, copy/delete/clear, and no disk persistence.
@@ -58,7 +58,7 @@ The Calendar settings group accepts one or more `webcal://`, `https://`, or `htt
 
 The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable shelf drag-in, clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
 
-Drag files or folders from Explorer onto the notch to place their full paths on the shelf. The expanded panel shows shelved items with shell icons, truncated names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all affordance. Drag an item, or all existing items, back out to Explorer or another app to start a normal Windows file drop. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
+Drag files or folders from Explorer onto the notch to place their full paths on the shelf. A compact badge on the mini notch shows the shelved item count when items are present. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
 
 Charger-connect priority toasts add a compact green battery-fill flourish with a prominent percent readout. Charger disconnect keeps the existing quieter status toast.
 
@@ -74,7 +74,7 @@ Run the full regression suite before sharing a build:
 dotnet test
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats ring buffers/rate math/formatting/sparkline mapping, file shelf model/persistence/display behavior, camera mirror lifecycle/layout/suppression behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats ring buffers/rate math/formatting/sparkline mapping, file shelf model/persistence behavior, camera mirror lifecycle/layout/suppression behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 Charging flourish tests cover reusable fill-width math, animation parameter derivation, charger-alert mapping, full and low-percent edge cases, and existing low-battery queue ordering.
 

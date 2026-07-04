@@ -701,7 +701,7 @@ public class StatusShellTests
     public void ShellMetricsFitWithinNarrowMonitorWidths()
     {
         Assert.Equal(new ShellGeometry(200, 44, 52, 0), ShellMetrics.ForMode(isFullBar: false, screenWidth: 200));
-        Assert.Equal(new ShellGeometry(800, 560, 620, 0), ShellMetrics.Expanded(800));
+        Assert.Equal(new ShellGeometry(800, 480, 540, 0), ShellMetrics.Expanded(800));
         Assert.Equal(new ShellGeometry(400, 68, 76, 0), ShellMetrics.MediaToast(400));
         Assert.Equal(new ShellGeometry(0, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: -1));
     }
