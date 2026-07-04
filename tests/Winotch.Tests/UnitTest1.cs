@@ -316,21 +316,34 @@ public class StatusParsingTests
     }
 
     [Theory]
-    [InlineData("", "", false, "Unknown title", "Unknown artist")]
-    [InlineData("Song", "", true, "Song", "Unknown artist")]
-    [InlineData("  Song  ", "  Artist  ", true, "Song", "Artist")]
+    [InlineData("", "", "", false, "Now playing", "Unknown artist")]
+    [InlineData("", "", "MediaHost.exe", true, "Now playing", "Media Host")]
+    [InlineData("Song", "", "Brave", true, "Song", "Brave")]
+    [InlineData("  Song  ", "  Artist  ", "Brave", true, "Song", "Artist")]
     public void MediaSnapshotFormatsDisplayTextAndPresence(
         string title,
         string artist,
+        string source,
         bool hasMedia,
         string expectedTitle,
         string expectedArtist)
     {
-        var snapshot = new MediaSnapshot(title, artist, null, MediaState.Playing, true, true, true, true);
+        var state = hasMedia ? MediaState.Playing : MediaState.None;
+        var snapshot = new MediaSnapshot(title, artist, source, null, state, false, false, false, false);
 
         Assert.Equal(hasMedia, snapshot.HasMedia);
         Assert.Equal(expectedTitle, snapshot.DisplayTitle);
         Assert.Equal(expectedArtist, snapshot.DisplayArtist);
+    }
+
+    [Theory]
+    [InlineData("AppleInc.AppleMusicWin_nzyj5cx40ttqa!App", "Apple Music")]
+    [InlineData("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic", "Zune Music")]
+    [InlineData("brave.exe", "brave")]
+    [InlineData("", "Unknown artist")]
+    public void MediaSnapshotFormatsSourceForDisplay(string source, string expected)
+    {
+        Assert.Equal(expected, MediaSnapshot.FormatSource(source));
     }
 
     [Fact]
@@ -439,5 +452,5 @@ public class StatusParsingTests
     }
 
     private static MediaSnapshot Media(string title, string artist, MediaState state) =>
-        new(title, artist, null, state, true, true, true, true);
+        new(title, artist, "Brave", null, state, true, true, true, true);
 }

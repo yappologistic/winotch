@@ -19,7 +19,6 @@ public partial class MainWindow : Window
     private readonly MediaService _media = new();
     private readonly MediaChangeTracker _mediaChanges = new();
     private readonly AppBarReservationService _appBar = new();
-    private MediaSnapshot _mediaSnapshot = MediaSnapshot.Empty;
     private bool _expanded;
     private bool _updatingVolume;
     private int _animationFrameRate = 60;
@@ -112,7 +111,6 @@ public partial class MainWindow : Window
 
     private void ApplyMedia(MediaSnapshot media)
     {
-        _mediaSnapshot = media;
         MediaPanel.Visibility = media.HasMedia ? Visibility.Visible : Visibility.Collapsed;
         NotificationList.Height = media.HasMedia ? 56 : 110;
         if (!media.HasMedia)
@@ -336,7 +334,7 @@ public partial class MainWindow : Window
 
     private async void MediaPlayPause_Click(object sender, RoutedEventArgs e)
     {
-        await RunMediaActionAsync(() => _media.TogglePlayPauseAsync(_mediaSnapshot));
+        await RunMediaActionAsync(_media.TogglePlayPauseAsync);
     }
 
     private async void MediaNext_Click(object sender, RoutedEventArgs e)

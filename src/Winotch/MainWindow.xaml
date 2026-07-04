@@ -132,13 +132,13 @@
                                 <TextBlock x:Name="MediaTitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                 <TextBlock x:Name="MediaArtistText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,7" />
                                 <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="MediaPreviousButton" Style="{StaticResource MediaIconButton}" ToolTip="Previous" Click="MediaPrevious_Click">
+                                    <Button x:Name="MediaPreviousButton" Style="{StaticResource MediaIconButton}" ToolTip="Previous" AutomationProperties.Name="Previous track" Click="MediaPrevious_Click">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE100;" FontSize="14" />
                                     </Button>
-                                    <Button x:Name="MediaPlayPauseButton" Style="{StaticResource MediaIconButton}" ToolTip="Play or pause" Click="MediaPlayPause_Click">
+                                    <Button x:Name="MediaPlayPauseButton" Style="{StaticResource MediaIconButton}" ToolTip="Play or pause" AutomationProperties.Name="Play or pause media" Click="MediaPlayPause_Click">
                                         <TextBlock x:Name="MediaPlayPauseIcon" Style="{StaticResource IconText}" Text="&#xE768;" FontSize="14" />
                                     </Button>
-                                    <Button x:Name="MediaNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" Click="MediaNext_Click">
+                                    <Button x:Name="MediaNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" AutomationProperties.Name="Next track" Click="MediaNext_Click">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE101;" FontSize="14" />
                                     </Button>
                                 </StackPanel>

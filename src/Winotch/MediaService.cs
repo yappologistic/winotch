@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Windows.Media.Control;
@@ -16,6 +17,7 @@ public enum MediaState
 public sealed record MediaSnapshot(
     string Title,
     string Artist,
+    string Source,
     byte[]? Thumbnail,
     MediaState State,
     bool CanPrevious,
@@ -23,13 +25,45 @@ public sealed record MediaSnapshot(
     bool CanPause,
     bool CanNext)
 {
-    public static readonly MediaSnapshot Empty = new("", "", null, MediaState.None, false, false, false, false);
+    public static readonly MediaSnapshot Empty = new("", "", "", null, MediaState.None, false, false, false, false);
 
-    public bool HasMedia => !string.IsNullOrWhiteSpace(Title) || !string.IsNullOrWhiteSpace(Artist);
+    public bool HasMedia =>
+        State != MediaState.None ||
+        CanPrevious ||
+        CanPlay ||
+        CanPause ||
+        CanNext ||
+        !string.IsNullOrWhiteSpace(Title) ||
+        !string.IsNullOrWhiteSpace(Artist) ||
+        !string.IsNullOrWhiteSpace(Source);
     public bool IsPlaying => State == MediaState.Playing;
-    public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "Unknown title" : Title.Trim();
-    public string DisplayArtist => string.IsNullOrWhiteSpace(Artist) ? "Unknown artist" : Artist.Trim();
-    public string Signature => $"{DisplayTitle}\u001f{DisplayArtist}";
+    public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "Now playing" : Title.Trim();
+    public string DisplayArtist => string.IsNullOrWhiteSpace(Artist) ? DisplaySource : Artist.Trim();
+    public string DisplaySource => FormatSource(Source);
+    public string Signature => $"{DisplayTitle}\u001f{DisplayArtist}\u001f{State}";
+
+    public static string FormatSource(string source)
+    {
+        var value = source.Trim();
+        if (value.Length == 0)
+        {
+            return "Unknown artist";
+        }
+
+        value = value.Split('!')[0].Split('_')[0];
+        if (value.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        {
+            value = Path.GetFileNameWithoutExtension(value);
+        }
+
+        value = value.Split('.', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? value;
+        if (value.EndsWith("Win", StringComparison.OrdinalIgnoreCase))
+        {
+            value = value[..^3];
+        }
+
+        return Regex.Replace(value, "(?<=[a-z])(?=[A-Z])", " ");
+    }
 }
 
 public sealed class MediaChangeTracker
@@ -72,6 +106,7 @@ public sealed class MediaService
             return new MediaSnapshot(
                 properties.Title,
                 properties.Artist,
+                session.SourceAppUserModelId,
                 await ReadThumbnailAsync(properties.Thumbnail),
                 ToState(playback.PlaybackStatus),
                 controls.IsPreviousEnabled,
@@ -85,7 +120,7 @@ public sealed class MediaService
         }
     }
 
-    public async Task TogglePlayPauseAsync(MediaSnapshot current)
+    public async Task TogglePlayPauseAsync()
     {
         var session = await GetSessionAsync();
         if (session is null)
@@ -93,7 +128,7 @@ public sealed class MediaService
             return;
         }
 
-        if (current.IsPlaying)
+        if (ToState(session.GetPlaybackInfo().PlaybackStatus) == MediaState.Playing)
         {
             await session.TryPauseAsync();
         }
