@@ -680,6 +680,15 @@ public class StatusParsingTests
         Assert.True(expanded.WindowHeight > expanded.ShellHeight);
     }
 
+    [Fact]
+    public void ShellMetricsFitWithinNarrowMonitorWidths()
+    {
+        Assert.Equal(new ShellGeometry(200, 44, 52, 0), ShellMetrics.ForMode(isFullBar: false, screenWidth: 200));
+        Assert.Equal(new ShellGeometry(800, 560, 620, 0), ShellMetrics.Expanded(800));
+        Assert.Equal(new ShellGeometry(400, 68, 76, 0), ShellMetrics.MediaToast(400));
+        Assert.Equal(new ShellGeometry(0, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: -1));
+    }
+
     [Theory]
     [InlineData(1920, 1.0, 1920)]
     [InlineData(1920, 1.5, 1280)]

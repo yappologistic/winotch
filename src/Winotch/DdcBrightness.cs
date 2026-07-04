@@ -14,12 +14,7 @@ internal static class DdcBrightness
         {
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr monitor, IntPtr _, ref NativeRect _, IntPtr _) =>
             {
-                foreach (var display in ReadPhysicalMonitors(monitor, ordinal))
-                {
-                    displays.Add(display);
-                    ordinal++;
-                }
-
+                ordinal = AddPhysicalMonitorDisplays(monitor, ordinal, displays);
                 return true;
             }, IntPtr.Zero);
         }
@@ -66,18 +61,17 @@ internal static class DdcBrightness
         }
     }
 
-    private static IEnumerable<BrightnessDisplay> ReadPhysicalMonitors(IntPtr monitor, int firstOrdinal)
+    private static int AddPhysicalMonitorDisplays(IntPtr monitor, int firstOrdinal, List<BrightnessDisplay> displays)
     {
-        var displays = new List<BrightnessDisplay>();
         if (!GetNumberOfPhysicalMonitorsFromHMONITOR(monitor, out var count) || count == 0)
         {
-            return displays;
+            return firstOrdinal;
         }
 
         var physical = new PhysicalMonitor[count];
         if (!GetPhysicalMonitorsFromHMONITOR(monitor, count, physical))
         {
-            return displays;
+            return firstOrdinal;
         }
 
         try
@@ -106,7 +100,7 @@ internal static class DdcBrightness
             DestroyPhysicalMonitors(count, physical);
         }
 
-        return displays;
+        return firstOrdinal + physical.Length;
     }
 
     private static void WithPhysicalMonitors(IntPtr monitor, Action<PhysicalMonitor[]> action)

@@ -109,7 +109,12 @@ public sealed class RegistryRunKeyStore : IRunKeyStore
     public void Write(string name, string value)
     {
         using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath, writable: true);
-        key?.SetValue(name, value, RegistryValueKind.String);
+        if (key is null)
+        {
+            throw new IOException("Unable to open the Windows startup registry key.");
+        }
+
+        key.SetValue(name, value, RegistryValueKind.String);
     }
 
     public void Delete(string name)

@@ -20,9 +20,16 @@ public static class NotificationSilenceService
 
     public static bool IsSilenced()
     {
-        var value = Registry.GetValue(SettingsKey, "NOC_GLOBAL_SETTING_TOASTS_ENABLED", null);
-        return IsGloballySilenced(value as int?) ||
-            (TryGetShellNotificationState(out var state) && IsShellNotificationSuppressed(state));
+        try
+        {
+            var value = Registry.GetValue(SettingsKey, "NOC_GLOBAL_SETTING_TOASTS_ENABLED", null);
+            return IsGloballySilenced(value as int?) ||
+                (TryGetShellNotificationState(out var state) && IsShellNotificationSuppressed(state));
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     public static bool IsGloballySilenced(int? globalToastsEnabled) => globalToastsEnabled == 0;

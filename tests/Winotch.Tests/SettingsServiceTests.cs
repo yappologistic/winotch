@@ -196,6 +196,18 @@ public class SettingsServiceTests
         Assert.True(state.CanAccess);
     }
 
+    [Fact]
+    public void StartupServiceReportsRunKeyWriteFailure()
+    {
+        var service = new StartupService(new FakeRunKeyStore { ThrowOnWrite = true });
+
+        var state = service.SetEnabled(true, @"C:\Program Files\Winotch\Winotch.exe");
+
+        Assert.False(state.IsEnabled);
+        Assert.False(state.CanAccess);
+        Assert.NotNull(state.ErrorMessage);
+    }
+
     private sealed class TempSettingsDirectory : IDisposable
     {
         public TempSettingsDirectory()
@@ -223,11 +235,17 @@ public class SettingsServiceTests
     private sealed class FakeRunKeyStore : IRunKeyStore
     {
         public string? Value { get; set; }
+        public bool ThrowOnWrite { get; set; }
 
         public string? Read(string name) => Value;
 
         public void Write(string name, string value)
         {
+            if (ThrowOnWrite)
+            {
+                throw new IOException("denied");
+            }
+
             Value = value;
         }
 

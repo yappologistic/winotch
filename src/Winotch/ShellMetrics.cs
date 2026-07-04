@@ -21,14 +21,15 @@ public static class ShellMetrics
     public const double ExpandedShellHeight = 560;
     public const double ExpandedWindowHeight = 620;
 
-    public static double CenterLeft(double screenWidth, double width) => (screenWidth - width) / 2;
+    public static double CenterLeft(double screenWidth, double width) =>
+        Math.Max(0, (screenWidth - width) / 2);
 
     public static double ToDeviceIndependentWidth(double physicalScreenWidth, double dpiScale) =>
         physicalScreenWidth / (dpiScale > 0 ? dpiScale : 1);
 
     public static ShellGeometry ForMode(bool isFullBar, double screenWidth)
     {
-        var width = isFullBar ? screenWidth : MiniWidth;
+        var width = isFullBar ? Math.Max(0, screenWidth) : FitWidth(MiniWidth, screenWidth);
         return new ShellGeometry(
             width,
             isFullBar ? FullBarShellHeight : MiniShellHeight,
@@ -36,15 +37,18 @@ public static class ShellMetrics
             isFullBar ? 0 : CenterLeft(screenWidth, width));
     }
 
-    public static ShellGeometry Expanded(double screenWidth) => new(
-        ExpandedWidth,
-        ExpandedShellHeight,
-        ExpandedWindowHeight,
-        CenterLeft(screenWidth, ExpandedWidth));
+    public static ShellGeometry Expanded(double screenWidth)
+    {
+        var width = FitWidth(ExpandedWidth, screenWidth);
+        return new ShellGeometry(width, ExpandedShellHeight, ExpandedWindowHeight, CenterLeft(screenWidth, width));
+    }
 
-    public static ShellGeometry MediaToast(double screenWidth) => new(
-        MediaToastWidth,
-        MediaToastShellHeight,
-        MediaToastWindowHeight,
-        CenterLeft(screenWidth, MediaToastWidth));
+    public static ShellGeometry MediaToast(double screenWidth)
+    {
+        var width = FitWidth(MediaToastWidth, screenWidth);
+        return new ShellGeometry(width, MediaToastShellHeight, MediaToastWindowHeight, CenterLeft(screenWidth, width));
+    }
+
+    private static double FitWidth(double width, double screenWidth) =>
+        Math.Max(0, Math.Min(width, screenWidth));
 }

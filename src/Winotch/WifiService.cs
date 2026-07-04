@@ -136,14 +136,7 @@ public sealed class WifiService
             process.StartInfo.ArgumentList.Add(argument);
         }
 
-        process.StartInfo.UseShellExecute = false;
-        process.StartInfo.RedirectStandardOutput = true;
-        process.StartInfo.RedirectStandardError = true;
-        process.StartInfo.CreateNoWindow = true;
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        return output;
+        return await RunProcessAsync(process);
     }
 
     private static async Task<string> RunPowerShellAsync(string command)
@@ -153,14 +146,28 @@ public sealed class WifiService
         process.StartInfo.ArgumentList.Add("-NoProfile");
         process.StartInfo.ArgumentList.Add("-Command");
         process.StartInfo.ArgumentList.Add(command);
+        return await RunProcessAsync(process);
+    }
+
+    private static async Task<string> RunProcessAsync(Process process)
+    {
         process.StartInfo.UseShellExecute = false;
         process.StartInfo.RedirectStandardOutput = true;
         process.StartInfo.RedirectStandardError = true;
         process.StartInfo.CreateNoWindow = true;
-        process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync();
-        await process.WaitForExitAsync();
-        return output;
+        try
+        {
+            process.Start();
+            var output = process.StandardOutput.ReadToEndAsync();
+            var error = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            await error;
+            return await output;
+        }
+        catch
+        {
+            return "";
+        }
     }
 }
 
