@@ -55,14 +55,14 @@ public static class CameraMirrorLifecycle
 
 public static class CameraMirrorLayout
 {
-    public static WpfRect AspectFit(WpfSize source, WpfSize bounds)
+    public static WpfRect Cover(WpfSize source, WpfSize bounds)
     {
         if (source.Width <= 0 || source.Height <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
         {
             return WpfRect.Empty;
         }
 
-        var scale = Math.Min(bounds.Width / source.Width, bounds.Height / source.Height);
+        var scale = Math.Max(bounds.Width / source.Width, bounds.Height / source.Height);
         var width = source.Width * scale;
         var height = source.Height * scale;
         return new WpfRect(

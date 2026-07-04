@@ -144,7 +144,7 @@ public partial class CameraMirrorWindow : Window
 
     private void ApplyPreviewLayout()
     {
-        var placement = CameraMirrorLayout.AspectFit(
+        var placement = CameraMirrorLayout.Cover(
             _frameSize,
             new WpfSize(PreviewViewport.ActualWidth, PreviewViewport.ActualHeight));
         if (placement.IsEmpty)

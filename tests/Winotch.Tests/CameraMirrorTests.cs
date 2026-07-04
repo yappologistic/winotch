@@ -56,10 +56,10 @@ public class CameraMirrorTests
     }
 
     [Theory]
-    [InlineData(1920, 1080, 320, 240, 320, 180, 0, 30)]
-    [InlineData(1280, 720, 240, 320, 240, 135, 0, 92.5)]
-    [InlineData(1080, 1920, 320, 240, 135, 240, 92.5, 0)]
-    public void AspectFitLetterboxesWithoutStretching(
+    [InlineData(1920, 1080, 320, 240, 426.67, 240, -53.33, 0)]
+    [InlineData(1280, 720, 240, 320, 568.89, 320, -164.44, 0)]
+    [InlineData(1080, 1920, 320, 240, 320, 568.89, 0, -164.44)]
+    public void CoverFillsViewportWithoutLetterboxing(
         double sourceWidth,
         double sourceHeight,
         double boundsWidth,
@@ -69,7 +69,7 @@ public class CameraMirrorTests
         double expectedX,
         double expectedY)
     {
-        var placement = CameraMirrorLayout.AspectFit(
+        var placement = CameraMirrorLayout.Cover(
             new WpfSize(sourceWidth, sourceHeight),
             new WpfSize(boundsWidth, boundsHeight));
 
@@ -80,9 +80,9 @@ public class CameraMirrorTests
     }
 
     [Fact]
-    public void AspectFitReturnsEmptyForUnavailableDimensions()
+    public void CoverReturnsEmptyForUnavailableDimensions()
     {
-        var placement = CameraMirrorLayout.AspectFit(
+        var placement = CameraMirrorLayout.Cover(
             new WpfSize(0, 1080),
             new WpfSize(320, 240));
 
