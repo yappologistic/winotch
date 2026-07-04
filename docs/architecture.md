@@ -8,17 +8,19 @@ flowchart TD
     Window --> Clock["Clock Timer"]
     Window --> Status["Status Timer"]
     Status --> Battery["Windows Power Status"]
-    Status --> Audio["Core Audio Endpoint Volume"]
+    Status --> Audio["Core Audio Endpoints and Sessions"]
     Status --> Media["Windows Media Sessions"]
     Status --> Wifi["netsh wlan"]
     Status --> Notifications["UserNotificationListener"]
     Status --> Priority["Priority Status Alerts"]
+    Status --> Brightness["WMI and DDC/CI Brightness"]
     Battery --> Window
     Audio --> Window
     Media --> Window
     Wifi --> Window
     Notifications --> Window
     Priority --> Window
+    Brightness --> Window
 ```
 
 ## UI System
@@ -34,7 +36,7 @@ flowchart LR
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
     Expanded --> Notifications["Notifications"]
-    Expanded --> Controls["Volume and Wi-Fi Controls"]
+    Expanded --> Controls["Control Center"]
 ```
 
 ## Design Tokens
@@ -70,6 +72,12 @@ Foreground detection uses Win32 window bounds/window placement and falls back to
 
 Winotch reads the focused Windows system media transport session through `GlobalSystemMediaTransportControlsSessionManager`. The expanded capsule keeps artwork, title, artist, and previous/play-pause/next controls. New playing tracks also show a brief compact toast with the same controls, then return to the normal mini/full-bar shell so fullscreen apps are not covered by the full expanded capsule.
 
+## Control Center
+
+The expanded panel control center is backed by small services around Windows APIs. `AudioDeviceService` enumerates active render endpoints, marks the current default, and switches all default roles through PolicyConfig. `AudioService` re-resolves cached endpoints when the system default changes so the master slider follows the newly selected output. `AudioSessionService` reads active render sessions through `IAudioSessionManager2`, resolves app labels from process metadata and session fallbacks, and applies per-session volume/mute through `ISimpleAudioVolume`.
+
+The microphone row toggles mute on the default capture endpoint and shares the same privacy active-use signal used by priority status alerts. Brightness uses WMI for internal panels and DDC/CI for external monitors; unsupported or failing monitors are omitted, and writes run off the UI thread through the debounced control-center writer.
+
 ## Notifications
 
 Winotch reads notification history through `UserNotificationListener` when Windows grants access and also watches live Windows toast windows through UI Automation in unpackaged builds. New unsilenced notifications show a compact toast with app/sender text, message body, time, app icon when available, and up to two live action buttons when Windows exposes invokable toast actions. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
@@ -87,6 +95,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
+- Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.
 - Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot force full-bar mode.
 - App-bar DIP-to-physical-pixel conversion across DPI scales.

@@ -7,7 +7,8 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the p
 - C# WPF on `net8.0-windows10.0.19041.0`
 - Transparent, topmost desktop window for the notch shell
 - Windows Forms power status for battery
-- Core Audio COM interop for system volume
+- Core Audio COM interop for master volume, per-app audio sessions, output device switching, and default microphone mute
+- WMI and DDC/CI monitor APIs for brightness controls when hardware exposes them
 - Windows system media transport controls for current audio metadata, artwork, and playback actions
 - `netsh wlan` for Wi-Fi status, network listing, and saved-profile connect attempts
 - `UserNotificationListener` for Windows toast notification access when the OS grants permission
@@ -29,7 +30,7 @@ From the repository root:
 dotnet run --project src/Winotch/Winotch.csproj
 ```
 
-Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 ## Test
 
@@ -39,7 +40,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, priority status alert transitions, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Install
 
