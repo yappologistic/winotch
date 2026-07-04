@@ -155,6 +155,39 @@
                         <TextBlock x:Name="LargeDateText" FontSize="14" Foreground="{StaticResource NotchMutedText}" />
                         <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Margin="0,16,0,8" Maximum="100" />
                         <TextBlock x:Name="BatteryDetailText" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
+                        <StackPanel x:Name="SystemStatsSection" Margin="0,16,0,0" Visibility="Collapsed" SnapsToDevicePixels="True">
+                            <TextBlock Text="Stats" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                            <Grid x:Name="StatsCpuRow" Height="23" Margin="0,7,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="126" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="CPU" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsCpuValueText" Grid.Column="1" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                                <local:SparklineControl x:Name="StatsCpuSparkline" Grid.Column="2" Height="18" Stroke="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid x:Name="StatsRamRow" Height="23" Margin="0,4,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="126" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="RAM" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsRamValueText" Grid.Column="1" FontSize="11" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                                <local:SparklineControl x:Name="StatsRamSparkline" Grid.Column="2" Height="18" Stroke="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid x:Name="StatsNetRow" Height="23" Margin="0,4,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="32" />
+                                    <ColumnDefinition Width="148" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Net" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsNetValueText" Grid.Column="1" FontSize="10" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                                <local:SparklineControl x:Name="StatsNetSparkline" Grid.Column="2" Height="18" Stroke="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
                         <local:ClipboardHistoryPanel x:Name="ClipboardPanel" Margin="0,18,0,0" />
                     </StackPanel>
 

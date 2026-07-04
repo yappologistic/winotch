@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Resource Include="Resources\WinotchTray.ico" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     <PackageReference Include="System.Management" Version="8.0.0" />
   </ItemGroup>
 

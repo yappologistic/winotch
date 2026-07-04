@@ -22,6 +22,7 @@ flowchart TD
     Window --> Focus["Focus Timer State + JSON Store"]
     Window --> Shelf["File Shelf JSON Store"]
     Status --> Brightness["WMI and DDC/CI Brightness"]
+    Window --> Stats["Expanded-Only System Stats Sampler"]
     Battery --> Window
     Audio --> Window
     Media --> Window
@@ -32,6 +33,7 @@ flowchart TD
     Focus --> Window
     Shelf --> Window
     Brightness --> Window
+    Stats --> Window
 ```
 
 ## UI System
@@ -51,6 +53,7 @@ flowchart LR
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Control Center"]
     Expanded --> Clipboard["Clipboard History"]
+    Expanded --> Stats["CPU/RAM/Network Sparklines"]
     Expanded --> Shelf["File Shelf"]
 ```
 
@@ -93,6 +96,12 @@ Winotch reads the focused Windows system media transport session through `Global
 The expanded panel control center is backed by small services around Windows APIs. `AudioDeviceService` enumerates active render endpoints, marks the current default, and switches all default roles through PolicyConfig. `AudioService` re-resolves cached endpoints when the system default changes so the master slider follows the newly selected output. `AudioSessionService` reads active render sessions through `IAudioSessionManager2`, resolves app labels from process metadata and session fallbacks, and applies per-session volume/mute through `ISimpleAudioVolume`.
 
 The microphone row toggles mute on the default capture endpoint and shares the same privacy active-use signal used by priority status alerts. Brightness uses WMI for internal panels and DDC/CI for external monitors; unsupported or failing monitors are omitted, and writes run off the UI thread through the debounced control-center writer.
+
+## System Stats
+
+The expanded System column includes compact CPU, RAM, and network rows with 60-sample sparklines. `SystemStatsService` owns the session: expanding the notch creates and primes the CPU performance counter, resets RAM/network sample buffers, and starts one-second reads; collapsing, pausing, or closing stops the timer and disposes the counter so the resting notch performs no stats polling.
+
+CPU uses `Processor Information\% Processor Utility\_Total` with `Processor\% Processor Time\_Total` fallback. RAM reads `GlobalMemoryStatusEx`. Network rates sum deltas from active physical adapters and treat missing, new, or reset counters as zero for that sample. Counter creation/read failures hide the affected row instead of crashing the shell.
 
 ## Notifications
 
@@ -140,6 +149,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
 - File shelf path de-duplication, JSON roundtrip and corrupt-file fallback, missing-file classification, deterministic display-name truncation, and visible-tile overflow.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.
+- System stats fixed windows, network delta/reset handling, byte/RAM formatting, and sparkline point mapping.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.
 - Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot force full-bar mode.
 - App-bar DIP-to-physical-pixel conversion across DPI scales.

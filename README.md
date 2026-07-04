@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, Windows notifications, a persistent focus timer, and a file shelf in a compact black shell that expands on hover. Media track changes, unsilenced Windows notifications, focus phase completions, and priority system status changes use brief compact toasts.
+Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, Windows notifications, CPU/RAM/network stats, a persistent focus timer, and a file shelf in a compact black shell that expands on hover. Media track changes, unsilenced Windows notifications, focus phase completions, and priority system status changes use brief compact toasts.
 
 ## Stack
 
@@ -14,6 +14,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the p
 - `UserNotificationListener` for Windows toast notification access when the OS grants permission
 - Windows Bluetooth and privacy status APIs for connected-device and mic/camera alerts
 - Win32 clipboard format listener for the expanded-panel clipboard history
+- Windows performance counters, memory status, and network interface counters for expanded-panel system stats
 
 WPF is the first implementation because it gives direct transparent-window and desktop interop support with a simple CLI build/run loop.
 
@@ -37,6 +38,8 @@ The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Win
 
 Drag files or folders from Explorer onto the notch to place their full paths on the shelf. The expanded panel shows shelved items with shell icons, truncated names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all affordance. Drag an item, or all existing items, back out to Explorer or another app to start a normal Windows file drop. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
 
+The expanded System column shows compact CPU, RAM, and network sparklines. Sampling starts only while the expanded panel is visible and stops again on collapse.
+
 ## Test
 
 Run the full regression suite before sharing a build:
@@ -45,7 +48,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, file shelf model/persistence/display behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats ring buffers/rate math/formatting/sparkline mapping, file shelf model/persistence/display behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Clipboard History
 
