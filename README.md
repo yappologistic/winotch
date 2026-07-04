@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, and Windows notifications in a compact black shell that expands on hover. Media track changes, unsilenced Windows notifications, and priority system status changes use brief compact toasts.
+Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, Windows notifications, and a file shelf in a compact black shell that expands on hover. Media track changes, unsilenced Windows notifications, and priority system status changes use brief compact toasts.
 
 ## Stack
 
@@ -31,6 +31,8 @@ dotnet run --project src/Winotch/Winotch.csproj
 
 Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
+Drag files or folders from Explorer onto the notch to place their full paths on the shelf. The expanded panel shows shelved items with shell icons, truncated names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all affordance. Drag an item, or all existing items, back out to Explorer or another app to start a normal Windows file drop. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
+
 ## Test
 
 Run the full regression suite before sharing a build:
@@ -39,7 +41,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, priority status alert transitions, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, priority status alert transitions, file shelf model/persistence/display behavior, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Install
 

@@ -35,6 +35,7 @@ flowchart LR
     Shell --> NotificationToast["Compact Notification/Status Toast"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Volume and Wi-Fi Controls"]
+    Expanded --> Shelf["File Shelf"]
 ```
 
 ## Design Tokens
@@ -78,6 +79,12 @@ Winotch reads notification history through `UserNotificationListener` when Windo
 
 Priority status alerts reuse the compact notification toast surface for system events that should be glanceable without opening the full capsule: low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activation. Battery and Wi-Fi reuse the existing status reads. Bluetooth uses the native Windows Bluetooth device enumeration API, while mic/camera activity comes from Windows privacy usage registry state. The tracker suppresses routine first-run connection state and repeated low-battery spam, but queues simultaneous critical alerts such as camera, microphone, and low battery.
 
+## File Shelf
+
+The notch window accepts Explorer `CF_HDROP` file drags. During drag enter/over, the normal expanded shell animation opens the notch and shows a highlighted drop target. Dropping stores only full paths in `FileShelf`, then persists them as JSON at `%LOCALAPPDATA%\Winotch\shelf.json` through `FileShelfStore`; missing or corrupt JSON falls back to an empty shelf.
+
+The expanded panel renders the shelf as horizontal tiles with shell icons from `SHGetFileInfo`, truncated display names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all button. Dragging a tile, or all existing shelf items, creates a WPF `DataObject` with `DataFormats.FileDrop` and calls `DragDrop.DoDragDrop` so Explorer, browsers, chat apps, and other Windows drop targets receive a real OS file drag. Dragging out does not remove shelf entries by default.
+
 ## Test Strategy
 
 The automated suite focuses on deterministic logic that would otherwise surface as visual bugs:
@@ -87,6 +94,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
+- File shelf path de-duplication, JSON roundtrip and corrupt-file fallback, missing-file classification, deterministic display-name truncation, and visible-tile overflow.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.
 - Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot force full-bar mode.
 - App-bar DIP-to-physical-pixel conversion across DPI scales.
