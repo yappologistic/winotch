@@ -46,14 +46,7 @@ public static class ForegroundWindowService
             return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: false);
         }
 
-        if (!TryGetMonitorRects(candidate, out var monitorRect, out var workAreaRect))
-        {
-            return new ForegroundWindowSnapshot(ShellMode.Mini, windowRect, UseCursorMonitor: false);
-        }
-
-        var placement = new WindowPlacement { Length = Marshal.SizeOf<WindowPlacement>() };
-        var isMaximized = GetWindowPlacement(candidate, ref placement) && placement.ShowCmd == 3;
-        var mode = DecideMode(isOwnWindow, IsShellClass(className), isMaximized, windowRect, monitorRect, workAreaRect);
+        var mode = DecideMode(isOwnWindow, IsShellClass(className), isMaximized: false, windowRect, default, default);
         return new ForegroundWindowSnapshot(mode, windowRect, UseCursorMonitor: false);
     }
 
@@ -63,23 +56,7 @@ public static class ForegroundWindowService
         bool isMaximized,
         NativeRect windowRect,
         NativeRect monitorRect,
-        NativeRect workAreaRect)
-    {
-        if (isOwnWindow || isShell)
-        {
-            return ShellMode.Mini;
-        }
-
-        var widthCoverage = (double)windowRect.Width / Math.Max(1, monitorRect.Width);
-        var screenHeightCoverage = (double)windowRect.Height / Math.Max(1, monitorRect.Height);
-        var workAreaHeightCoverage = (double)windowRect.Height / Math.Max(1, workAreaRect.Height);
-        var coversTop = windowRect.Top <= monitorRect.Top + 8;
-        var fillsWorkAreaTop = Math.Abs(windowRect.Top - workAreaRect.Top) <= 8;
-        var fillsScreen = widthCoverage >= 0.9 && screenHeightCoverage >= 0.78 && coversTop;
-        var fillsWorkArea = widthCoverage >= 0.9 && workAreaHeightCoverage >= 0.78 && fillsWorkAreaTop;
-
-        return isMaximized || fillsScreen || fillsWorkArea ? ShellMode.FullBar : ShellMode.Mini;
-    }
+        NativeRect workAreaRect) => ShellMode.Mini;
 
     public static bool IsCandidateAppWindow(
         bool isVisible,
@@ -95,22 +72,6 @@ public static class ForegroundWindowService
         !isCloaked &&
         rect.Width > 160 &&
         rect.Height > 120;
-
-    private static bool TryGetMonitorRects(IntPtr window, out NativeRect monitorRect, out NativeRect workAreaRect)
-    {
-        var monitor = MonitorFromWindow(window, 2);
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-        if (!GetMonitorInfo(monitor, ref info))
-        {
-            monitorRect = default;
-            workAreaRect = default;
-            return false;
-        }
-
-        monitorRect = info.Monitor;
-        workAreaRect = info.WorkArea;
-        return true;
-    }
 
     private static bool TryFindTopLevelAppWindow(out IntPtr window)
     {
@@ -178,15 +139,6 @@ public static class ForegroundWindowService
     private static extern bool GetWindowRect(IntPtr hWnd, out NativeRect rect);
 
     [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
-
-    [DllImport("user32.dll")]
-    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
-
-    [DllImport("user32.dll")]
-    private static extern bool GetWindowPlacement(IntPtr hWnd, ref WindowPlacement placement);
-
-    [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
 
     [DllImport("user32.dll")]
@@ -200,7 +152,6 @@ public static class ForegroundWindowService
 
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 }
-
 public readonly record struct ForegroundWindowSnapshot(
     ShellMode Mode,
     NativeRect? WindowRect,
@@ -224,24 +175,4 @@ public struct NativeRect
 
     public int Width => Right - Left;
     public int Height => Bottom - Top;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct MonitorInfo
-{
-    public int Size;
-    public NativeRect Monitor;
-    public NativeRect WorkArea;
-    public uint Flags;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-internal struct WindowPlacement
-{
-    public int Length;
-    public int Flags;
-    public int ShowCmd;
-    public System.Drawing.Point MinPosition;
-    public System.Drawing.Point MaxPosition;
-    public NativeRect NormalPosition;
 }

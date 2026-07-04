@@ -88,12 +88,11 @@ Animation timings live in `ShellAnimationTiming`:
 
 ## Shell States
 
-- `Mini`: tiny centered pill for desktop/idle context.
-- `FullBar`: full-width top bar when the foreground app is maximized or fills the screen.
+- `Mini`: tiny centered pill for desktop, idle, maximized, and fullscreen foreground contexts.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
 
-Foreground detection uses Win32 window bounds/window placement and falls back to `Mini` for the desktop shell and Winotch's own window. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not force the full-width bar.
+Foreground detection uses Win32 window bounds and falls back to `Mini` for the desktop shell and Winotch's own window. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
 
 ## Multi-Monitor Targeting
 
@@ -101,11 +100,11 @@ Winotch runs one notch window and targets it to one monitor at a time. One-notch
 
 `ForegroundWindowService` returns the current shell mode plus the foreground app rectangle. `MonitorTargeting` chooses the monitor containing that foreground rectangle; when the foreground is the desktop or shell, it chooses the monitor containing the cursor, then the last used monitor, then the primary monitor. The Settings follow-active-monitor toggle bypasses foreground/cursor targeting and pins the notch to the primary monitor. This keeps shell focus predictable without creating duplicate notches.
 
-Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. `MonitorSnapshot` keeps native pixel bounds for Win32 APIs and exposes WPF-facing DIP properties by dividing through the monitor scale, so expanded geometry remains centered on high-DPI monitors. Full-bar mode releases any existing app-bar reservation before a monitor switch and re-reserves the top edge on the selected monitor.
+Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. `MonitorSnapshot` keeps native pixel bounds for Win32 APIs and exposes WPF-facing DIP properties by dividing through the monitor scale, so mini and expanded geometry remain centered on high-DPI monitors.
 
 ## Media
 
-Winotch reads the focused Windows system media transport session through `GlobalSystemMediaTransportControlsSessionManager`. The expanded capsule keeps artwork, title, artist, and previous/play-pause/next controls. New playing tracks also show a brief compact toast with the same controls, then return to the normal mini/full-bar shell so fullscreen apps are not covered by the full expanded capsule.
+Winotch reads the focused Windows system media transport session through `GlobalSystemMediaTransportControlsSessionManager`. The expanded capsule keeps artwork, title, artist, and previous/play-pause/next controls. New playing tracks also show a brief compact toast with the same controls, then return to the normal mini shell so fullscreen apps are not covered by the full expanded capsule.
 
 ## Control Center
 
@@ -180,7 +179,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - System stats fixed windows, network delta/reset handling, and byte/RAM formatting.
 - Camera mirror lifecycle transitions, cover/crop layout math, and self camera-alert suppression.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.
-- Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot force full-bar mode.
+- Fallback app-window filtering so hidden, minimized, shell, own, and tiny windows cannot retarget the notch.
 - App-bar DIP-to-physical-pixel conversion across DPI scales.
 - Display refresh-rate normalization for high-refresh monitors and invalid OS values.
 - Shell metrics and timing guards for centered mini/expanded states and non-interrupted hover expansion.

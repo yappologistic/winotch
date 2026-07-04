@@ -228,7 +228,7 @@ public class StatusShellTests
     }
 
     [Fact]
-    public void ForegroundModeUsesFullBarForMaximizedOrScreenFillingApp()
+    public void ForegroundModeKeepsMiniForMaximizedOrScreenFillingApp()
     {
         var monitor = new NativeRect(0, 0, 1920, 1080);
         var normal = new NativeRect(300, 160, 1200, 760);
@@ -237,9 +237,9 @@ public class StatusShellTests
         var fillingReservedWorkArea = new NativeRect(0, 48, 1920, 1080);
 
         Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, normal, monitor, monitor));
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: true, normal, monitor, monitor));
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, filling, monitor, monitor));
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, fillingReservedWorkArea, monitor, reservedWorkArea));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: true, normal, monitor, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, filling, monitor, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, fillingReservedWorkArea, monitor, reservedWorkArea));
     }
 
     [Fact]
@@ -256,12 +256,12 @@ public class StatusShellTests
     }
 
     [Fact]
-    public void ForegroundModeUsesFullBarAtCoverageThreshold()
+    public void ForegroundModeKeepsMiniAtCoverageThreshold()
     {
         var monitor = new NativeRect(0, 0, 1000, 1000);
         var threshold = new NativeRect(0, 8, 900, 788);
 
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, threshold, monitor, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, threshold, monitor, monitor));
     }
 
     [Theory]
