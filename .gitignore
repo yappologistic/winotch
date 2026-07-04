@@ -24,6 +24,10 @@ screenshots/
 qa-screenshots/
 winotch-qa.png
 winotch-*-qa.png
+*.mp4
+*.mov
+*.avi
+*.webm
 
 # OS files
 Thumbs.db

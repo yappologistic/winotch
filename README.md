@@ -2,6 +2,12 @@
 
 Winotch is a native Windows notch overlay. It stays centered at the top of the active monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, controls, and system health in a compact black shell that expands on hover.
 
+## Alpha Status
+
+Winotch is alpha, source-only software for tinkerers and testers. There is no published EXE, installer, GitHub Release, or tag yet. Clone the repository, build it locally, and expect rough edges while the app is still changing.
+
+License: The Unlicense. Use, modify, copy, publish, or sell it with no restrictions.
+
 ## Features
 
 - Notch shell: mini pill, fullscreen-aware full bar, expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
@@ -35,18 +41,38 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the a
 
 WPF is the first implementation because it gives direct transparent-window and desktop interop support with a simple CLI build/run loop.
 
-## Run
+## Setup From Source
 
 Prerequisites:
 
-- Windows 10 2004 or newer, or Windows 11
-- .NET 8 SDK for development
-- .NET 8 Desktop Runtime for framework-dependent installs
+- Windows 10 version 2004 or newer, or Windows 11
+- Git
+- .NET 8 SDK for build, run, test, and local publish
+- .NET 8 Desktop Runtime only if you run a framework-dependent publish on a machine without the SDK
 
-From the repository root:
+Clone:
+
+```powershell
+git clone https://github.com/yappologistic/winotch
+cd winotch
+```
+
+Build:
+
+```powershell
+dotnet build
+```
+
+Run:
 
 ```powershell
 dotnet run --project src/Winotch/Winotch.csproj
+```
+
+Test:
+
+```powershell
+dotnet test
 ```
 
 Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
@@ -63,7 +89,7 @@ The expanded System column shows compact CPU, RAM, and network text values. Samp
 
 The camera button in the expanded control center opens a small live mirror flyout below the notch. The preview is mirrored by default, has a one-click normal-view toggle, and closes on X, Esc, outside click, notch collapse, pause, or power transition. Winotch never records or saves camera frames; the camera device is opened only for the live preview and released on close. The mirror uses the default Windows camera only; a camera picker is intentionally out of scope.
 
-## Test
+## Test Coverage
 
 Run the full regression suite before sharing a build:
 
@@ -85,9 +111,9 @@ The listener skips clipboard updates marked with Windows privacy exclusion forma
 
 The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed frame reading and renders frames into WPF as an in-memory preview. If Windows reports no camera, access denial, or exclusive-use failure, the flyout shows a quiet inline message instead of retrying. Opening the mirror suppresses Winotch's own camera-in-use priority alert while the preview is active.
 
-## Install
+## Optional Local Publish
 
-Winotch is currently an unpackaged desktop app. Use a publish folder as the install artifact.
+Winotch is currently an unpackaged desktop app with no published GitHub binary. If you want a local EXE from source, publish into a local folder.
 
 Framework-dependent publish, smallest output:
 
@@ -101,7 +127,7 @@ Self-contained publish, no separate .NET install needed:
 dotnet publish src/Winotch/Winotch.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "$env:LOCALAPPDATA\Winotch"
 ```
 
-Run the installed app:
+Run the local publish:
 
 ```powershell
 & "$env:LOCALAPPDATA\Winotch\Winotch.exe"
@@ -109,7 +135,7 @@ Run the installed app:
 
 Start with Windows can be toggled from Settings or the tray menu. Winotch writes the HKCU Run value `Winotch` to the quoted current executable path and repairs stale paths when it reads the setting.
 
-Uninstall:
+Uninstall the local publish:
 
 ```powershell
 Remove-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "Winotch" -ErrorAction SilentlyContinue
@@ -121,3 +147,11 @@ Remove-Item "$env:LOCALAPPDATA\Winotch" -Recurse -Force
 Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. If access is not granted or unavailable in the unpackaged dev build, Winotch still watches live Windows toast windows where possible and shows the OS state in the notification panel instead of pretending history access is available.
 
 Winotch respects the Windows notification state before showing its own compact notification toast. If Windows reports that notifications should be suppressed, including Do Not Disturb/quiet states, Winotch updates the notification list but does not pop a toast.
+
+## Platform Notes
+
+- Camera: Winotch opens the default Windows camera only while the live mirror flyout is visible. It does not record, persist frames, or offer a camera picker.
+- Clipboard: clipboard history is in-memory only and clears when Winotch exits.
+- Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly when those are unavailable.
+- Calendar: Winotch fetches only user-provided ICS URLs and caches conditional GET metadata locally.
+- Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`.

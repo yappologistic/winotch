@@ -12,6 +12,7 @@ Winotch is a native Windows desktop notch: a centered, top-attached black overla
 - Build: `dotnet build`
 - Run: `dotnet run --project src/Winotch/Winotch.csproj`
 - Test: `dotnet test`
+- CI parity: `dotnet restore`, `dotnet build --no-restore -warnaserror`, `dotnet test --no-build --verbosity normal`
 
 ## Design
 - Keep design tokens in one place and reuse them.
@@ -21,4 +22,10 @@ Winotch is a native Windows desktop notch: a centered, top-attached black overla
 
 ## Git
 - Do not commit build outputs, user settings, logs, packages, or local IDE files.
+- Do not commit screenshots, videos, or locally published EXE folders.
 - Commit coherent milestones: project setup, core shell/UI, OS integrations, docs/verification.
+- Keep GitHub docs source-only while alpha: no release workflows, tags, or published binaries unless explicitly requested.
+
+## Privacy
+- Document clipboard, notification, camera, and local settings behavior plainly before changing those surfaces.
+- Do not add telemetry or network calls beyond user-provided calendar URLs without explicit approval.
