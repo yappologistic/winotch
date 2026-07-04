@@ -19,6 +19,10 @@ flowchart TD
     Tray --> SettingsWindow["Settings Window"]
     SettingsWindow --> Settings
     Settings --> Window
+    Settings --> Clipboard
+    Settings --> Shelf
+    Settings --> MonitorTargeting
+    Settings --> Stats
     Window --> Clipboard["Clipboard Format Listener"]
     Window --> Focus["Focus Timer State + JSON Store"]
     Window --> Shelf["File Shelf JSON Store"]
@@ -99,9 +103,9 @@ Foreground detection uses Win32 window bounds/window placement and falls back to
 
 Winotch runs one notch window and targets it to one monitor at a time. One-notch-per-display is intentionally out of scope for this pass.
 
-`ForegroundWindowService` returns the current shell mode plus the foreground app rectangle. `MonitorTargeting` chooses the monitor containing that foreground rectangle; when the foreground is the desktop or shell, it chooses the monitor containing the cursor, then the last used monitor, then the primary monitor. This keeps shell focus predictable without creating duplicate notches.
+`ForegroundWindowService` returns the current shell mode plus the foreground app rectangle. `MonitorTargeting` chooses the monitor containing that foreground rectangle; when the foreground is the desktop or shell, it chooses the monitor containing the cursor, then the last used monitor, then the primary monitor. The Settings follow-active-monitor toggle bypasses foreground/cursor targeting and pins the notch to the primary monitor. This keeps shell focus predictable without creating duplicate notches.
 
-Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. Full-bar mode releases any existing app-bar reservation before a monitor switch and re-reserves the top edge on the selected monitor.
+Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. `MonitorSnapshot` keeps native pixel bounds for Win32 APIs and exposes WPF-facing DIP properties by dividing through the monitor scale, so expanded geometry remains centered on high-DPI monitors. Full-bar mode releases any existing app-bar reservation before a monitor switch and re-reserves the top edge on the selected monitor.
 
 ## Media
 
@@ -109,13 +113,13 @@ Winotch reads the focused Windows system media transport session through `Global
 
 ## Control Center
 
-The expanded panel control center is backed by small services around Windows APIs. `AudioDeviceService` enumerates active render endpoints, marks the current default, and switches all default roles through PolicyConfig. `AudioService` re-resolves cached endpoints when the system default changes so the master slider follows the newly selected output. `AudioSessionService` reads active render sessions through `IAudioSessionManager2`, resolves app labels from process metadata and session fallbacks, and applies per-session volume/mute through `ISimpleAudioVolume`.
+The expanded panel control center is backed by small services around Windows APIs. `AudioDeviceService` enumerates active render endpoints, marks the current default, and switches all default roles through PolicyConfig. `AudioService` re-resolves cached endpoints when the system default changes so the master slider follows the newly selected output. `AudioSessionService` reads active render sessions through `IAudioSessionManager2`, resolves app labels from process metadata and session fallbacks, and applies per-session volume/mute through `ISimpleAudioVolume`. The per-app mixer section is gated by Settings; disabling it hides the section and skips session enumeration.
 
 The microphone row toggles mute on the default capture endpoint and shares the same privacy active-use signal used by priority status alerts. Brightness uses WMI for internal panels and DDC/CI for external monitors; unsupported or failing monitors are omitted, and writes run off the UI thread through the debounced control-center writer.
 
 ## System Stats
 
-The expanded System column includes compact CPU, RAM, and network rows with 60-sample sparklines. `SystemStatsService` owns the session: expanding the notch creates and primes the CPU performance counter, resets RAM/network sample buffers, and starts one-second reads; collapsing, pausing, or closing stops the timer and disposes the counter so the resting notch performs no stats polling.
+The expanded System column includes compact CPU, RAM, and network rows with 60-sample sparklines. `SystemStatsService` owns the session: expanding the notch creates and primes the CPU performance counter, resets RAM/network sample buffers, and starts one-second reads when stats are enabled; disabling stats, collapsing, pausing, or closing stops the timer and disposes the counter so the resting notch performs no stats polling.
 
 CPU uses `Processor Information\% Processor Utility\_Total` with `Processor\% Processor Time\_Total` fallback. RAM reads `GlobalMemoryStatusEx`. Network rates sum deltas from active physical adapters and treat missing, new, or reset counters as zero for that sample. Counter creation/read failures hide the affected row instead of crashing the shell.
 
@@ -129,7 +133,7 @@ Winotch reads notification history through `UserNotificationListener` when Windo
 
 ## Clipboard History
 
-The expanded panel includes an in-memory clipboard history backed by `AddClipboardFormatListener` on the notch window HWND. `ClipboardHistoryMonitor` coalesces rapid `WM_CLIPBOARDUPDATE` messages, retries brief clipboard read failures, and ignores Winotch's own re-copy updates by clipboard sequence number. The capture path stores Unicode text up to 4 KB, file-drop paths, and small image thumbnails only.
+The expanded panel includes an in-memory clipboard history backed by `AddClipboardFormatListener` on the notch window HWND. `ClipboardHistoryMonitor` coalesces rapid `WM_CLIPBOARDUPDATE` messages, retries brief clipboard read failures, and ignores Winotch's own re-copy updates by clipboard sequence number. The Settings toggle unregisters the listener immediately when clipboard capture is disabled. The capture path stores Unicode text up to 4 KB, file-drop paths, and small image thumbnails only.
 
 Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy` skips items carrying `ExcludeClipboardContentFromMonitorProcessing` and honors `CanIncludeInClipboardHistory = 0`; `ClipboardHistoryStore` owns cap, dedupe, delete, and clear behavior. Nothing is persisted to disk.
 
@@ -143,7 +147,9 @@ When the camera mirror is open, `PriorityStatusTracker` suppresses the camera-ac
 
 ## Settings, Tray, and Startup
 
-Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI.
+Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI. The model is additive JSON: General, Toasts, Calendar, and Features groups normalize missing fields to defaults so older files keep working.
+
+Feature settings gate runtime work, not only visibility: shelf off ignores external file drops and hides shelf surfaces; clipboard off unregisters the Win32 listener; app mixer off skips audio-session enumeration; stats off stops sampling; follow-active-monitor off pins targeting to the primary monitor.
 
 The tray surface is a WinForms `NotifyIcon` with Open Settings, Pause/Resume notch, Start with Windows, and Exit. Pause hides the overlay and releases any app-bar reservation; resume reapplies the detected shell mode. Exit is explicit from the tray so closing the settings window does not terminate the app.
 
@@ -163,7 +169,7 @@ The compact pill uses a deterministic priority: focus timer live activity wins, 
 
 ## File Shelf
 
-The notch window accepts Explorer `CF_HDROP` file drags. During drag enter/over, the normal expanded shell animation opens the notch and shows a highlighted drop target. Dropping stores only full paths in `FileShelf`, then persists them as JSON at `%LOCALAPPDATA%\Winotch\shelf.json` through `FileShelfStore`; missing or corrupt JSON falls back to an empty shelf.
+The notch window accepts Explorer `CF_HDROP` file drags when the shelf feature is enabled. During drag enter/over, the normal expanded shell animation opens the notch and shows a highlighted drop target. Dropping stores only full paths in `FileShelf`, then persists them as JSON at `%LOCALAPPDATA%\Winotch\shelf.json` through `FileShelfStore`; missing or corrupt JSON falls back to an empty shelf.
 
 The expanded panel renders the shelf as horizontal tiles with shell icons from `SHGetFileInfo`, truncated display names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all button. Dragging a tile, or all existing shelf items, creates a WPF `DataObject` with `DataFormats.FileDrop` and calls `DragDrop.DoDragDrop` so Explorer, browsers, chat apps, and other Windows drop targets receive a real OS file drag. Dragging out does not remove shelf entries by default.
 

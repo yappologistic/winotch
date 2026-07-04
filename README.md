@@ -1,6 +1,23 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the active monitor and shows time, date, battery, Wi-Fi, volume, current media, Windows notifications, CPU/RAM/network stats, a persistent focus timer, an ICS-backed agenda with next-meeting countdowns, and a file shelf in a compact black shell that expands on hover. Media track changes, unsilenced Windows notifications, focus phase completions, meeting join reminders, and priority system status changes use brief compact toasts.
+Winotch is a native Windows notch overlay. It stays centered at the top of the active monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, files, controls, and system health in a compact black shell that expands on hover.
+
+## Features
+
+- Notch shell: mini pill, fullscreen-aware full bar, expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
+- Media: current Windows media session metadata, artwork, playback controls, and media-change toasts.
+- Notifications: Windows notification list, compact notification toasts, live action buttons when Windows exposes them, and OS quiet-state suppression.
+- Priority alerts: low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, microphone/camera activity, and focus completion toasts.
+- File shelf: drag files/folders into the notch, persist full paths, remove/clear items, and drag one or all shelved files back out.
+- Control center: output device switching, master volume, optional per-app mixer, microphone mute, brightness controls, and Wi-Fi profile connect.
+- Focus timer: 25/5, 50/10, or custom focus sessions with pause/resume/skip/stop, auto-cycle, persistence, and compact live state.
+- Clipboard history: in-memory text/link/image/file capture with privacy-format exclusions, thumbnail-only image storage, copy/delete/clear, and no disk persistence.
+- Settings and tray: live settings, Start with Windows, pause/resume, feature toggles, toast gates, duration scale, and JSON persistence.
+- Charging flourish: charger-connect priority toast with animated battery fill and percent readout.
+- System stats: expanded-only CPU, RAM, and network sampling with compact sparklines.
+- Camera mirror: live default-camera flyout below the notch with mirror toggle and no recording or saved frames.
+- Calendar/agenda: ICS subscriptions, next-24-hour agenda, countdown chip, meeting reminder toast, and Join actions.
+- Multi-monitor: follows the foreground app monitor, cursor monitor for shell/desktop focus, and can be pinned back to the primary monitor from Settings.
 
 ## Stack
 
@@ -35,11 +52,11 @@ dotnet run --project src/Winotch/Winotch.csproj
 
 Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
-On multi-monitor setups, the notch follows the monitor containing the foreground app. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed.
+On multi-monitor setups, the notch follows the monitor containing the foreground app. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed. Settings can disable active-monitor following and keep the notch on the primary monitor.
 
 The Calendar settings group accepts one or more `webcal://`, `https://`, or `http://` ICS URLs, refreshes them every five minutes, and adds the next three 24-hour agenda items plus Join buttons for Zoom, Teams, and Google Meet links.
 
-The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used.
+The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable shelf drag-in, clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
 
 Drag files or folders from Explorer onto the notch to place their full paths on the shelf. The expanded panel shows shelved items with shell icons, truncated names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all affordance. Drag an item, or all existing items, back out to Explorer or another app to start a normal Windows file drop. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
 
