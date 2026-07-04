@@ -29,7 +29,7 @@
                 Width="220"
                 Height="40"
                 VerticalAlignment="Top"
-                HorizontalAlignment="Stretch"
+                HorizontalAlignment="Center"
                 Background="{StaticResource NotchBlack}"
                 CornerRadius="0,0,20,20"
                 Padding="10,4,10,6"

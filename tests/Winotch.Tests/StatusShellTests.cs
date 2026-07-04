@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Xml.Linq;
 using Windows.Storage;
 
 namespace Winotch.Tests;
@@ -695,6 +696,27 @@ public class StatusShellTests
         Assert.Equal(0, fullBar.Left);
         Assert.Equal(469.5, expanded.Left);
         Assert.True(expanded.WindowHeight > expanded.ShellHeight);
+    }
+
+    [Fact]
+    public void MainShellIsCenteredInsideAnimatingHostWindow()
+    {
+        var path = Path.GetFullPath(@"..\..\..\..\..\src\Winotch\MainWindow.xaml", AppContext.BaseDirectory);
+        var xaml = XDocument.Load(path);
+        var shell = xaml.Descendants()
+            .Single(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Name") == "NotchShell");
+
+        Assert.Equal("Center", (string?)shell.Attribute("HorizontalAlignment"));
+    }
+
+    [Fact]
+    public void MiniShellKeepsCenterWhenHostWindowHasExpandedBounds()
+    {
+        var mini = ShellMetrics.ForMode(isFullBar: false, screenWidth: 1365);
+        var expanded = ShellMetrics.Expanded(1365);
+        var centeredMiniLeft = expanded.Left + (expanded.Width - mini.Width) / 2;
+
+        Assert.Equal(mini.Left, centeredMiniLeft);
     }
 
     [Fact]
