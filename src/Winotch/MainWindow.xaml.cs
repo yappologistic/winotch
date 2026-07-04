@@ -101,12 +101,12 @@ public partial class MainWindow : Window
         ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
         LoadFocusTimer();
         ApplyCalendarSettings(_settings.Current);
+        ApplyFeatureSettings(_settings.Current);
         UpdateClock();
         RefreshFocusTimer();
         _clockTimer.Start();
         _statusTimer.Start();
         _shellTimer.Start();
-        _clipboardHistory.Start(this);
         RefreshClipboardPanel();
         await ApplyAccountPictureAsync();
         await LoadFileShelfAsync();
@@ -282,6 +282,54 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ApplyFeatureSettings(WinotchSettings settings)
+    {
+        ApplyFileShelfEnabled(settings.Features.FileShelfEnabled);
+        ApplyClipboardHistoryEnabled(settings.Features.ClipboardHistoryEnabled);
+        ApplyAppMixerEnabled(settings.Features.ShowAppMixer);
+        ApplySystemStatsEnabled(settings.Features.SystemStatsEnabled);
+    }
+
+    private void ApplyClipboardHistoryEnabled(bool enabled)
+    {
+        ClipboardPanel.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        if (enabled && IsLoaded)
+        {
+            _clipboardHistory.Start(this);
+            RefreshClipboardPanel();
+            return;
+        }
+
+        _clipboardHistory.Stop();
+    }
+
+    private void ApplyAppMixerEnabled(bool enabled)
+    {
+        AudioSessionMixerSection.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        if (enabled)
+        {
+            return;
+        }
+
+        AudioSessionList.ItemsSource = Array.Empty<AudioSessionRow>();
+        AudioSessionScroll.Visibility = Visibility.Collapsed;
+        NoAudioSessionsText.Visibility = Visibility.Collapsed;
+    }
+
+    private void ApplySystemStatsEnabled(bool enabled)
+    {
+        if (!enabled || !_expanded)
+        {
+            StopSystemStats();
+            return;
+        }
+
+        if (!_statsTimer.IsEnabled)
+        {
+            StartSystemStats();
+        }
+    }
+
     public bool IsNotchPaused => _notchPaused;
 
     public void SetNotchPaused(bool paused)
@@ -316,6 +364,7 @@ public partial class MainWindow : Window
         UpdateClock();
         RefreshFocusTimer();
         ApplyCalendarSettings(_settings.Current);
+        ApplyFeatureSettings(_settings.Current);
         _clockTimer.Start();
         _statusTimer.Start();
         _shellTimer.Start();
@@ -332,15 +381,20 @@ public partial class MainWindow : Window
     private async Task RefreshControlCenterAsync(PriorityStatusSnapshot? priorityStatus = null)
     {
         _updatingControlCenter = true;
+        var showAppMixer = _settings.Current.Features.ShowAppMixer;
         try
         {
             OutputDeviceList.ItemsSource = _audioDevices.GetRenderDevices();
 
-            var sessions = _audioSessions.GetSessions();
-            AudioSessionList.ItemsSource = sessions;
-            AudioSessionList.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-            AudioSessionScroll.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-            NoAudioSessionsText.Visibility = sessions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ApplyAppMixerEnabled(showAppMixer);
+            if (showAppMixer)
+            {
+                var sessions = _audioSessions.GetSessions();
+                AudioSessionList.ItemsSource = sessions;
+                AudioSessionList.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+                AudioSessionScroll.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+                NoAudioSessionsText.Visibility = sessions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
 
             ApplyMicState(
                 priorityStatus?.MicrophoneActive ?? PriorityStatusService.IsMicrophoneActive(),
@@ -354,10 +408,16 @@ public partial class MainWindow : Window
         {
             OutputDeviceList.ItemsSource = Array.Empty<AudioOutputDevice>();
             AudioSessionList.ItemsSource = Array.Empty<AudioSessionRow>();
-            AudioSessionScroll.Visibility = Visibility.Collapsed;
+            ApplyAppMixerEnabled(showAppMixer);
+            if (showAppMixer)
+            {
+                AudioSessionList.Visibility = Visibility.Collapsed;
+                AudioSessionScroll.Visibility = Visibility.Collapsed;
+                NoAudioSessionsText.Visibility = Visibility.Visible;
+            }
+
             BrightnessList.ItemsSource = Array.Empty<BrightnessDisplay>();
             BrightnessBlock.Visibility = Visibility.Collapsed;
-            NoAudioSessionsText.Visibility = Visibility.Visible;
         }
         finally
         {
@@ -520,6 +580,12 @@ public partial class MainWindow : Window
 
     private void StartSystemStats()
     {
+        if (!_settings.Current.Features.SystemStatsEnabled)
+        {
+            StopSystemStats();
+            return;
+        }
+
         _statsTimer.Stop();
         _systemStats.BeginSession();
         RefreshSystemStats();
@@ -535,7 +601,7 @@ public partial class MainWindow : Window
 
     private void RefreshSystemStats()
     {
-        if (!_expanded)
+        if (!_expanded || !_settings.Current.Features.SystemStatsEnabled)
         {
             StopSystemStats();
             return;
@@ -880,13 +946,20 @@ public partial class MainWindow : Window
             return;
         }
 
+        var followActiveMonitor = _settings.Current.Features.FollowActiveMonitor;
         var targetMonitor = MonitorTargeting.SelectMonitor(
             monitors,
-            new MonitorTargetRequest(
-                foreground.WindowRect,
-                foreground.UseCursorMonitor,
-                MonitorTargeting.GetCursorPosition(),
-                _currentMonitor?.DeviceName));
+            followActiveMonitor
+                ? new MonitorTargetRequest(
+                    foreground.WindowRect,
+                    foreground.UseCursorMonitor,
+                    MonitorTargeting.GetCursorPosition(),
+                    _currentMonitor?.DeviceName)
+                : new MonitorTargetRequest(
+                    ForegroundRect: null,
+                    UseCursorMonitor: false,
+                    CursorPosition: System.Drawing.Point.Empty,
+                    LastMonitorDeviceName: null));
         var monitorChanged = _currentMonitor is null ||
             !string.Equals(_currentMonitor.Value.DeviceName, targetMonitor.DeviceName, StringComparison.OrdinalIgnoreCase);
         if (!force && !monitorChanged && foreground.Mode == _currentShellMode)
@@ -1155,6 +1228,7 @@ public partial class MainWindow : Window
         {
             UpdateClock();
             ApplyCalendarSettings(settings);
+            ApplyFeatureSettings(settings);
             if (!_expanded || !settings.General.ShowDate)
             {
                 ShellAnimator.Hide(DateText);
@@ -1163,6 +1237,8 @@ public partial class MainWindow : Window
             {
                 ShellAnimator.Show(DateText, _animationFrameRate);
             }
+
+            ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
         });
     }
 

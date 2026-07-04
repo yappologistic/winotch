@@ -147,16 +147,20 @@
                     </StackPanel>
                 </Grid>
 
-                <Grid x:Name="DetailPanel" Grid.Row="1" Opacity="0" Margin="0,14,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="260" />
-                        <ColumnDefinition Width="360" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
+                <Grid x:Name="DetailPanel" Grid.Row="1" Opacity="0" Margin="0,10,0,0" ClipToBounds="True">
+                    <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  PanningMode="VerticalOnly">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="360" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
                     <StackPanel Margin="2,0,22,0">
                         <TextBlock Text="System" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
@@ -412,55 +416,57 @@
                                 <Slider x:Name="VolumeSlider" Grid.Column="2" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="100" ValueChanged="VolumeSlider_ValueChanged" />
                             </Grid>
 
-                            <TextBlock Text="Apps" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                            <TextBlock x:Name="NoAudioSessionsText" Text="No active audio sessions" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,5,0,6" />
-                            <ScrollViewer x:Name="AudioSessionScroll" Height="132" Margin="0,4,0,10" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-                                <ItemsControl x:Name="AudioSessionList">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Grid Height="31" Margin="0,0,0,5">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="24" />
-                                                    <ColumnDefinition Width="72" />
-                                                    <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="32" />
-                                                </Grid.ColumnDefinitions>
-                                                <Grid Width="22" Height="22" VerticalAlignment="Center">
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" FontSize="12" HorizontalAlignment="Center" />
-                                                    <Image Source="{Binding Icon}" Width="22" Height="22" Stretch="UniformToFill">
-                                                        <Image.Style>
-                                                            <Style TargetType="Image">
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
-                                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Image.Style>
-                                                    </Image>
+                            <StackPanel x:Name="AudioSessionMixerSection" Margin="0,0,0,10">
+                                <TextBlock Text="Apps" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                <TextBlock x:Name="NoAudioSessionsText" Text="No active audio sessions" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,5,0,6" />
+                                <ScrollViewer x:Name="AudioSessionScroll" Height="132" Margin="0,4,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl x:Name="AudioSessionList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Height="31" Margin="0,0,0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="24" />
+                                                        <ColumnDefinition Width="72" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="32" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Grid Width="22" Height="22" VerticalAlignment="Center">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" FontSize="12" HorizontalAlignment="Center" />
+                                                        <Image Source="{Binding Icon}" Width="22" Height="22" Stretch="UniformToFill">
+                                                            <Image.Style>
+                                                                <Style TargetType="Image">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Image.Style>
+                                                        </Image>
+                                                    </Grid>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Name}" ToolTip="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                    <Slider Grid.Column="2" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="100" Value="{Binding Volume}" ValueChanged="AudioSessionVolumeSlider_ValueChanged" />
+                                                    <Button Grid.Column="3" Style="{StaticResource MediaIconButton}" Margin="6,0,0,0" ToolTip="Mute app" Click="AudioSessionMute_Click">
+                                                        <TextBlock FontSize="12">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
+                                                                    <Setter Property="Text" Value="&#xE767;" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsMuted}" Value="True">
+                                                                            <Setter Property="Text" Value="&#xE74F;" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Button>
                                                 </Grid>
-                                                <TextBlock Grid.Column="1" Text="{Binding Name}" ToolTip="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                                                <Slider Grid.Column="2" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="100" Value="{Binding Volume}" ValueChanged="AudioSessionVolumeSlider_ValueChanged" />
-                                                <Button Grid.Column="3" Style="{StaticResource MediaIconButton}" Margin="6,0,0,0" ToolTip="Mute app" Click="AudioSessionMute_Click">
-                                                    <TextBlock FontSize="12">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource IconText}">
-                                                                <Setter Property="Text" Value="&#xE767;" />
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding IsMuted}" Value="True">
-                                                                        <Setter Property="Text" Value="&#xE74F;" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </Button>
-                                            </Grid>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
 
                             <Grid Margin="0,0,0,10">
                                 <Grid.ColumnDefinitions>
@@ -512,8 +518,8 @@
                     <Border x:Name="ShelfSection"
                             Grid.Row="1"
                             Grid.ColumnSpan="3"
-                            Margin="2,14,2,0"
-                            Padding="10,8"
+                            Margin="2,10,2,0"
+                            Padding="10,7"
                             CornerRadius="12"
                             Background="{StaticResource NotchPanel}"
                             SnapsToDevicePixels="True">
@@ -632,6 +638,8 @@
                             </Grid>
                         </Grid>
                     </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <Grid x:Name="ShelfDropOverlay"

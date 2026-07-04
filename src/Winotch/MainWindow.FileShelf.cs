@@ -69,12 +69,25 @@ public partial class MainWindow
 
     private void UpdateShelfMiniIndicator()
     {
-        var visible = _fileShelf.Count > 0 &&
+        var visible = _settings.Current.Features.FileShelfEnabled &&
+            _fileShelf.Count > 0 &&
             !_expanded &&
             !_compactToastVisible &&
             _currentShellMode == ShellMode.Mini;
         ShelfMiniIndicator.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         ShelfMiniCountText.Text = _fileShelf.Count > 9 ? "9+" : _fileShelf.Count.ToString();
+    }
+
+    private void ApplyFileShelfEnabled(bool enabled)
+    {
+        AllowDrop = enabled;
+        ShelfSection.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        if (!enabled)
+        {
+            EndShelfDropPreview(collapseIfPointerAway: false);
+        }
+
+        UpdateShelfMiniIndicator();
     }
 
     private async void Window_Drop(object sender, DragEventArgs e)
@@ -160,7 +173,9 @@ public partial class MainWindow
     private bool TryAcceptExternalFileDrop(DragEventArgs e, out string[] paths)
     {
         paths = [];
-        if (_draggingShelfOut || e.Data.GetDataPresent(ShelfDragMarker))
+        if (!_settings.Current.Features.FileShelfEnabled ||
+            _draggingShelfOut ||
+            e.Data.GetDataPresent(ShelfDragMarker))
         {
             e.Effects = DragDropEffects.None;
             e.Handled = true;

@@ -15,6 +15,11 @@ public class SettingsServiceTests
         Assert.Equal(ToastDurationScale.Normal, service.Current.Toasts.DurationScale);
         Assert.False(service.Current.Calendar.Enabled);
         Assert.Empty(service.Current.Calendar.SubscriptionUrls);
+        Assert.True(service.Current.Features.FileShelfEnabled);
+        Assert.True(service.Current.Features.ClipboardHistoryEnabled);
+        Assert.True(service.Current.Features.ShowAppMixer);
+        Assert.True(service.Current.Features.SystemStatsEnabled);
+        Assert.True(service.Current.Features.FollowActiveMonitor);
     }
 
     [Fact]
@@ -35,6 +40,12 @@ public class SettingsServiceTests
             {
                 Enabled = true,
                 SubscriptionUrls = ["webcal://example.com/work.ics", "garbage", "https://example.com/personal.ics"]
+            },
+            Features = settings.Features with
+            {
+                ClipboardHistoryEnabled = false,
+                ShowAppMixer = false,
+                FollowActiveMonitor = false
             }
         });
 
@@ -47,7 +58,26 @@ public class SettingsServiceTests
         Assert.Equal(
             ["https://example.com/work.ics", "https://example.com/personal.ics"],
             reloaded.Current.Calendar.SubscriptionUrls);
+        Assert.False(reloaded.Current.Features.ClipboardHistoryEnabled);
+        Assert.False(reloaded.Current.Features.ShowAppMixer);
+        Assert.False(reloaded.Current.Features.FollowActiveMonitor);
         Assert.Contains(Environment.NewLine, File.ReadAllText(temp.SettingsPath));
+    }
+
+    [Fact]
+    public void SettingsServiceAddsFeatureDefaultsForOlderJson()
+    {
+        using var temp = new TempSettingsDirectory();
+        File.WriteAllText(temp.SettingsPath, """{"general":{"showDate":false}}""");
+
+        var service = new SettingsService(temp.SettingsPath);
+
+        Assert.False(service.Current.General.ShowDate);
+        Assert.True(service.Current.Features.FileShelfEnabled);
+        Assert.True(service.Current.Features.ClipboardHistoryEnabled);
+        Assert.True(service.Current.Features.ShowAppMixer);
+        Assert.True(service.Current.Features.SystemStatsEnabled);
+        Assert.True(service.Current.Features.FollowActiveMonitor);
     }
 
     [Fact]

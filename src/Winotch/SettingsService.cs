@@ -166,12 +166,14 @@ public sealed record WinotchSettings
     public GeneralSettings General { get; init; } = new();
     public ToastSettings Toasts { get; init; } = new();
     public CalendarSettings Calendar { get; init; } = new();
+    public FeatureSettings Features { get; init; } = new();
 
     public WinotchSettings Normalize() => this with
     {
         General = General is null ? new GeneralSettings() : General,
         Toasts = Toasts is null ? new ToastSettings() : Toasts,
-        Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize()
+        Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize(),
+        Features = Features is null ? new FeatureSettings() : Features
     };
 }
 
@@ -202,6 +204,15 @@ public sealed record CalendarSettings
             ? this
             : this with { SubscriptionUrls = normalized };
     }
+}
+
+public sealed record FeatureSettings
+{
+    public bool FileShelfEnabled { get; init; } = true;
+    public bool ClipboardHistoryEnabled { get; init; } = true;
+    public bool ShowAppMixer { get; init; } = true;
+    public bool SystemStatsEnabled { get; init; } = true;
+    public bool FollowActiveMonitor { get; init; } = true;
 }
 
 public enum ToastDurationScale

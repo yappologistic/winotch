@@ -128,6 +128,44 @@
                     Padding="18"
                     Margin="0,0,0,16">
                 <StackPanel>
+                    <TextBlock Text="Features" Style="{StaticResource SettingsSectionHeader}" />
+                    <CheckBox x:Name="FileShelfEnabledToggle"
+                              Content="File shelf and drag-in"
+                              Style="{StaticResource ToggleSwitch}"
+                              Checked="FeatureSettingChanged"
+                              Unchecked="FeatureSettingChanged" />
+                    <CheckBox x:Name="ClipboardHistoryEnabledToggle"
+                              Content="Clipboard capture"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,10,0,0"
+                              Checked="FeatureSettingChanged"
+                              Unchecked="FeatureSettingChanged" />
+                    <CheckBox x:Name="ShowAppMixerToggle"
+                              Content="Per-app audio mixer"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,10,0,0"
+                              Checked="FeatureSettingChanged"
+                              Unchecked="FeatureSettingChanged" />
+                    <CheckBox x:Name="SystemStatsEnabledToggle"
+                              Content="System stats sampling"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,10,0,0"
+                              Checked="FeatureSettingChanged"
+                              Unchecked="FeatureSettingChanged" />
+                    <CheckBox x:Name="FollowActiveMonitorToggle"
+                              Content="Follow active monitor"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,10,0,0"
+                              Checked="FeatureSettingChanged"
+                              Unchecked="FeatureSettingChanged" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{StaticResource NotchPanel}"
+                    CornerRadius="8"
+                    Padding="18"
+                    Margin="0,0,0,16">
+                <StackPanel>
                     <TextBlock Text="Toasts" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="MediaToastsToggle"
                               Content="Media toasts"

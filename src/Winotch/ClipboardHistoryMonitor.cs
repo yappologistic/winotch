@@ -55,6 +55,24 @@ public sealed class ClipboardHistoryMonitor : IDisposable
         _registered = AddClipboardFormatListener(_windowHandle);
     }
 
+    public void Stop()
+    {
+        _coalesceTimer.Stop();
+        if (_source is not null)
+        {
+            _source.RemoveHook(WndProc);
+            _source = null;
+        }
+
+        if (_registered && _windowHandle != IntPtr.Zero)
+        {
+            RemoveClipboardFormatListener(_windowHandle);
+        }
+
+        _registered = false;
+        _windowHandle = IntPtr.Zero;
+    }
+
     public bool CopyToClipboard(Guid id)
     {
         var item = _store.Find(id);
@@ -98,20 +116,8 @@ public sealed class ClipboardHistoryMonitor : IDisposable
 
     public void Dispose()
     {
-        _coalesceTimer.Stop();
+        Stop();
         _coalesceTimer.Tick -= OnCoalesceTimerTick;
-        if (_source is not null)
-        {
-            _source.RemoveHook(WndProc);
-            _source = null;
-        }
-
-        if (_registered && _windowHandle != IntPtr.Zero)
-        {
-            RemoveClipboardFormatListener(_windowHandle);
-        }
-
-        _registered = false;
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

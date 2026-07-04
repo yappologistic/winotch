@@ -46,6 +46,11 @@ public partial class SettingsWindow : Window
         NotificationToastsToggle.IsChecked = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsChecked = settings.Toasts.PriorityAlertsEnabled;
         SelectDuration(settings.Toasts.DurationScale);
+        FileShelfEnabledToggle.IsChecked = settings.Features.FileShelfEnabled;
+        ClipboardHistoryEnabledToggle.IsChecked = settings.Features.ClipboardHistoryEnabled;
+        ShowAppMixerToggle.IsChecked = settings.Features.ShowAppMixer;
+        SystemStatsEnabledToggle.IsChecked = settings.Features.SystemStatsEnabled;
+        FollowActiveMonitorToggle.IsChecked = settings.Features.FollowActiveMonitor;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
@@ -87,6 +92,26 @@ public partial class SettingsWindow : Window
                 MediaToastsEnabled = MediaToastsToggle.IsChecked == true,
                 NotificationToastsEnabled = NotificationToastsToggle.IsChecked == true,
                 PriorityAlertsEnabled = PriorityAlertsToggle.IsChecked == true
+            }
+        });
+    }
+
+    private void FeatureSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Features = settings.Features with
+            {
+                FileShelfEnabled = FileShelfEnabledToggle.IsChecked == true,
+                ClipboardHistoryEnabled = ClipboardHistoryEnabledToggle.IsChecked == true,
+                ShowAppMixer = ShowAppMixerToggle.IsChecked == true,
+                SystemStatsEnabled = SystemStatsEnabledToggle.IsChecked == true,
+                FollowActiveMonitor = FollowActiveMonitorToggle.IsChecked == true
             }
         });
     }
