@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -15,8 +14,12 @@ public partial class MainWindow : Window
     private readonly AudioService _audio = new();
     private readonly WifiService _wifi = new();
     private readonly NotificationService _notifications = new();
+    private readonly NotificationChangeTracker _notificationChanges = new();
+    private readonly AppBarReservationService _appBar = new();
     private bool _expanded;
     private bool _updatingVolume;
+    private int _animationFrameRate = 60;
+    private CancellationTokenSource? _expandedReveal;
 
     public MainWindow()
     {
@@ -31,6 +34,7 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
         ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
         UpdateClock();
         _clockTimer.Start();
@@ -87,7 +91,7 @@ public partial class MainWindow : Window
         NotificationStateText.Text = notifications.Status;
         NotificationCountText.Text = notifications.Items.Count.ToString();
         NotificationList.ItemsSource = notifications.Items;
-        if (notifications.Items.Count > 0 && !NotificationSilenceService.IsSilenced())
+        if (_notificationChanges.ShouldPop(notifications.Items) && !NotificationSilenceService.IsSilenced())
         {
             ExpandTemporarily();
         }
@@ -95,6 +99,7 @@ public partial class MainWindow : Window
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)
     {
+        _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
         ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
     }
 
@@ -115,22 +120,29 @@ public partial class MainWindow : Window
         }
 
         _expanded = expanded;
+        _expandedReveal?.Cancel();
+        _expandedReveal?.Dispose();
+        _expandedReveal = null;
         if (!expanded)
         {
             ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
             return;
         }
 
-        DateText.Visibility = Visibility.Visible;
-        StatusGroup.Visibility = Visibility.Visible;
+        ShellAnimator.Hide(DateText);
+        ShellAnimator.Hide(StatusGroup);
         ClockGroup.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
         ApplyHeaderDensity(isFullBar: false);
+        _appBar.Release();
         SetMouseTransparent(false);
         HeaderRow.Height = new GridLength(48);
         NotchShell.Padding = new Thickness(18, 8, 18, 12);
         NotchShell.CornerRadius = new CornerRadius(0, 0, 34, 34);
-        AnimateShell(840, 246, 300, (SystemParameters.PrimaryScreenWidth - 840) / 2);
-        Animate(DetailPanel, OpacityProperty, 1);
+        ShellAnimator.Clear(this, NotchShell, DetailPanel);
+        DetailPanel.Opacity = 0;
+        ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.Expanded(SystemParameters.PrimaryScreenWidth), _animationFrameRate);
+        _expandedReveal = new CancellationTokenSource();
+        _ = RevealExpandedContentAsync(_expandedReveal.Token);
     }
 
     private async void ExpandTemporarily()
@@ -143,14 +155,25 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void Animate(FrameworkElement target, DependencyProperty property, double value)
+    private async Task RevealExpandedContentAsync(CancellationToken cancellationToken)
     {
-        var animation = new DoubleAnimation(value, TimeSpan.FromMilliseconds(360))
+        try
         {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
-        };
-        Timeline.SetDesiredFrameRate(animation, DisplayRefreshRateService.GetPrimaryRefreshRate());
-        target.BeginAnimation(property, animation);
+            await Task.Delay(150, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        if (!_expanded || cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        ShellAnimator.Show(DateText, _animationFrameRate);
+        ShellAnimator.Show(StatusGroup, _animationFrameRate);
+        ShellAnimator.Animate(DetailPanel, OpacityProperty, 1, _animationFrameRate);
     }
 
     private void ApplyShellMode(ShellMode mode, bool animate = true)
@@ -161,46 +184,42 @@ public partial class MainWindow : Window
         }
 
         var isFullBar = mode == ShellMode.FullBar;
-        var width = isFullBar ? SystemParameters.PrimaryScreenWidth : 220;
-        var shellHeight = isFullBar ? 32 : 36;
-        var windowHeight = isFullBar ? 34 : 42;
-        var left = isFullBar ? 0 : (SystemParameters.PrimaryScreenWidth - width) / 2;
+        var geometry = ShellMetrics.ForMode(isFullBar, SystemParameters.PrimaryScreenWidth);
 
-        DateText.Visibility = Visibility.Collapsed;
+        ShellAnimator.Hide(DateText);
         StatusGroup.Visibility = isFullBar ? Visibility.Visible : Visibility.Collapsed;
+        StatusGroup.Opacity = isFullBar ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
         ClockGroup.HorizontalAlignment = isFullBar ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Center;
         HeaderRow.Height = new GridLength(isFullBar ? 28 : 28);
         NotchShell.Padding = isFullBar ? new Thickness(10, 2, 10, 2) : new Thickness(10, 4, 10, 6);
         NotchShell.CornerRadius = isFullBar ? new CornerRadius(0) : new CornerRadius(0, 0, 18, 18);
-        Animate(DetailPanel, OpacityProperty, 0);
+        if (isFullBar)
+        {
+            _appBar.ReserveTop(this, geometry.WindowHeight);
+        }
+        else
+        {
+            _appBar.Release();
+        }
 
         if (animate)
         {
-            AnimateShell(width, shellHeight, windowHeight, left);
+            ShellAnimator.Animate(DetailPanel, OpacityProperty, 0, _animationFrameRate);
+            ShellAnimator.AnimateShell(this, NotchShell, geometry, _animationFrameRate);
             SetMouseTransparent(isFullBar);
             return;
         }
 
-        ClearShellAnimations();
+        ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
-        Width = width;
-        Height = windowHeight;
-        Left = left;
+        Width = geometry.Width;
+        Height = geometry.WindowHeight;
+        Left = geometry.Left;
         Top = 0;
-        NotchShell.Width = width;
-        NotchShell.Height = shellHeight;
+        NotchShell.Width = geometry.Width;
+        NotchShell.Height = geometry.ShellHeight;
         SetMouseTransparent(isFullBar);
-    }
-
-    private void AnimateShell(double width, double shellHeight, double windowHeight, double left)
-    {
-        Top = 0;
-        Animate(this, WidthProperty, width);
-        Animate(this, HeightProperty, windowHeight);
-        Animate(this, LeftProperty, left);
-        Animate(NotchShell, WidthProperty, width);
-        Animate(NotchShell, HeightProperty, shellHeight);
     }
 
     private void ApplyHeaderDensity(bool isFullBar)
@@ -215,16 +234,6 @@ public partial class MainWindow : Window
             chip.Padding = isFullBar ? new Thickness(9, 4, 9, 4) : new Thickness(11, 7, 11, 7);
             chip.CornerRadius = new CornerRadius(isFullBar ? 13 : 17);
         }
-    }
-
-    private void ClearShellAnimations()
-    {
-        BeginAnimation(WidthProperty, null);
-        BeginAnimation(HeightProperty, null);
-        BeginAnimation(LeftProperty, null);
-        NotchShell.BeginAnimation(WidthProperty, null);
-        NotchShell.BeginAnimation(HeightProperty, null);
-        DetailPanel.BeginAnimation(OpacityProperty, null);
     }
 
     private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -251,6 +260,9 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _expandedReveal?.Cancel();
+        _expandedReveal?.Dispose();
+        _appBar.Dispose();
         _notifications.Dispose();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;

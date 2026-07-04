@@ -13,23 +13,43 @@ public static class ForegroundWindowService
             return ShellMode.Mini;
         }
 
-        GetWindowThreadProcessId(foreground, out var processId);
-        var isOwnWindow = processId == Environment.ProcessId;
-        var className = GetClassName(foreground);
-        var isShell = className is "Progman" or "WorkerW" or "Shell_TrayWnd";
+        var candidate = foreground;
+        var isOwnWindow = IsOwnWindow(candidate);
+        var className = GetClassName(candidate);
+        if (IsShellClass(className))
+        {
+            return ShellMode.Mini;
+        }
 
-        if (!GetWindowRect(foreground, out var windowRect) ||
-            !TryGetMonitorRect(foreground, out var monitorRect))
+        if (isOwnWindow && !TryFindTopLevelAppWindow(out candidate))
+        {
+            return ShellMode.Mini;
+        }
+
+        if (candidate != foreground)
+        {
+            isOwnWindow = IsOwnWindow(candidate);
+            className = GetClassName(candidate);
+        }
+
+        if (!GetWindowRect(candidate, out var windowRect) ||
+            !TryGetMonitorRects(candidate, out var monitorRect, out var workAreaRect))
         {
             return ShellMode.Mini;
         }
 
         var placement = new WindowPlacement { Length = Marshal.SizeOf<WindowPlacement>() };
-        var isMaximized = GetWindowPlacement(foreground, ref placement) && placement.ShowCmd == 3;
-        return DecideMode(isOwnWindow, isShell, isMaximized, windowRect, monitorRect);
+        var isMaximized = GetWindowPlacement(candidate, ref placement) && placement.ShowCmd == 3;
+        return DecideMode(isOwnWindow, IsShellClass(className), isMaximized, windowRect, monitorRect, workAreaRect);
     }
 
-    public static ShellMode DecideMode(bool isOwnWindow, bool isShell, bool isMaximized, NativeRect windowRect, NativeRect monitorRect)
+    public static ShellMode DecideMode(
+        bool isOwnWindow,
+        bool isShell,
+        bool isMaximized,
+        NativeRect windowRect,
+        NativeRect monitorRect,
+        NativeRect workAreaRect)
     {
         if (isOwnWindow || isShell)
         {
@@ -37,26 +57,67 @@ public static class ForegroundWindowService
         }
 
         var widthCoverage = (double)windowRect.Width / Math.Max(1, monitorRect.Width);
-        var heightCoverage = (double)windowRect.Height / Math.Max(1, monitorRect.Height);
+        var screenHeightCoverage = (double)windowRect.Height / Math.Max(1, monitorRect.Height);
+        var workAreaHeightCoverage = (double)windowRect.Height / Math.Max(1, workAreaRect.Height);
         var coversTop = windowRect.Top <= monitorRect.Top + 8;
-        var fillsScreen = widthCoverage >= 0.9 && heightCoverage >= 0.78 && coversTop;
+        var fillsWorkAreaTop = Math.Abs(windowRect.Top - workAreaRect.Top) <= 8;
+        var fillsScreen = widthCoverage >= 0.9 && screenHeightCoverage >= 0.78 && coversTop;
+        var fillsWorkArea = widthCoverage >= 0.9 && workAreaHeightCoverage >= 0.78 && fillsWorkAreaTop;
 
-        return isMaximized || fillsScreen ? ShellMode.FullBar : ShellMode.Mini;
+        return isMaximized || fillsScreen || fillsWorkArea ? ShellMode.FullBar : ShellMode.Mini;
     }
 
-    private static bool TryGetMonitorRect(IntPtr window, out NativeRect rect)
+    private static bool TryGetMonitorRects(IntPtr window, out NativeRect monitorRect, out NativeRect workAreaRect)
     {
         var monitor = MonitorFromWindow(window, 2);
         var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
         if (!GetMonitorInfo(monitor, ref info))
         {
-            rect = default;
+            monitorRect = default;
+            workAreaRect = default;
             return false;
         }
 
-        rect = info.Monitor;
+        monitorRect = info.Monitor;
+        workAreaRect = info.WorkArea;
         return true;
     }
+
+    private static bool TryFindTopLevelAppWindow(out IntPtr window)
+    {
+        var result = IntPtr.Zero;
+        EnumWindows((candidate, _) =>
+        {
+            if (!IsAppWindow(candidate))
+            {
+                return true;
+            }
+
+            result = candidate;
+            return false;
+        }, IntPtr.Zero);
+        window = result;
+        return window != IntPtr.Zero;
+    }
+
+    private static bool IsAppWindow(IntPtr window)
+    {
+        if (!IsWindowVisible(window) || IsOwnWindow(window) || IsShellClass(GetClassName(window)))
+        {
+            return false;
+        }
+
+        return GetWindowRect(window, out var rect) && rect.Width > 160 && rect.Height > 120;
+    }
+
+    private static bool IsOwnWindow(IntPtr window)
+    {
+        GetWindowThreadProcessId(window, out var processId);
+        return processId == Environment.ProcessId;
+    }
+
+    private static bool IsShellClass(string className) =>
+        className is "Progman" or "WorkerW" or "Shell_TrayWnd";
 
     private static string GetClassName(IntPtr window)
     {
@@ -85,6 +146,14 @@ public static class ForegroundWindowService
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowPlacement(IntPtr hWnd, ref WindowPlacement placement);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 }
 
 [StructLayout(LayoutKind.Sequential)]

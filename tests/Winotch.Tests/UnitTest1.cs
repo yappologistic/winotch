@@ -74,8 +74,8 @@ public class StatusParsingTests
         var monitor = new NativeRect(0, 0, 1920, 1080);
         var fullscreen = new NativeRect(0, 0, 1920, 1040);
 
-        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: true, isShell: false, isMaximized: true, fullscreen, monitor));
-        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: true, isMaximized: true, fullscreen, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: true, isShell: false, isMaximized: true, fullscreen, monitor, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: true, isMaximized: true, fullscreen, monitor, monitor));
     }
 
     [Fact]
@@ -84,10 +84,13 @@ public class StatusParsingTests
         var monitor = new NativeRect(0, 0, 1920, 1080);
         var normal = new NativeRect(300, 160, 1200, 760);
         var filling = new NativeRect(0, 0, 1920, 1040);
+        var reservedWorkArea = new NativeRect(0, 48, 1920, 1080);
+        var fillingReservedWorkArea = new NativeRect(0, 48, 1920, 1080);
 
-        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, normal, monitor));
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: true, normal, monitor));
-        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, filling, monitor));
+        Assert.Equal(ShellMode.Mini, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, normal, monitor, monitor));
+        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: true, normal, monitor, monitor));
+        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, filling, monitor, monitor));
+        Assert.Equal(ShellMode.FullBar, ForegroundWindowService.DecideMode(isOwnWindow: false, isShell: false, isMaximized: false, fillingReservedWorkArea, monitor, reservedWorkArea));
     }
 
     [Theory]
@@ -97,6 +100,20 @@ public class StatusParsingTests
     public void NotificationSilenceUsesGlobalToastToggle(int? enabled, bool expected)
     {
         Assert.Equal(expected, NotificationSilenceService.IsGloballySilenced(enabled));
+    }
+
+    [Fact]
+    public void NotificationChangeTrackerPopsOnlyForNewNotifications()
+    {
+        var tracker = new NotificationChangeTracker();
+        var first = new[] { new NotificationItem("Mail", "One", "Body") };
+        var second = new[] { new NotificationItem("Mail", "Two", "Body") };
+
+        Assert.False(tracker.ShouldPop(first));
+        Assert.False(tracker.ShouldPop(first));
+        Assert.True(tracker.ShouldPop(second));
+        Assert.False(tracker.ShouldPop(second));
+        Assert.False(tracker.ShouldPop([]));
     }
 
     [Theory]
@@ -109,5 +126,24 @@ public class StatusParsingTests
     public void RefreshRateFallsBackOnlyForInvalidValues(int refreshRate, int expected)
     {
         Assert.Equal(expected, DisplayRefreshRateService.NormalizeRefreshRate(refreshRate));
+    }
+
+    [Theory]
+    [InlineData(34, 1.0, 34)]
+    [InlineData(34, 1.25, 43)]
+    [InlineData(34, 1.5, 51)]
+    [InlineData(0, 1.0, 1)]
+    public void AppBarHeightUsesPhysicalPixels(double dip, double dpiScale, int expected)
+    {
+        Assert.Equal(expected, AppBarReservationService.ToPhysicalPixels(dip, dpiScale));
+    }
+
+    [Fact]
+    public void ShellMetricsCentersMiniAndExpandedWidths()
+    {
+        Assert.Equal(850, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
+        Assert.Equal(540, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
+        Assert.Equal(new ShellGeometry(1920, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
+        Assert.Equal(new ShellGeometry(220, 36, 42, 850), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
     }
 }
