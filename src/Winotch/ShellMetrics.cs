@@ -13,8 +13,8 @@ public static class ShellMetrics
     public const double MediaToastShellHeight = 68;
     public const double MediaToastWindowHeight = 76;
     public const double ExpandedWidth = 840;
-    public const double ExpandedShellHeight = 246;
-    public const double ExpandedWindowHeight = 300;
+    public const double ExpandedShellHeight = 370;
+    public const double ExpandedWindowHeight = 430;
 
     public static double CenterLeft(double screenWidth, double width) => (screenWidth - width) / 2;
 

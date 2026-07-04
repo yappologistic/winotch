@@ -38,6 +38,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeFileShelf();
         _clockTimer.Tick += (_, _) => UpdateClock();
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
         _shellTimer.Tick += (_, _) => ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
@@ -57,6 +58,7 @@ public partial class MainWindow : Window
         _statusTimer.Start();
         _shellTimer.Start();
         await ApplyAccountPictureAsync();
+        await LoadFileShelfAsync();
         await RefreshStatusAsync();
     }
 
@@ -229,6 +231,7 @@ public partial class MainWindow : Window
         }
 
         _expanded = expanded;
+        UpdateShelfMiniIndicator();
         _expandedReveal?.Cancel();
         _expandedReveal?.Dispose();
         _expandedReveal = null;
@@ -418,6 +421,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        _currentShellMode = mode;
         var isFullBar = mode == ShellMode.FullBar;
         var geometry = ShellMetrics.ForMode(isFullBar, SystemParameters.PrimaryScreenWidth);
 
@@ -445,6 +449,7 @@ public partial class MainWindow : Window
             ShellAnimator.Animate(DetailPanel, OpacityProperty, 0, _animationFrameRate);
             ShellAnimator.AnimateShell(this, NotchShell, geometry, _animationFrameRate);
             SetMouseTransparent(isFullBar);
+            UpdateShelfMiniIndicator();
             return;
         }
 
@@ -457,6 +462,7 @@ public partial class MainWindow : Window
         NotchShell.Width = geometry.Width;
         NotchShell.Height = geometry.ShellHeight;
         SetMouseTransparent(isFullBar);
+        UpdateShelfMiniIndicator();
     }
 
     private void ApplyHeaderDensity(bool isFullBar)
@@ -544,6 +550,7 @@ public partial class MainWindow : Window
         _expandedReveal?.Dispose();
         _compactToastHide?.Cancel();
         _compactToastHide?.Dispose();
+        DisposeFileShelf();
         _appBar.Dispose();
         _notifications.Dispose();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;

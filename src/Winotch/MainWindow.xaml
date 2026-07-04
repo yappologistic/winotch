@@ -14,9 +14,14 @@
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
+        AllowDrop="True"
         Loaded="Window_Loaded"
         MouseEnter="Window_MouseEnter"
-        MouseLeave="Window_MouseLeave">
+        MouseLeave="Window_MouseLeave"
+        DragEnter="Window_DragEnter"
+        DragOver="Window_DragOver"
+        DragLeave="Window_DragLeave"
+        Drop="Window_Drop">
     <Grid Background="Transparent">
         <Border x:Name="NotchShell"
                 Width="220"
@@ -48,6 +53,23 @@
                             <Grid>
                                 <Ellipse x:Name="LogoAccountPicture" Visibility="Collapsed" />
                                 <TextBlock x:Name="LogoFallbackText" Text="W" FontWeight="Bold" FontSize="14" LineHeight="18" LineStackingStrategy="BlockLineHeight" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border x:Name="ShelfMiniIndicator"
+                                        Width="16"
+                                        Height="16"
+                                        CornerRadius="8"
+                                        Background="#242424"
+                                        BorderBrush="{StaticResource NotchBlack}"
+                                        BorderThickness="1"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom"
+                                        Margin="0,0,-4,-4"
+                                        Visibility="Collapsed">
+                                    <TextBlock x:Name="ShelfMiniCountText"
+                                               FontSize="8"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
                             </Grid>
                         </Border>
                         <StackPanel>
@@ -99,6 +121,10 @@
                 </Grid>
 
                 <Grid x:Name="DetailPanel" Grid.Row="1" Opacity="0" Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.1*" />
                         <ColumnDefinition Width="1.5*" />
@@ -184,6 +210,150 @@
                                  ItemContainerStyle="{StaticResource NotchListBoxItem}" />
                         <Button x:Name="ConnectWifiButton" Content="Connect" HorizontalAlignment="Left" Margin="0,8,0,0" Click="ConnectWifi_Click" />
                     </StackPanel>
+
+                    <Border x:Name="ShelfSection"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="3"
+                            Margin="2,14,2,0"
+                            Padding="10,8"
+                            CornerRadius="12"
+                            Background="{StaticResource NotchPanel}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="48" />
+                            </Grid.RowDefinitions>
+                            <DockPanel>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Shelf" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                    <Border CornerRadius="8" Background="#242424" Padding="6,1" Margin="7,0,0,0">
+                                        <TextBlock x:Name="ShelfSectionCountText" FontSize="10" FontWeight="SemiBold" />
+                                    </Border>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button x:Name="ShelfDragAllButton"
+                                            Style="{StaticResource MediaIconButton}"
+                                            Width="24"
+                                            Height="24"
+                                            Margin="0,0,4,0"
+                                            ToolTip="Drag all shelf items"
+                                            AutomationProperties.Name="Drag all shelf items"
+                                            PreviewMouseLeftButtonDown="ShelfDragAll_PreviewMouseLeftButtonDown"
+                                            PreviewMouseMove="ShelfDragSource_PreviewMouseMove">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8E5;" FontSize="12" />
+                                    </Button>
+                                    <Button x:Name="ShelfClearButton" Padding="8,4" Margin="0" Click="ShelfClear_Click" AutomationProperties.Name="Clear shelf">
+                                        <TextBlock Text="Clear" FontSize="11" />
+                                    </Button>
+                                </StackPanel>
+                            </DockPanel>
+                            <Grid Grid.Row="1" Margin="0,7,0,0">
+                                <TextBlock x:Name="ShelfEmptyText"
+                                           Text="Shelf empty"
+                                           FontSize="12"
+                                           Foreground="{StaticResource NotchMutedText}"
+                                           VerticalAlignment="Center" />
+                                <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+                                    <ItemsControl x:Name="ShelfItemsControl">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type local:ShelfTileViewModel}">
+                                                <Border x:Name="TileChrome"
+                                                        Width="92"
+                                                        Height="42"
+                                                        Margin="0,0,8,0"
+                                                        Padding="7"
+                                                        CornerRadius="9"
+                                                        Background="#202020"
+                                                        ToolTip="{Binding FullPath}"
+                                                        PreviewMouseLeftButtonDown="ShelfItem_PreviewMouseLeftButtonDown"
+                                                        PreviewMouseMove="ShelfDragSource_PreviewMouseMove">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="24" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="20" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <Grid Width="22" Height="22" VerticalAlignment="Center">
+                                                            <Image Source="{Binding Icon}" Stretch="Uniform" />
+                                                            <Border x:Name="ShelfIconFallback" CornerRadius="5" Background="#303030" Visibility="Collapsed">
+                                                                <TextBlock Style="{StaticResource IconText}" Text="&#xE160;" FontSize="11" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                            </Border>
+                                                        </Grid>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding DisplayName}"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold"
+                                                                   Margin="6,0,2,0"
+                                                                   VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <Button x:Name="RemoveShelfItemButton"
+                                                                Grid.Column="2"
+                                                                Width="18"
+                                                                Height="18"
+                                                                Padding="0"
+                                                                Background="#303030"
+                                                                Opacity="0"
+                                                                Tag="{Binding FullPath}"
+                                                                ToolTip="Remove"
+                                                                AutomationProperties.Name="Remove shelf item"
+                                                                Click="ShelfRemove_Click">
+                                                            <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="9" />
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                                        <Setter TargetName="ShelfIconFallback" Property="Visibility" Value="Visible" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Exists}" Value="False">
+                                                        <Setter TargetName="TileChrome" Property="Opacity" Value="0.45" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, ElementName=TileChrome}" Value="True">
+                                                        <Setter TargetName="RemoveShelfItemButton" Property="Opacity" Value="1" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                                <Border x:Name="ShelfOverflowBadge"
+                                        CornerRadius="10"
+                                        Background="#303030"
+                                        Padding="8,3"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Visibility="Collapsed">
+                                    <TextBlock x:Name="ShelfOverflowText" FontSize="11" FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="ShelfDropOverlay"
+                      Grid.RowSpan="2"
+                      Visibility="Collapsed"
+                      Opacity="0"
+                      IsHitTestVisible="False">
+                    <Border Width="360"
+                            Height="96"
+                            CornerRadius="22"
+                            Background="{StaticResource NotchPanel}"
+                            BorderBrush="{StaticResource NotchText}"
+                            BorderThickness="1"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE8E5;" FontSize="21" Margin="0,0,12,0" />
+                            <TextBlock Text="Drop to shelf" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
 
                 <Grid x:Name="MediaToastPanel" Grid.RowSpan="2" Visibility="Collapsed" Opacity="0" VerticalAlignment="Center">
