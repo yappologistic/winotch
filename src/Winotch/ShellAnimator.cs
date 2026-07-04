@@ -39,10 +39,10 @@ public static class ShellAnimator
 
     public static void AnimateShell(Window window, FrameworkElement shell, ShellGeometry geometry, int frameRate)
     {
-        window.Top = 0;
         Animate(window, Window.WidthProperty, geometry.Width, frameRate);
         Animate(window, Window.HeightProperty, geometry.WindowHeight, frameRate);
         Animate(window, Window.LeftProperty, geometry.Left, frameRate);
+        Animate(window, Window.TopProperty, geometry.Top, frameRate);
         Animate(shell, FrameworkElement.WidthProperty, geometry.Width, frameRate);
         Animate(shell, FrameworkElement.HeightProperty, geometry.ShellHeight, frameRate);
     }
@@ -53,10 +53,12 @@ public static class ShellAnimator
             Current(window.Width, window.ActualWidth),
             Current(shell.Height, shell.ActualHeight),
             Current(window.Height, window.ActualHeight),
-            window.Left);
+            window.Left,
+            window.Top);
         window.BeginAnimation(Window.WidthProperty, null);
         window.BeginAnimation(Window.HeightProperty, null);
         window.BeginAnimation(Window.LeftProperty, null);
+        window.BeginAnimation(Window.TopProperty, null);
         shell.BeginAnimation(FrameworkElement.WidthProperty, null);
         shell.BeginAnimation(FrameworkElement.HeightProperty, null);
         detail.BeginAnimation(UIElement.OpacityProperty, null);
@@ -72,6 +74,7 @@ public static class ShellAnimator
         window.Width = geometry.Width;
         window.Height = geometry.WindowHeight;
         window.Left = geometry.Left;
+        window.Top = geometry.Top;
         shell.Width = geometry.Width;
         shell.Height = geometry.ShellHeight;
     }

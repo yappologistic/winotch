@@ -22,6 +22,7 @@ flowchart TD
     Window --> Clipboard["Clipboard Format Listener"]
     Window --> Focus["Focus Timer State + JSON Store"]
     Window --> Shelf["File Shelf JSON Store"]
+    Window --> MonitorTargeting["Active Monitor Targeting"]
     Window --> CameraMirror["Camera Mirror Service"]
     Status --> Brightness["WMI and DDC/CI Brightness"]
     Window --> Stats["Expanded-Only System Stats Sampler"]
@@ -93,6 +94,14 @@ Animation timings live in `ShellAnimationTiming`:
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
 
 Foreground detection uses Win32 window bounds/window placement and falls back to `Mini` for the desktop shell and Winotch's own window. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not force the full-width bar.
+
+## Multi-Monitor Targeting
+
+Winotch runs one notch window and targets it to one monitor at a time. One-notch-per-display is intentionally out of scope for this pass.
+
+`ForegroundWindowService` returns the current shell mode plus the foreground app rectangle. `MonitorTargeting` chooses the monitor containing that foreground rectangle; when the foreground is the desktop or shell, it chooses the monitor containing the cursor, then the last used monitor, then the primary monitor. This keeps shell focus predictable without creating duplicate notches.
+
+Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. Full-bar mode releases any existing app-bar reservation before a monitor switch and re-reserves the top edge on the selected monitor.
 
 ## Media
 

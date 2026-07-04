@@ -6,10 +6,10 @@ public static class DisplayRefreshRateService
 {
     private const int EnumCurrentSettings = -1;
 
-    public static int GetPrimaryRefreshRate()
+    public static int GetRefreshRate(string? deviceName)
     {
         var mode = new DevMode { Size = (short)Marshal.SizeOf<DevMode>() };
-        return EnumDisplaySettings(null, EnumCurrentSettings, ref mode)
+        return EnumDisplaySettings(deviceName, EnumCurrentSettings, ref mode)
             ? NormalizeRefreshRate(mode.DisplayFrequency)
             : 60;
     }

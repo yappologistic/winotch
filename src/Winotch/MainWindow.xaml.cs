@@ -23,7 +23,7 @@ public partial class MainWindow : Window
     private static readonly IEasingFunction ChargingFlourishEasing = new QuarticEase { EasingMode = EasingMode.EaseOut };
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
-    private readonly DispatcherTimer _shellTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    private readonly DispatcherTimer _shellTimer = new() { Interval = ShellAnimationTiming.ForegroundPollInterval };
     private readonly DispatcherTimer _collapseTimer = new() { Interval = ShellAnimationTiming.CollapseGuard };
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly AudioService _audio = new();
@@ -53,6 +53,7 @@ public partial class MainWindow : Window
     private bool _exitRequested;
     private bool _updatingControlCenter;
     private int _animationFrameRate = 60;
+    private MonitorSnapshot? _currentMonitor;
     private DateTime _ignoreHoverUntilUtc;
     private CancellationTokenSource? _expandedReveal;
     private CancellationTokenSource? _compactToastHide;
@@ -80,7 +81,7 @@ public partial class MainWindow : Window
             ShowCalendarToastIfDue(now);
         };
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
-        _shellTimer.Tick += (_, _) => ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        _shellTimer.Tick += (_, _) => ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true);
         _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _statsTimer.Tick += (_, _) => RefreshSystemStats();
         _calendarTimer.Tick += async (_, _) => await RefreshCalendarAsync();
@@ -96,9 +97,8 @@ public partial class MainWindow : Window
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
         SyncStartupSetting();
-        ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
         LoadFocusTimer();
         ApplyCalendarSettings(_settings.Current);
         UpdateClock();
@@ -312,8 +312,7 @@ public partial class MainWindow : Window
         }
 
         Show();
-        _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
-        ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
         UpdateClock();
         RefreshFocusTimer();
         ApplyCalendarSettings(_settings.Current);
@@ -434,8 +433,7 @@ public partial class MainWindow : Window
 
     private void OnDisplaySettingsChanged(object? sender, EventArgs e)
     {
-        _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
-        ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
         PositionCameraMirror();
     }
 
@@ -497,7 +495,7 @@ public partial class MainWindow : Window
         {
             StopSystemStats();
             _ = CloseCameraMirrorAsync();
-            ApplyShellMode(ForegroundWindowService.DetectShellMode());
+            ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
             return;
         }
 
@@ -512,7 +510,8 @@ public partial class MainWindow : Window
         NotchShell.CornerRadius = new CornerRadius(0, 0, 34, 34);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
-        ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.Expanded(PrimaryScreenWidthDip()), _animationFrameRate);
+        var monitor = CurrentMonitor();
+        ShellAnimator.AnimateShell(this, NotchShell, PlaceOnMonitor(ShellMetrics.Expanded(monitor.WidthDip), monitor), _animationFrameRate);
         StartSystemStats();
         _ = RefreshControlCenterAsync();
         _expandedReveal = new CancellationTokenSource();
@@ -714,7 +713,8 @@ public partial class MainWindow : Window
         NotchShell.Padding = new Thickness(10, 4, 10, 6);
         NotchShell.CornerRadius = new CornerRadius(0, 0, 24, 24);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
-        ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.MediaToast(PrimaryScreenWidthDip()), _animationFrameRate);
+        var monitor = CurrentMonitor();
+        ShellAnimator.AnimateShell(this, NotchShell, PlaceOnMonitor(ShellMetrics.MediaToast(monitor.WidthDip), monitor), _animationFrameRate);
         panel.Opacity = 0;
         ShellAnimator.Show(panel, _animationFrameRate);
         _ = HideCompactToastAfterDelayAsync(_compactToastHide.Token);
@@ -756,7 +756,7 @@ public partial class MainWindow : Window
         ClockGroup.Opacity = 1;
         if (restoreShell)
         {
-            ApplyShellMode(ForegroundWindowService.DetectShellMode());
+            ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
         }
     }
 
@@ -815,7 +815,8 @@ public partial class MainWindow : Window
 
         _currentShellMode = mode;
         var isFullBar = mode == ShellMode.FullBar;
-        var geometry = ShellMetrics.ForMode(isFullBar, PrimaryScreenWidthDip());
+        var monitor = CurrentMonitor();
+        var geometry = PlaceOnMonitor(ShellMetrics.ForMode(isFullBar, monitor.WidthDip), monitor);
 
         ShellAnimator.Hide(DateText);
         ClockGroup.Visibility = Visibility.Visible;
@@ -829,7 +830,7 @@ public partial class MainWindow : Window
         NotchShell.CornerRadius = isFullBar ? new CornerRadius(0) : new CornerRadius(0, 0, 20, 20);
         if (isFullBar)
         {
-            _appBar.ReserveTop(this, geometry.WindowHeight);
+            _appBar.ReserveTop(this, geometry.WindowHeight, monitor);
         }
         else
         {
@@ -850,7 +851,7 @@ public partial class MainWindow : Window
         Width = geometry.Width;
         Height = geometry.WindowHeight;
         Left = geometry.Left;
-        Top = 0;
+        Top = geometry.Top;
         NotchShell.Width = geometry.Width;
         NotchShell.Height = geometry.ShellHeight;
         SetMouseTransparent(isFullBar);
@@ -871,10 +872,59 @@ public partial class MainWindow : Window
         }
     }
 
-    private double PrimaryScreenWidthDip()
+    private void ApplyForegroundState(ForegroundWindowSnapshot foreground, bool animate, bool force = false)
     {
-        return SystemParameters.PrimaryScreenWidth;
+        var monitors = MonitorTargeting.CaptureScreens();
+        if (monitors.Count == 0)
+        {
+            return;
+        }
+
+        var targetMonitor = MonitorTargeting.SelectMonitor(
+            monitors,
+            new MonitorTargetRequest(
+                foreground.WindowRect,
+                foreground.UseCursorMonitor,
+                MonitorTargeting.GetCursorPosition(),
+                _currentMonitor?.DeviceName));
+        var monitorChanged = _currentMonitor is null ||
+            !string.Equals(_currentMonitor.Value.DeviceName, targetMonitor.DeviceName, StringComparison.OrdinalIgnoreCase);
+        if (!force && !monitorChanged && foreground.Mode == _currentShellMode)
+        {
+            return;
+        }
+
+        if (monitorChanged)
+        {
+            _appBar.Release();
+        }
+
+        _currentMonitor = targetMonitor;
+        _animationFrameRate = DisplayRefreshRateService.GetRefreshRate(targetMonitor.DeviceName);
+        ApplyShellMode(foreground.Mode, animate);
     }
+
+    private MonitorSnapshot CurrentMonitor()
+    {
+        if (_currentMonitor is MonitorSnapshot monitor)
+        {
+            return monitor;
+        }
+
+        var monitors = MonitorTargeting.CaptureScreens();
+        var primary = MonitorTargeting.SelectMonitor(
+            monitors,
+            new MonitorTargetRequest(
+                ForegroundRect: null,
+                UseCursorMonitor: false,
+                MonitorTargeting.GetCursorPosition(),
+                LastMonitorDeviceName: null));
+        _currentMonitor = primary;
+        return primary;
+    }
+
+    private static ShellGeometry PlaceOnMonitor(ShellGeometry geometry, MonitorSnapshot monitor) =>
+        geometry with { Left = monitor.LeftDip + geometry.Left, Top = monitor.TopDip };
 
     private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -1217,9 +1267,15 @@ public partial class MainWindow : Window
         var left = Left + (Width - _cameraMirrorWindow.Width) / 2;
         var shellHeight = NotchShell.ActualHeight > 0 ? NotchShell.ActualHeight : NotchShell.Height;
         var top = Top + shellHeight + 8;
-        var maxLeft = SystemParameters.WorkArea.Right - _cameraMirrorWindow.Width - 8;
-        var maxTop = SystemParameters.WorkArea.Bottom - _cameraMirrorWindow.Height - 8;
-        _cameraMirrorWindow.Left = Math.Min(Math.Max(SystemParameters.WorkArea.Left + 8, left), maxLeft);
-        _cameraMirrorWindow.Top = Math.Max(8, Math.Min(top, maxTop));
+        var monitor = CurrentMonitor();
+        var minLeft = monitor.WorkAreaLeftDip + 8;
+        var maxLeft = monitor.WorkAreaRightDip - _cameraMirrorWindow.Width - 8;
+        var minTop = monitor.WorkAreaTopDip + 8;
+        var maxTop = monitor.WorkAreaBottomDip - _cameraMirrorWindow.Height - 8;
+        _cameraMirrorWindow.Left = ClampToRange(left, minLeft, maxLeft);
+        _cameraMirrorWindow.Top = ClampToRange(top, minTop, maxTop);
     }
+
+    private static double ClampToRange(double value, double minimum, double maximum) =>
+        maximum < minimum ? minimum : Math.Min(Math.Max(minimum, value), maximum);
 }

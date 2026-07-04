@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Media;
 
 namespace Winotch;
 
@@ -17,7 +16,7 @@ public sealed class AppBarReservationService : IDisposable
     private IntPtr _handle;
     private bool _registered;
 
-    public void ReserveTop(Window window, double heightDip)
+    public void ReserveTop(Window window, double heightDip, MonitorSnapshot monitor)
     {
         _handle = new WindowInteropHelper(window).Handle;
         if (_handle == IntPtr.Zero)
@@ -32,19 +31,18 @@ public sealed class AppBarReservationService : IDisposable
         }
 
         _registered = true;
-        var screen = System.Windows.Forms.Screen.FromHandle(_handle);
-        var heightPixels = ToPhysicalPixels(heightDip, VisualTreeHelper.GetDpi(window).DpiScaleY);
+        var heightPixels = ToPhysicalPixels(heightDip, monitor.DpiScaleY);
         var data = CreateData();
         data.Edge = AbeTop;
         data.Rect = new NativeRect(
-            screen.Bounds.Left,
-            screen.Bounds.Top,
-            screen.Bounds.Right,
-            screen.Bounds.Top + heightPixels);
+            monitor.Bounds.Left,
+            monitor.Bounds.Top,
+            monitor.Bounds.Right,
+            monitor.Bounds.Top + heightPixels);
 
         SHAppBarMessage(AbmQueryPos, ref data);
-        data.Rect.Top = screen.Bounds.Top;
-        data.Rect.Bottom = screen.Bounds.Top + heightPixels;
+        data.Rect.Top = monitor.Bounds.Top;
+        data.Rect.Bottom = monitor.Bounds.Top + heightPixels;
         SHAppBarMessage(AbmSetPos, ref data);
     }
 

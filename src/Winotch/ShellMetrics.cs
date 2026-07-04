@@ -1,6 +1,11 @@
 namespace Winotch;
 
-public readonly record struct ShellGeometry(double Width, double ShellHeight, double WindowHeight, double Left);
+public readonly record struct ShellGeometry(
+    double Width,
+    double ShellHeight,
+    double WindowHeight,
+    double Left,
+    double Top = 0);
 
 public static class ShellMetrics
 {

@@ -5,12 +5,14 @@ namespace Winotch;
 
 public static class ForegroundWindowService
 {
-    public static ShellMode DetectShellMode()
+    public static ShellMode DetectShellMode() => DetectForeground().Mode;
+
+    public static ForegroundWindowSnapshot DetectForeground()
     {
         var foreground = GetForegroundWindow();
         if (foreground == IntPtr.Zero)
         {
-            return ShellMode.Mini;
+            return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: false);
         }
 
         var candidate = foreground;
@@ -18,12 +20,12 @@ public static class ForegroundWindowService
         var className = GetClassName(candidate);
         if (IsShellClass(className))
         {
-            return ShellMode.Mini;
+            return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: true);
         }
 
         if (isOwnWindow && !TryFindTopLevelAppWindow(out candidate))
         {
-            return ShellMode.Mini;
+            return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: false);
         }
 
         if (candidate != foreground)
@@ -32,15 +34,20 @@ public static class ForegroundWindowService
             className = GetClassName(candidate);
         }
 
-        if (!GetWindowRect(candidate, out var windowRect) ||
-            !TryGetMonitorRects(candidate, out var monitorRect, out var workAreaRect))
+        if (!GetWindowRect(candidate, out var windowRect))
         {
-            return ShellMode.Mini;
+            return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: false);
+        }
+
+        if (!TryGetMonitorRects(candidate, out var monitorRect, out var workAreaRect))
+        {
+            return new ForegroundWindowSnapshot(ShellMode.Mini, windowRect, UseCursorMonitor: false);
         }
 
         var placement = new WindowPlacement { Length = Marshal.SizeOf<WindowPlacement>() };
         var isMaximized = GetWindowPlacement(candidate, ref placement) && placement.ShowCmd == 3;
-        return DecideMode(isOwnWindow, IsShellClass(className), isMaximized, windowRect, monitorRect, workAreaRect);
+        var mode = DecideMode(isOwnWindow, IsShellClass(className), isMaximized, windowRect, monitorRect, workAreaRect);
+        return new ForegroundWindowSnapshot(mode, windowRect, UseCursorMonitor: false);
     }
 
     public static ShellMode DecideMode(
@@ -176,6 +183,11 @@ public static class ForegroundWindowService
 
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 }
+
+public readonly record struct ForegroundWindowSnapshot(
+    ShellMode Mode,
+    NativeRect? WindowRect,
+    bool UseCursorMonitor);
 
 [StructLayout(LayoutKind.Sequential)]
 public struct NativeRect
