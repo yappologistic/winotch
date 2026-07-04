@@ -150,7 +150,7 @@
                 </Grid>
 
                 <Grid x:Name="DetailPanel" Grid.Row="1" Opacity="0" Margin="0,10,0,0" ClipToBounds="True">
-                    <ScrollViewer VerticalScrollBarVisibility="Hidden"
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   PanningMode="VerticalOnly">
                         <Grid>
@@ -298,7 +298,7 @@
                                  Background="Transparent"
                                  Foreground="{StaticResource NotchText}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                                  ItemContainerStyle="{StaticResource NotchListBoxItem}">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -357,7 +357,7 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <ScrollViewer Grid.Column="1" Margin="0,0,22,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                    <ScrollViewer Grid.Column="1" Margin="0,0,22,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
                             <DockPanel>
                                 <TextBlock Text="Controls" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
@@ -417,7 +417,7 @@
                             <StackPanel x:Name="AudioSessionMixerSection" Margin="0,0,0,10">
                                 <TextBlock Text="Apps" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
                                 <TextBlock x:Name="NoAudioSessionsText" Text="No active audio sessions" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,5,0,6" />
-                                <ScrollViewer x:Name="AudioSessionScroll" Height="132" Margin="0,4,0,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
+                                <ScrollViewer x:Name="AudioSessionScroll" Height="132" Margin="0,4,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <ItemsControl x:Name="AudioSessionList">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -507,7 +507,7 @@
                                      Background="Transparent"
                                      Foreground="{StaticResource NotchText}"
                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                                      ItemContainerStyle="{StaticResource NotchListBoxItem}" />
                             <Button x:Name="ConnectWifiButton" Content="Connect" HorizontalAlignment="Left" Margin="0,8,0,0" Click="ConnectWifi_Click" />
                         </StackPanel>

@@ -167,6 +167,7 @@
                     <ControlTemplate TargetType="ComboBoxItem">
                         <Border x:Name="ItemChrome"
                                 Background="{TemplateBinding Background}"
+                                CornerRadius="5"
                                 Padding="{TemplateBinding Padding}">
                             <ContentPresenter />
                         </Border>
