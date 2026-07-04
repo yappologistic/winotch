@@ -10,6 +10,7 @@ namespace Winotch;
 
 public partial class CameraMirrorWindow : Window
 {
+    private const double PreviewCornerRadius = 18;
     private static readonly Duration FadeDuration = new(ShellAnimationTiming.FadeDuration);
     private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
     private static readonly IEasingFunction Easing = new QuarticEase { EasingMode = EasingMode.EaseOut };
@@ -139,6 +140,10 @@ public partial class CameraMirrorWindow : Window
 
     private void PreviewViewport_SizeChanged(object sender, SizeChangedEventArgs e)
     {
+        PreviewViewport.Clip = new RectangleGeometry(
+            new Rect(0, 0, PreviewViewport.ActualWidth, PreviewViewport.ActualHeight),
+            PreviewCornerRadius,
+            PreviewCornerRadius);
         ApplyPreviewLayout();
     }
 
