@@ -261,18 +261,20 @@ public class StatusShellTests
     }
 
     [Theory]
-    [InlineData(true, false, false, false, 200, 160, true)]
-    [InlineData(false, false, false, false, 200, 160, false)]
-    [InlineData(true, true, false, false, 200, 160, false)]
-    [InlineData(true, false, true, false, 200, 160, false)]
-    [InlineData(true, false, false, true, 200, 160, false)]
-    [InlineData(true, false, false, false, 160, 160, false)]
-    [InlineData(true, false, false, false, 200, 120, false)]
-    public void CandidateAppWindowFilterRejectsShellOwnMinimizedAndTinyWindows(
+    [InlineData(true, false, false, false, false, 200, 160, true)]
+    [InlineData(false, false, false, false, false, 200, 160, false)]
+    [InlineData(true, true, false, false, false, 200, 160, false)]
+    [InlineData(true, false, true, false, false, 200, 160, false)]
+    [InlineData(true, false, false, true, false, 200, 160, false)]
+    [InlineData(true, false, false, false, true, 200, 160, false)]
+    [InlineData(true, false, false, false, false, 160, 160, false)]
+    [InlineData(true, false, false, false, false, 200, 120, false)]
+    public void CandidateAppWindowFilterRejectsShellOwnMinimizedCloakedAndTinyWindows(
         bool isVisible,
         bool isOwnWindow,
         bool isShell,
         bool isMinimized,
+        bool isCloaked,
         int width,
         int height,
         bool expected)
@@ -284,6 +286,7 @@ public class StatusShellTests
             isOwnWindow,
             isShell,
             isMinimized,
+            isCloaked,
             rect));
     }
 

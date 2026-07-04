@@ -5,6 +5,8 @@ namespace Winotch;
 
 public static class ForegroundWindowService
 {
+    private const int DwmWindowAttributeCloaked = 14;
+
     public static ShellMode DetectShellMode() => DetectForeground().Mode;
 
     public static ForegroundWindowSnapshot DetectForeground()
@@ -32,6 +34,11 @@ public static class ForegroundWindowService
         {
             isOwnWindow = IsOwnWindow(candidate);
             className = GetClassName(candidate);
+        }
+
+        if (IsIconic(candidate) || IsCloaked(candidate))
+        {
+            return new ForegroundWindowSnapshot(ShellMode.Mini, WindowRect: null, UseCursorMonitor: false);
         }
 
         if (!GetWindowRect(candidate, out var windowRect))
@@ -79,11 +86,13 @@ public static class ForegroundWindowService
         bool isOwnWindow,
         bool isShell,
         bool isMinimized,
+        bool isCloaked,
         NativeRect rect) =>
         isVisible &&
         !isOwnWindow &&
         !isShell &&
         !isMinimized &&
+        !isCloaked &&
         rect.Width > 160 &&
         rect.Height > 120;
 
@@ -132,6 +141,7 @@ public static class ForegroundWindowService
             IsOwnWindow(window),
             IsShellClass(GetClassName(window)),
             IsIconic(window),
+            IsCloaked(window),
             rect);
     }
 
@@ -143,6 +153,10 @@ public static class ForegroundWindowService
 
     public static bool IsShellClass(string className) =>
         className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
+
+    private static bool IsCloaked(IntPtr window) =>
+        DwmGetWindowAttribute(window, DwmWindowAttributeCloaked, out var cloaked, sizeof(int)) == 0 &&
+        cloaked != 0;
 
     private static string GetClassName(IntPtr window)
     {
@@ -180,6 +194,9 @@ public static class ForegroundWindowService
 
     [DllImport("user32.dll")]
     private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr hwnd, int attribute, out int value, int size);
 
     private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 }
