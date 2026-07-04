@@ -113,6 +113,8 @@ public sealed class FocusTimerStore
         }
 
         private static bool IsValid(FocusTimerState state) =>
+            Enum.IsDefined(state.Status) &&
+            Enum.IsDefined(state.Phase) &&
             state.IsActive &&
             new FocusTimerSettings(state.FocusDuration, state.BreakDuration, state.AutoCycle).IsValid &&
             (state.Status != FocusTimerStatus.Paused || state.PausedAtUtc is not null);

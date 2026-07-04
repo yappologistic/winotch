@@ -51,6 +51,44 @@ public class IcsParserTests
     }
 
     [Fact]
+    public void ParserIgnoresMalformedDuplicateRruleParts()
+    {
+        var calendarEvent = Assert.Single(IcsParser.Parse(string.Join("\n",
+            "BEGIN:VCALENDAR",
+            "BEGIN:VEVENT",
+            "UID:duplicate-rule",
+            "DTSTART:20260704T100000Z",
+            "DURATION:PT15M",
+            "RRULE:FREQ=DAILY;COUNT=2;COUNT=bogus",
+            "SUMMARY:Malformed rule",
+            "END:VEVENT",
+            "END:VCALENDAR")));
+
+        var occurrences = IcsRecurrence.Expand(
+            [calendarEvent],
+            new DateTimeOffset(2026, 7, 4, 0, 0, 0, TimeSpan.Zero),
+            new DateTimeOffset(2026, 7, 7, 0, 0, 0, TimeSpan.Zero));
+
+        Assert.Equal(2, occurrences.Count);
+    }
+
+    [Fact]
+    public void ParserFallsBackWhenDurationOverflows()
+    {
+        var calendarEvent = Assert.Single(IcsParser.Parse(string.Join("\n",
+            "BEGIN:VCALENDAR",
+            "BEGIN:VEVENT",
+            "UID:huge-duration",
+            "DTSTART:20260704T100000Z",
+            "DURATION:P2147483647W",
+            "SUMMARY:Huge duration",
+            "END:VEVENT",
+            "END:VCALENDAR")));
+
+        Assert.Equal(TimeSpan.Zero, calendarEvent.Duration);
+    }
+
+    [Fact]
     public void AllDayDateValuesStayAgendaOnly()
     {
         var calendarEvent = Assert.Single(IcsParser.Parse(string.Join("\n",

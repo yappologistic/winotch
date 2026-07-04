@@ -8,10 +8,17 @@ public static class IcsRecurrence
 
     public static CalendarRecurrenceRule? Parse(string text, TimeZoneInfo fallbackZone)
     {
-        var parts = text.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var parts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var pair in text.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(part => part.Split('=', 2))
-            .Where(pair => pair.Length == 2)
-            .ToDictionary(pair => pair[0].ToUpperInvariant(), pair => pair[1], StringComparer.OrdinalIgnoreCase);
+            .Where(pair => pair.Length == 2))
+        {
+            var key = pair[0].Trim().ToUpperInvariant();
+            if (key.Length > 0)
+            {
+                parts.TryAdd(key, pair[1].Trim());
+            }
+        }
 
         if (!parts.TryGetValue("FREQ", out var frequencyText) || !TryFrequency(frequencyText, out var frequency))
         {

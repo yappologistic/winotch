@@ -194,4 +194,36 @@ public class FocusTimerTests
             store.Clear();
         }
     }
+
+    [Fact]
+    public void StoreDropsMalformedEnumState()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+        File.WriteAllText(path, """
+            {
+              "Status": "Running",
+              "Phase": 99,
+              "FocusDurationTicks": 15000000000,
+              "BreakDurationTicks": 3000000000,
+              "AutoCycle": false,
+              "PhaseStartedAtUtc": "2026-07-04T10:00:00+00:00",
+              "PausedElapsedTicks": 0,
+              "PausedAtUtc": null,
+              "CompletedFocusCycles": 0
+            }
+            """);
+        var store = new FocusTimerStore(path);
+
+        try
+        {
+            var loaded = store.Load(Start);
+
+            Assert.Equal(FocusTimerStatus.Stopped, loaded.State.Status);
+            Assert.Empty(loaded.Completions);
+        }
+        finally
+        {
+            store.Clear();
+        }
+    }
 }

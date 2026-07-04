@@ -42,6 +42,19 @@ public class CalendarRefreshServiceTests
         Assert.Equal(now, result.LastUpdatedUtc);
     }
 
+    [Fact]
+    public async Task RefreshPropagatesCallerCancellation()
+    {
+        var now = new DateTimeOffset(2026, 7, 4, 10, 0, 0, TimeSpan.Zero);
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var handler = new QueueHandler(_ => throw new TaskCanceledException());
+        using var service = new CalendarRefreshService(new HttpClient(handler));
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() =>
+            service.RefreshAsync(["https://example.com/feed.ics"], now, cancellation.Token));
+    }
+
     private static HttpResponseMessage Response(HttpStatusCode status, string body, string? etag, DateTimeOffset? lastModified)
     {
         var response = new HttpResponseMessage(status) { Content = new StringContent(body) };

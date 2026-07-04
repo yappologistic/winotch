@@ -96,6 +96,10 @@ public sealed class CalendarRefreshService : IDisposable
             _cache[url] = updated;
             return updated;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or FormatException)
         {
             return cached;

@@ -39,11 +39,19 @@ internal static class IcsDateTimeParser
             return false;
         }
 
-        duration = TimeSpan.FromDays((weeks * 7) + days) +
-            TimeSpan.FromHours(hours) +
-            TimeSpan.FromMinutes(minutes) +
-            TimeSpan.FromSeconds(seconds);
-        return true;
+        try
+        {
+            duration = TimeSpan.FromDays(((long)weeks * 7) + days) +
+                TimeSpan.FromHours(hours) +
+                TimeSpan.FromMinutes(minutes) +
+                TimeSpan.FromSeconds(seconds);
+            return true;
+        }
+        catch (OverflowException)
+        {
+            duration = TimeSpan.Zero;
+            return false;
+        }
     }
 
     private static bool TryParseValue(
