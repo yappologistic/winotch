@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private readonly PriorityStatusTracker _priorityAlerts = new();
     private readonly SettingsService _settings = new();
     private readonly StartupService _startup = new();
+    private readonly CameraMirrorService _cameraMirror = new();
     private readonly TrayIconService _trayIcon;
     private readonly ClipboardHistoryMonitor _clipboardHistory = new();
     private readonly FocusTimerStore _focusTimerStore = new();
@@ -57,6 +58,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _compactToastHide;
     private readonly DebouncedBrightnessWriter _brightnessWriter;
     private FrameworkElement? _activeCompactToast;
+    private CameraMirrorWindow? _cameraMirrorWindow;
     private IReadOnlyList<NotificationAction> _notificationToastActions = [];
     private int? _lastBatteryPercent;
     private FocusTimerState _focusTimer = FocusTimerState.Stopped;
@@ -266,7 +268,7 @@ public partial class MainWindow : Window
             ShowNotificationToast(notifications.Items[0]);
         }
 
-        var priorityAlert = _priorityAlerts.Next(priorityStatus);
+        var priorityAlert = _priorityAlerts.Next(priorityStatus, suppressCameraAlert: IsCameraMirrorOpen);
         if (priorityAlert is not null && settings.Toasts.PriorityAlertsEnabled)
         {
             ShowPriorityAlertToast(priorityAlert, previousBatteryPercent);
@@ -294,6 +296,7 @@ public partial class MainWindow : Window
             _expandedReveal?.Dispose();
             _expandedReveal = null;
             _expanded = false;
+            _ = CloseCameraMirrorAsync();
             HideCompactToast(restoreShell: false);
             _appBar.Release();
             Hide();
@@ -424,10 +427,16 @@ public partial class MainWindow : Window
     {
         _animationFrameRate = DisplayRefreshRateService.GetPrimaryRefreshRate();
         ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        PositionCameraMirror();
     }
 
     private async void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
     {
+        if (e.Mode is PowerModes.Suspend or PowerModes.Resume)
+        {
+            await CloseCameraMirrorAsync();
+        }
+
         RefreshFocusTimer();
         await RefreshStatusAsync();
     }
@@ -478,6 +487,7 @@ public partial class MainWindow : Window
         if (!expanded)
         {
             StopSystemStats();
+            _ = CloseCameraMirrorAsync();
             ApplyShellMode(ForegroundWindowService.DetectShellMode());
             return;
         }
@@ -968,6 +978,25 @@ public partial class MainWindow : Window
         await RefreshControlCenterAsync();
     }
 
+    private async void CameraMirror_Click(object sender, RoutedEventArgs e)
+    {
+        if (_cameraMirrorWindow is not null)
+        {
+            await CloseCameraMirrorAsync();
+            return;
+        }
+
+        _cameraMirrorWindow = new CameraMirrorWindow(_cameraMirror)
+        {
+            Owner = this
+        };
+        _cameraMirrorWindow.Closed += CameraMirrorWindow_Closed;
+        PositionCameraMirror();
+        _cameraMirrorWindow.Show();
+        _cameraMirrorWindow.Activate();
+        await _cameraMirror.OpenAsync();
+    }
+
     private void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_updatingControlCenter || !IsLoaded ||
@@ -1116,6 +1145,7 @@ public partial class MainWindow : Window
         _settings.Changed -= Settings_Changed;
         _brightnessWriter.Dispose();
         _audio.Dispose();
+        _cameraMirror.Dispose();
         _appBar.Dispose();
         _notifications.Dispose();
         _clipboardHistory.Dispose();
@@ -1134,5 +1164,50 @@ public partial class MainWindow : Window
         var brush = new SolidColorBrush(color);
         brush.Freeze();
         return brush;
+    }
+
+    private bool IsCameraMirrorOpen =>
+        _cameraMirrorWindow is not null ||
+        _cameraMirror.State.Phase is CameraMirrorPhase.Opening or CameraMirrorPhase.Live;
+
+    private async Task CloseCameraMirrorAsync()
+    {
+        var window = _cameraMirrorWindow;
+        if (window is null)
+        {
+            await _cameraMirror.CloseAsync();
+            return;
+        }
+
+        await window.CloseMirrorAsync();
+    }
+
+    private void CameraMirrorWindow_Closed(object? sender, EventArgs e)
+    {
+        if (sender is CameraMirrorWindow window)
+        {
+            window.Closed -= CameraMirrorWindow_Closed;
+        }
+
+        if (ReferenceEquals(_cameraMirrorWindow, sender))
+        {
+            _cameraMirrorWindow = null;
+        }
+    }
+
+    private void PositionCameraMirror()
+    {
+        if (_cameraMirrorWindow is null)
+        {
+            return;
+        }
+
+        var left = Left + (Width - _cameraMirrorWindow.Width) / 2;
+        var shellHeight = NotchShell.ActualHeight > 0 ? NotchShell.ActualHeight : NotchShell.Height;
+        var top = Top + shellHeight + 8;
+        var maxLeft = SystemParameters.WorkArea.Right - _cameraMirrorWindow.Width - 8;
+        var maxTop = SystemParameters.WorkArea.Bottom - _cameraMirrorWindow.Height - 8;
+        _cameraMirrorWindow.Left = Math.Min(Math.Max(SystemParameters.WorkArea.Left + 8, left), maxLeft);
+        _cameraMirrorWindow.Top = Math.Max(8, Math.Min(top, maxTop));
     }
 }

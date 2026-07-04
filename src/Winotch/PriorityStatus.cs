@@ -175,26 +175,42 @@ public sealed class PriorityStatusTracker
     private readonly Queue<PriorityStatusAlert> _pending = new();
     private PriorityStatusSnapshot? _last;
 
-    public PriorityStatusAlert? Next(PriorityStatusSnapshot current)
+    public PriorityStatusAlert? Next(PriorityStatusSnapshot current, bool suppressCameraAlert = false)
     {
         if (_last != current)
         {
-            EnqueueChanges(current, _last);
+            EnqueueChanges(current, _last, suppressCameraAlert);
             _last = current;
         }
 
-        return _pending.Count == 0 ? null : _pending.Dequeue();
+        return DequeueNext(suppressCameraAlert);
     }
 
-    private void EnqueueChanges(PriorityStatusSnapshot current, PriorityStatusSnapshot? last)
+    private PriorityStatusAlert? DequeueNext(bool suppressCameraAlert)
+    {
+        while (_pending.Count > 0)
+        {
+            var alert = _pending.Dequeue();
+            if (suppressCameraAlert && IsCameraAlert(alert))
+            {
+                continue;
+            }
+
+            return alert;
+        }
+
+        return null;
+    }
+
+    private void EnqueueChanges(PriorityStatusSnapshot current, PriorityStatusSnapshot? last, bool suppressCameraAlert)
     {
         if (last is null)
         {
-            EnqueueInitialAlerts(current);
+            EnqueueInitialAlerts(current, suppressCameraAlert);
             return;
         }
 
-        if (!last.CameraActive && current.CameraActive)
+        if (!suppressCameraAlert && !last.CameraActive && current.CameraActive)
         {
             _pending.Enqueue(PriorityStatusAlert.CameraActive());
         }
@@ -227,9 +243,9 @@ public sealed class PriorityStatusTracker
         }
     }
 
-    private void EnqueueInitialAlerts(PriorityStatusSnapshot current)
+    private void EnqueueInitialAlerts(PriorityStatusSnapshot current, bool suppressCameraAlert)
     {
-        if (current.CameraActive)
+        if (!suppressCameraAlert && current.CameraActive)
         {
             _pending.Enqueue(PriorityStatusAlert.CameraActive());
         }
@@ -260,6 +276,9 @@ public sealed class PriorityStatusTracker
 
     private static bool IsLowBattery(BatteryInfo battery) =>
         !battery.IsCharging && battery.Percent <= LowBatteryPercent;
+
+    private static bool IsCameraAlert(PriorityStatusAlert alert) =>
+        string.Equals(alert.Title, "Camera active", StringComparison.Ordinal);
 }
 
 public sealed record PriorityStatusSnapshot(

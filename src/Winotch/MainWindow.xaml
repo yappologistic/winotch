@@ -298,7 +298,19 @@
 
                     <ScrollViewer Grid.Column="1" Margin="0,0,22,0" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel>
-                            <TextBlock Text="Controls" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                            <DockPanel>
+                                <TextBlock Text="Controls" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <Button DockPanel.Dock="Right"
+                                        Style="{StaticResource MediaIconButton}"
+                                        Width="28"
+                                        Height="28"
+                                        Margin="0"
+                                        ToolTip="Camera mirror"
+                                        AutomationProperties.Name="Open camera mirror"
+                                        Click="CameraMirror_Click">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE722;" FontSize="13" />
+                                </Button>
+                            </DockPanel>
 
                             <ItemsControl x:Name="OutputDeviceList" Margin="0,7,0,10">
                                 <ItemsControl.ItemTemplate>
