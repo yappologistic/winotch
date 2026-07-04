@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using Windows.Storage;
 
@@ -736,6 +739,31 @@ public class StatusShellTests
         Assert.True(
             ShellAnimationTiming.CollapseGuardMilliseconds >= ShellAnimationTiming.MotionMilliseconds + 150,
             "Pointer-exit collapse must not interrupt the mini-to-expanded shell animation.");
+    }
+
+    [Fact]
+    public void ShellAnimatorKeepsAnimatedGeometryAtTargetValue()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() => failure = Record.Exception(() =>
+        {
+            var target = new Border
+            {
+                Width = ShellMetrics.MiniWidth,
+                Height = ShellMetrics.MiniWindowHeight
+            };
+
+            ShellAnimator.Animate(target, FrameworkElement.WidthProperty, ShellMetrics.ExpandedWidth, 60);
+            ShellAnimator.Animate(target, FrameworkElement.HeightProperty, ShellMetrics.ExpandedWindowHeight, 60);
+
+            Assert.Equal(ShellMetrics.ExpandedWidth, target.ReadLocalValue(FrameworkElement.WidthProperty));
+            Assert.Equal(ShellMetrics.ExpandedWindowHeight, target.ReadLocalValue(FrameworkElement.HeightProperty));
+        }));
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(failure);
     }
 
     [Fact]

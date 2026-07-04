@@ -11,7 +11,9 @@ public static class ShellAnimator
 
     public static void Animate(UIElement target, DependencyProperty property, double value, int frameRate)
     {
-        var animation = new DoubleAnimation(value, MotionDuration)
+        var from = target.GetValue(property) is double current && !double.IsNaN(current) ? current : value;
+        target.SetValue(property, value);
+        var animation = new DoubleAnimation(from, value, MotionDuration)
         {
             EasingFunction = Easing
         };
