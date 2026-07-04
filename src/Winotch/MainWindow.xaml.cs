@@ -11,6 +11,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _shellTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    private readonly DispatcherTimer _collapseTimer = new() { Interval = TimeSpan.FromMilliseconds(180) };
     private readonly AudioService _audio = new();
     private readonly WifiService _wifi = new();
     private readonly NotificationService _notifications = new();
@@ -27,6 +28,7 @@ public partial class MainWindow : Window
         _clockTimer.Tick += (_, _) => UpdateClock();
         _statusTimer.Tick += async (_, _) => await RefreshStatusAsync();
         _shellTimer.Tick += (_, _) => ApplyShellMode(ForegroundWindowService.DetectShellMode(), animate: false);
+        _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _notifications.NotificationsChanged += (_, _) => Dispatcher.Invoke(async () => await RefreshStatusAsync());
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
@@ -108,9 +110,26 @@ public partial class MainWindow : Window
         await RefreshStatusAsync();
     }
 
-    private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) => SetExpanded(true);
+    private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        _collapseTimer.Stop();
+        SetExpanded(true);
+    }
 
-    private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e) => SetExpanded(false);
+    private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    {
+        _collapseTimer.Stop();
+        _collapseTimer.Start();
+    }
+
+    private void CollapseAfterPointerExit()
+    {
+        _collapseTimer.Stop();
+        if (!IsMouseOver)
+        {
+            SetExpanded(false);
+        }
+    }
 
     private void SetExpanded(bool expanded)
     {

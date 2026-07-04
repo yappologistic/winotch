@@ -110,6 +110,7 @@ public static class ShellAnimator
 
     private static void ApplyShellGeometry(Window window, FrameworkElement shell, ShellGeometry geometry)
     {
+        window.Top = 0;
         window.Width = geometry.Width;
         window.Height = geometry.WindowHeight;
         window.Left = geometry.Left;
