@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using Microsoft.Win32;
 
@@ -13,10 +14,13 @@ namespace Winotch;
 public partial class MainWindow : Window
 {
     private const double FocusLiveProgressWidth = 26;
+    private const double ChargingToastFillWidth = 24;
+    private const double ChargingToastSweepWidth = 12;
     private static readonly System.Windows.Media.FontFamily ToastTextFont = new("Segoe UI Variable Text, Segoe UI");
     private static readonly System.Windows.Media.FontFamily ToastIconFont = new("Segoe MDL2 Assets");
     private static readonly System.Windows.Media.Brush MicLiveBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 159, 10));
     private static readonly System.Windows.Media.Brush MicMutedBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 69, 58));
+    private static readonly IEasingFunction ChargingFlourishEasing = new QuarticEase { EasingMode = EasingMode.EaseOut };
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _shellTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
@@ -52,6 +56,7 @@ public partial class MainWindow : Window
     private readonly DebouncedBrightnessWriter _brightnessWriter;
     private FrameworkElement? _activeCompactToast;
     private IReadOnlyList<NotificationAction> _notificationToastActions = [];
+    private int? _lastBatteryPercent;
     private FocusTimerState _focusTimer = FocusTimerState.Stopped;
     private FocusTimerSettings _selectedFocusSettings = FocusTimerSettings.ShortPreset;
 
@@ -176,6 +181,7 @@ public partial class MainWindow : Window
 
     private void ShowFocusCompletionToast(FocusTimerCompletion completion)
     {
+        ResetChargingFlourishToast();
         NotificationToastTitleText.Text = completion.ToastTitle;
         NotificationToastBodyText.Text = "";
         NotificationToastAppText.Text = "Focus Timer";
@@ -199,6 +205,7 @@ public partial class MainWindow : Window
 
         var settings = _settings.Current;
         var battery = SystemStatus.GetBattery();
+        var previousBatteryPercent = _lastBatteryPercent;
         var batteryVisual = BatteryVisual.FromPercent(battery.Percent, battery.IsCharging);
         BatteryFill.Width = batteryVisual.FillWidth;
         BatteryFill.Background = batteryVisual.Brush;
@@ -206,6 +213,7 @@ public partial class MainWindow : Window
         BatteryText.Text = $"{battery.Percent}%";
         BatteryBar.Value = battery.Percent;
         BatteryDetailText.Text = battery.IsCharging ? "Charging" : $"{battery.Percent}% battery";
+        _lastBatteryPercent = battery.Percent;
 
         var volume = _audio.GetVolume();
         _updatingVolume = true;
@@ -258,7 +266,7 @@ public partial class MainWindow : Window
         var priorityAlert = _priorityAlerts.Next(priorityStatus);
         if (priorityAlert is not null && settings.Toasts.PriorityAlertsEnabled)
         {
-            ShowPriorityAlertToast(priorityAlert);
+            ShowPriorityAlertToast(priorityAlert, previousBatteryPercent);
         }
     }
 
@@ -488,11 +496,13 @@ public partial class MainWindow : Window
 
     private void ShowMediaToast()
     {
+        ResetChargingFlourishToast();
         ShowCompactToast(MediaToastPanel);
     }
 
     private void ShowNotificationToast(NotificationItem notification)
     {
+        ResetChargingFlourishToast();
         NotificationToastTitleText.Text = notification.Title;
         NotificationToastBodyText.Text = notification.Body;
         NotificationToastAppText.Text = notification.App;
@@ -511,8 +521,9 @@ public partial class MainWindow : Window
         ShowCompactToast(NotificationToastPanel);
     }
 
-    private void ShowPriorityAlertToast(PriorityStatusAlert alert)
+    private void ShowPriorityAlertToast(PriorityStatusAlert alert, int? previousBatteryPercent)
     {
+        ResetChargingFlourishToast();
         NotificationToastTitleText.Text = alert.Title;
         NotificationToastBodyText.Text = alert.Body;
         NotificationToastAppText.Text = "System Status";
@@ -524,8 +535,73 @@ public partial class MainWindow : Window
         NotificationToastIconFallback.Text = alert.Icon;
         NotificationToastIconFallback.Visibility = Visibility.Visible;
         ApplyNotificationToastActions([]);
+        var flourishPercent = alert.ShowsChargingFlourish ? alert.BatteryPercent : null;
+        if (flourishPercent is int batteryPercent)
+        {
+            ApplyChargingFlourishToast(batteryPercent);
+        }
 
         ShowCompactToast(NotificationToastPanel);
+        if (flourishPercent is int percent)
+        {
+            StartChargingFlourish(percent, previousBatteryPercent);
+        }
+    }
+
+    private void ApplyChargingFlourishToast(int percent)
+    {
+        var clampedPercent = Math.Clamp(percent, 0, 100);
+        var chargingVisual = BatteryVisual.FromPercent(clampedPercent, isCharging: true);
+        NotificationToastIconImage.Visibility = Visibility.Collapsed;
+        NotificationToastIconFallback.Visibility = Visibility.Collapsed;
+        ChargingToastBatteryGlyph.Visibility = Visibility.Visible;
+        ChargingToastBatteryShell.BorderBrush = chargingVisual.Brush;
+        ChargingToastBatteryFillBrush.Background = chargingVisual.Brush;
+        ChargingToastBatteryTerminal.Background = chargingVisual.Brush;
+        ChargingToastPercentText.Text = $"{clampedPercent}%";
+        ChargingToastPercentText.Foreground = chargingVisual.Brush;
+        ChargingToastPercentText.Visibility = Visibility.Visible;
+    }
+
+    private void StartChargingFlourish(int percent, int? previousBatteryPercent)
+    {
+        var animation = BatteryVisual.ChargingFillAnimation(percent, previousBatteryPercent, ChargingToastFillWidth);
+        ChargingToastBatteryFill.Width = animation.FromWidth;
+        ChargingToastSweepTransform.X = -ChargingToastSweepWidth;
+        ChargingToastTintSweep.Opacity = 0.62;
+
+        var fillAnimation = CreateAnimation(animation.FromWidth, animation.ToWidth, animation.Duration);
+        var sweepAnimation = CreateAnimation(
+            -ChargingToastSweepWidth,
+            animation.ToWidth + ChargingToastSweepWidth,
+            animation.SweepDuration);
+        var sweepFade = CreateAnimation(0.62, 0, animation.SweepDuration);
+
+        ChargingToastBatteryFill.BeginAnimation(FrameworkElement.WidthProperty, fillAnimation, HandoffBehavior.SnapshotAndReplace);
+        ChargingToastSweepTransform.BeginAnimation(TranslateTransform.XProperty, sweepAnimation, HandoffBehavior.SnapshotAndReplace);
+        ChargingToastTintSweep.BeginAnimation(UIElement.OpacityProperty, sweepFade, HandoffBehavior.SnapshotAndReplace);
+
+        DoubleAnimation CreateAnimation(double from, double to, TimeSpan duration)
+        {
+            var chargingAnimation = new DoubleAnimation(from, to, new Duration(duration))
+            {
+                EasingFunction = ChargingFlourishEasing
+            };
+            Timeline.SetDesiredFrameRate(chargingAnimation, _animationFrameRate);
+            return chargingAnimation;
+        }
+    }
+
+    private void ResetChargingFlourishToast()
+    {
+        ChargingToastBatteryFill.BeginAnimation(FrameworkElement.WidthProperty, null);
+        ChargingToastSweepTransform.BeginAnimation(TranslateTransform.XProperty, null);
+        ChargingToastTintSweep.BeginAnimation(UIElement.OpacityProperty, null);
+        ChargingToastBatteryFill.Width = 0;
+        ChargingToastSweepTransform.X = -ChargingToastSweepWidth;
+        ChargingToastTintSweep.Opacity = 0;
+        ChargingToastBatteryGlyph.Visibility = Visibility.Collapsed;
+        ChargingToastPercentText.Visibility = Visibility.Collapsed;
     }
 
     private void ApplyNotificationToastActions(IReadOnlyList<NotificationAction> actions)

@@ -605,6 +605,58 @@
                                        Foreground="{StaticResource NotchText}"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
+                            <!-- Charger-connect polish swaps the generic status icon for a reusable battery fill glyph. -->
+                            <Grid x:Name="ChargingToastBatteryGlyph"
+                                  Width="34"
+                                  Height="18"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  SnapsToDevicePixels="True"
+                                  Visibility="Collapsed">
+                                <Border x:Name="ChargingToastBatteryShell"
+                                        Width="30"
+                                        Height="16"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        BorderBrush="{StaticResource NotchText}"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                        Padding="2">
+                                    <Grid ClipToBounds="True">
+                                        <Grid x:Name="ChargingToastBatteryFill"
+                                              Width="0"
+                                              HorizontalAlignment="Left"
+                                              ClipToBounds="True">
+                                            <Border x:Name="ChargingToastBatteryFillBrush"
+                                                    Background="{StaticResource NotchText}"
+                                                    CornerRadius="2" />
+                                            <Border x:Name="ChargingToastTintSweep"
+                                                    Width="12"
+                                                    HorizontalAlignment="Left"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                        <GradientStop Color="#00FFFFFF" Offset="0" />
+                                                        <GradientStop Color="#B8FFFFFF" Offset="0.5" />
+                                                        <GradientStop Color="#00FFFFFF" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <Border.RenderTransform>
+                                                    <TranslateTransform x:Name="ChargingToastSweepTransform" X="-12" />
+                                                </Border.RenderTransform>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                                <Border x:Name="ChargingToastBatteryTerminal"
+                                        Width="3"
+                                        Height="7"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center"
+                                        Background="{StaticResource NotchText}"
+                                        CornerRadius="0,1,1,0" />
+                            </Grid>
                         </Grid>
                     </Border>
 
@@ -616,6 +668,14 @@
                         <TextBlock x:Name="NotificationToastBodyText" FontSize="11" Foreground="{StaticResource NotchText}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                         <TextBlock x:Name="NotificationToastAppText" FontSize="10" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
                     </StackPanel>
+
+                    <TextBlock x:Name="ChargingToastPercentText"
+                               Grid.Column="2"
+                               FontSize="24"
+                               FontWeight="SemiBold"
+                               Typography.NumeralAlignment="Tabular"
+                               VerticalAlignment="Center"
+                               Visibility="Collapsed" />
 
                     <StackPanel x:Name="NotificationToastActionsPanel" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
                         <Button x:Name="NotificationToastPrimaryActionButton" Padding="10,5" Margin="0,0,8,0" AutomationProperties.Name="Notification toast primary action" Click="NotificationToastPrimaryAction_Click">

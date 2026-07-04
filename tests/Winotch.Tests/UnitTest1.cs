@@ -163,6 +163,34 @@ public class StatusParsingTests
         var visual = BatteryVisual.FromPercent(percent);
 
         Assert.Equal(expectedWidth, visual.FillWidth, precision: 2);
+        Assert.Equal(expectedWidth, BatteryVisual.FillWidthForPercent(percent), precision: 2);
+    }
+
+    [Theory]
+    [InlineData(-10, 24, 0)]
+    [InlineData(5, 24, 1.2)]
+    [InlineData(50, 24, 12)]
+    [InlineData(100, 24, 24)]
+    [InlineData(200, 24, 24)]
+    [InlineData(50, -1, 0)]
+    public void BatteryVisualCalculatesFillWidthForAnyGlyphInterior(int percent, double maxWidth, double expectedWidth)
+    {
+        Assert.Equal(expectedWidth, BatteryVisual.FillWidthForPercent(percent, maxWidth), precision: 2);
+    }
+
+    [Theory]
+    [InlineData(61, 60, 24, 14.4, 14.64)]
+    [InlineData(5, -10, 24, 0, 1.2)]
+    [InlineData(100, 100, 24, 24, 24)]
+    [InlineData(200, null, 24, 0, 24)]
+    public void BatteryVisualDerivesChargingFillAnimation(int percent, int? previousPercent, double maxWidth, double expectedFrom, double expectedTo)
+    {
+        var animation = BatteryVisual.ChargingFillAnimation(percent, previousPercent, maxWidth);
+
+        Assert.Equal(expectedFrom, animation.FromWidth, precision: 2);
+        Assert.Equal(expectedTo, animation.ToWidth, precision: 2);
+        Assert.Equal(ShellAnimationTiming.ChargingFillDuration, animation.Duration);
+        Assert.Equal(ShellAnimationTiming.ChargingTintSweepDuration, animation.SweepDuration);
     }
 
     [Theory]
@@ -397,6 +425,34 @@ public class StatusParsingTests
         Assert.Null(tracker.Next(Status(percent: 60, charging: false)));
         Assert.Equal("Charger connected", tracker.Next(Status(percent: 61, charging: true))?.Title);
         Assert.Equal("Charger disconnected", tracker.Next(Status(percent: 62, charging: false))?.Title);
+    }
+
+    [Fact]
+    public void PriorityStatusAlertMapsChargingFlourishOnlyToChargerConnect()
+    {
+        var connected = PriorityStatusAlert.ChargerConnected(37);
+        var disconnected = PriorityStatusAlert.ChargerDisconnected(37);
+
+        Assert.Equal(37, connected.BatteryPercent);
+        Assert.True(connected.ShowsChargingFlourish);
+        Assert.False(disconnected.ShowsChargingFlourish);
+    }
+
+    [Fact]
+    public void PriorityStatusTrackerKeepsPendingLowBatteryBeforeChargingFlourish()
+    {
+        var tracker = new PriorityStatusTracker();
+        var lowBattery = Status(percent: 12, microphone: true, camera: true);
+        var charging = Status(percent: 12, charging: true, microphone: true, camera: true);
+
+        Assert.Equal("Camera active", tracker.Next(lowBattery)?.Title);
+        Assert.Equal("Microphone active", tracker.Next(charging)?.Title);
+        Assert.Equal("Low battery", tracker.Next(charging)?.Title);
+
+        var connected = tracker.Next(charging);
+
+        Assert.Equal("Charger connected", connected?.Title);
+        Assert.True(connected?.ShowsChargingFlourish);
     }
 
     [Fact]

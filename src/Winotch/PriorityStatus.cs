@@ -269,13 +269,18 @@ public sealed record PriorityStatusSnapshot(
     bool MicrophoneActive,
     bool CameraActive);
 
-public sealed record PriorityStatusAlert(string Icon, string Title, string Body)
+public sealed record PriorityStatusAlert(
+    string Icon,
+    string Title,
+    string Body,
+    int? BatteryPercent = null,
+    bool ShowsChargingFlourish = false)
 {
     public static PriorityStatusAlert LowBattery(int percent) =>
         new("\uE850", "Low battery", $"{percent}% remaining");
 
     public static PriorityStatusAlert ChargerConnected(int percent) =>
-        new("\uE83E", "Charger connected", $"{percent}% and charging");
+        new("\uE83E", "Charger connected", $"{percent}% and charging", percent, ShowsChargingFlourish: true);
 
     public static PriorityStatusAlert ChargerDisconnected(int percent) =>
         new("\uE850", "Charger disconnected", $"{percent}% battery");

@@ -108,6 +108,8 @@ Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy`
 
 Priority status alerts reuse the compact notification toast surface for system events that should be glanceable without opening the full capsule: low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activation. Battery and Wi-Fi reuse the existing status reads. Bluetooth uses the native Windows Bluetooth device enumeration API, while mic/camera activity comes from Windows privacy usage registry state. The tracker suppresses routine first-run connection state and repeated low-battery spam, but queues simultaneous critical alerts such as camera, microphone, and low battery.
 
+The charger-connect alert keeps the same queue and suppression path, then swaps the toast icon area for a reusable battery fill flourish with a green tint sweep and percent readout. Charger disconnect keeps the normal status toast content.
+
 ## Settings, Tray, and Startup
 
 Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI.
@@ -131,7 +133,7 @@ The expanded panel renders the shelf as horizontal tiles with shell icons from `
 The automated suite focuses on deterministic logic that would otherwise surface as visual bugs:
 
 - Wi-Fi netsh/profile parsing, de-duplication, blank values, and visible list limits.
-- Battery icon fill width, clamp behavior, charging color, and low-power thresholds.
+- Battery icon fill width, clamp behavior, charging color, charging flourish parameters, and low-power thresholds.
 - Focus timer start/pause/resume/skip/stop/auto-cycle transitions, wall-clock remaining math, persistence roundtrip, expired-while-closed handling, formatting, and progress clamp behavior.
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.

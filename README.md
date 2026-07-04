@@ -37,6 +37,8 @@ The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Win
 
 Drag files or folders from Explorer onto the notch to place their full paths on the shelf. The expanded panel shows shelved items with shell icons, truncated names, full-path tooltips, per-item remove buttons, a Clear action, and a drag-all affordance. Drag an item, or all existing items, back out to Explorer or another app to start a normal Windows file drop. Shelf state persists at `%LOCALAPPDATA%\Winotch\shelf.json`; missing or corrupt shelf data loads as an empty shelf.
 
+Charger-connect priority toasts add a compact green battery-fill flourish with a prominent percent readout. Charger disconnect keeps the existing quieter status toast.
+
 ## Test
 
 Run the full regression suite before sharing a build:
@@ -46,6 +48,8 @@ dotnet test Winotch.slnx
 ```
 
 The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, file shelf model/persistence/display behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+
+Charging flourish tests cover reusable fill-width math, animation parameter derivation, charger-alert mapping, full and low-percent edge cases, and existing low-battery queue ordering.
 
 ## Clipboard History
 
