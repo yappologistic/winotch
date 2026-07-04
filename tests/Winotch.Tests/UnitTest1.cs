@@ -584,7 +584,7 @@ public class StatusParsingTests
     public void ShellMetricsCentersMiniAndExpandedWidths()
     {
         Assert.Equal(838, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
-        Assert.Equal(540, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
+        Assert.Equal(470, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
         Assert.Equal(new ShellGeometry(1920, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(244, 44, 52, 838), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(520, 68, 76, 700), ShellMetrics.MediaToast(1920));
@@ -601,7 +601,7 @@ public class StatusParsingTests
         Assert.Equal(837.5, mini.Left);
         Assert.Equal(1919, fullBar.Width);
         Assert.Equal(0, fullBar.Left);
-        Assert.Equal(539.5, expanded.Left);
+        Assert.Equal(469.5, expanded.Left);
         Assert.True(expanded.WindowHeight > expanded.ShellHeight);
     }
 

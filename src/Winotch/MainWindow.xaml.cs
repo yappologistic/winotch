@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -14,11 +15,16 @@ public partial class MainWindow : Window
     private const double FocusLiveProgressWidth = 26;
     private static readonly System.Windows.Media.FontFamily ToastTextFont = new("Segoe UI Variable Text, Segoe UI");
     private static readonly System.Windows.Media.FontFamily ToastIconFont = new("Segoe MDL2 Assets");
+    private static readonly System.Windows.Media.Brush MicLiveBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 159, 10));
+    private static readonly System.Windows.Media.Brush MicMutedBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 69, 58));
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _shellTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private readonly DispatcherTimer _collapseTimer = new() { Interval = ShellAnimationTiming.CollapseGuard };
     private readonly AudioService _audio = new();
+    private readonly AudioDeviceService _audioDevices = new();
+    private readonly AudioSessionService _audioSessions = new();
+    private readonly BrightnessService _brightness = new();
     private readonly WifiService _wifi = new();
     private readonly NotificationService _notifications = new();
     private readonly NotificationChangeTracker _notificationChanges = new();
@@ -38,10 +44,12 @@ public partial class MainWindow : Window
     private bool _updatingVolume;
     private bool _notchPaused;
     private bool _exitRequested;
+    private bool _updatingControlCenter;
     private int _animationFrameRate = 60;
     private DateTime _ignoreHoverUntilUtc;
     private CancellationTokenSource? _expandedReveal;
     private CancellationTokenSource? _compactToastHide;
+    private readonly DebouncedBrightnessWriter _brightnessWriter;
     private FrameworkElement? _activeCompactToast;
     private IReadOnlyList<NotificationAction> _notificationToastActions = [];
     private FocusTimerState _focusTimer = FocusTimerState.Stopped;
@@ -51,6 +59,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializeFileShelf();
+        _brightnessWriter = new DebouncedBrightnessWriter(TimeSpan.FromMilliseconds(150), _brightness.SetBrightnessAsync);
         _trayIcon = new TrayIconService(this, _settings, _startup);
         _settings.Changed += Settings_Changed;
         _clockTimer.Tick += (_, _) =>
@@ -229,6 +238,11 @@ public partial class MainWindow : Window
                 ? $"{wifi.Name} connected. Scan needs Windows Location permission."
                 : $"Connected to {wifi.Name}";
         var priorityStatus = _priorityStatus.Read(battery, wifi);
+        ApplyMicState(priorityStatus.MicrophoneActive, _audio.GetCaptureMuted());
+        if (_expanded)
+        {
+            await RefreshControlCenterAsync(priorityStatus);
+        }
 
         var notifications = await _notifications.ReadAsync();
         NotificationStateText.Text = notifications.Status;
@@ -290,6 +304,70 @@ public partial class MainWindow : Window
         _exitRequested = true;
         Close();
         System.Windows.Application.Current.Shutdown();
+    }
+
+    private async Task RefreshControlCenterAsync(PriorityStatusSnapshot? priorityStatus = null)
+    {
+        _updatingControlCenter = true;
+        try
+        {
+            OutputDeviceList.ItemsSource = _audioDevices.GetRenderDevices();
+
+            var sessions = _audioSessions.GetSessions();
+            AudioSessionList.ItemsSource = sessions;
+            AudioSessionList.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            AudioSessionScroll.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            NoAudioSessionsText.Visibility = sessions.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            ApplyMicState(
+                priorityStatus?.MicrophoneActive ?? PriorityStatusService.IsMicrophoneActive(),
+                _audio.GetCaptureMuted());
+
+            var displays = await _brightness.GetDisplaysAsync();
+            BrightnessList.ItemsSource = displays;
+            BrightnessBlock.Visibility = displays.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        }
+        catch
+        {
+            OutputDeviceList.ItemsSource = Array.Empty<AudioOutputDevice>();
+            AudioSessionList.ItemsSource = Array.Empty<AudioSessionRow>();
+            AudioSessionScroll.Visibility = Visibility.Collapsed;
+            BrightnessList.ItemsSource = Array.Empty<BrightnessDisplay>();
+            BrightnessBlock.Visibility = Visibility.Collapsed;
+            NoAudioSessionsText.Visibility = Visibility.Visible;
+        }
+        finally
+        {
+            _updatingControlCenter = false;
+        }
+    }
+
+    private void ApplyMicState(bool isActive, bool isMuted)
+    {
+        var state = MicPillState.From(isActive, isMuted);
+        var foreground = state.Kind switch
+        {
+            MicPillKind.Live => MicLiveBrush,
+            MicPillKind.Muted => MicMutedBrush,
+            _ => (System.Windows.Media.Brush)FindResource("NotchText")
+        };
+
+        MicPillGlyph.Text = state.Glyph;
+        MicPillText.Text = state.Label;
+        MicPillGlyph.Foreground = foreground;
+        MicPillText.Foreground = foreground;
+        MicPillIndicator.Visibility = state.Kind == MicPillKind.Idle ? Visibility.Collapsed : Visibility.Visible;
+
+        MicRowGlyph.Text = state.Glyph;
+        MicRowGlyph.Foreground = foreground;
+        MicRowStateText.Text = state.Kind switch
+        {
+            MicPillKind.Live => "Microphone live",
+            MicPillKind.Muted => "Microphone muted",
+            _ => "Microphone idle"
+        };
+        MicMuteButtonText.Text = isMuted ? "Unmute" : "Mute";
+        MicMuteButton.Background = isMuted ? MicMutedBrush : (System.Windows.Media.Brush)FindResource("NotchPanel");
     }
 
     private void ApplyMedia(MediaSnapshot media)
@@ -403,6 +481,7 @@ public partial class MainWindow : Window
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.Expanded(PrimaryScreenWidthDip()), _animationFrameRate);
+        _ = RefreshControlCenterAsync();
         _expandedReveal = new CancellationTokenSource();
         _ = RevealExpandedContentAsync(_expandedReveal.Token);
     }
@@ -714,6 +793,57 @@ public partial class MainWindow : Window
         ApplyFocusTimerUi(DateTimeOffset.UtcNow);
     }
 
+    private async void OutputDevice_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: AudioOutputDevice device } || device.IsDefault)
+        {
+            return;
+        }
+
+        _audioDevices.SetDefaultRenderDevice(device.Id);
+        _audio.RefreshDefaultEndpoints();
+        await RefreshStatusAsync();
+    }
+
+    private void AudioSessionVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingControlCenter || !IsLoaded ||
+            sender is not Slider { DataContext: AudioSessionRow session })
+        {
+            return;
+        }
+
+        _audioSessions.SetSessionVolume(session.Id, (float)e.NewValue);
+    }
+
+    private async void AudioSessionMute_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: AudioSessionRow session })
+        {
+            return;
+        }
+
+        _audioSessions.SetSessionMuted(session.Id, !session.IsMuted);
+        await RefreshControlCenterAsync();
+    }
+
+    private async void MicMute_Click(object sender, RoutedEventArgs e)
+    {
+        _audio.SetCaptureMuted(!_audio.GetCaptureMuted());
+        await RefreshControlCenterAsync();
+    }
+
+    private void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_updatingControlCenter || !IsLoaded ||
+            sender is not Slider { DataContext: BrightnessDisplay display })
+        {
+            return;
+        }
+
+        _brightnessWriter.Queue(display, (int)Math.Round(e.NewValue));
+    }
+
     private async void ConnectWifi_Click(object sender, RoutedEventArgs e)
     {
         if (WifiList.SelectedItem is not WifiNetwork network)
@@ -847,6 +977,8 @@ public partial class MainWindow : Window
         DisposeFileShelf();
         _trayIcon.Dispose();
         _settings.Changed -= Settings_Changed;
+        _brightnessWriter.Dispose();
+        _audio.Dispose();
         _appBar.Dispose();
         _notifications.Dispose();
         _clipboardHistory.Dispose();
@@ -858,5 +990,12 @@ public partial class MainWindow : Window
     private void SetMouseTransparent(bool enabled)
     {
         WindowChromeInterop.SetMouseTransparent(this, enabled);
+    }
+
+    private static System.Windows.Media.Brush FrozenBrush(System.Windows.Media.Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
     }
 }

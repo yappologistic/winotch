@@ -7,7 +7,8 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the p
 - C# WPF on `net8.0-windows10.0.19041.0`
 - Transparent, topmost desktop window for the notch shell
 - Windows Forms power status for battery
-- Core Audio COM interop for system volume
+- Core Audio COM interop for master volume, per-app audio sessions, output device switching, and default microphone mute
+- WMI and DDC/CI monitor APIs for brightness controls when hardware exposes them
 - Windows system media transport controls for current audio metadata, artwork, and playback actions
 - `netsh wlan` for Wi-Fi status, network listing, and saved-profile connect attempts
 - `UserNotificationListener` for Windows toast notification access when the OS grants permission
@@ -30,7 +31,7 @@ From the repository root:
 dotnet run --project src/Winotch/Winotch.csproj
 ```
 
-Hover the notch to expand it. The volume slider changes the system master volume. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used.
 
@@ -44,7 +45,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, file shelf model/persistence/display behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, file shelf model/persistence/display behavior, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Clipboard History
 

@@ -1,85 +1,111 @@
-using System.Runtime.InteropServices;
-
 namespace Winotch;
 
-public sealed class AudioService
+public sealed class AudioService : IDisposable
 {
-    private readonly IAudioEndpointVolume? _endpoint;
-
-    public AudioService()
-    {
-        try
-        {
-            var enumerator = (IMMDeviceEnumerator)(object)new MMDeviceEnumerator();
-            enumerator.GetDefaultAudioEndpoint(EDataFlow.Render, ERole.Multimedia, out var device);
-            var iid = typeof(IAudioEndpointVolume).GUID;
-            device.Activate(ref iid, 23, IntPtr.Zero, out var endpoint);
-            _endpoint = (IAudioEndpointVolume)endpoint;
-        }
-        catch
-        {
-            _endpoint = null;
-        }
-    }
+    private readonly EndpointVolumeCache _render = new(AudioDataFlow.Render);
+    private readonly EndpointVolumeCache _capture = new(AudioDataFlow.Capture);
 
     public float GetVolume()
     {
-        if (_endpoint is null)
+        var endpoint = _render.Get();
+        if (endpoint is null || !CoreAudioInterop.Succeeded(endpoint.GetMasterVolumeLevelScalar(out var value)))
         {
             return 0;
         }
 
-        _endpoint.GetMasterVolumeLevelScalar(out var value);
         return Math.Clamp(value * 100, 0, 100);
     }
 
     public void SetVolume(float value)
     {
-        _endpoint?.SetMasterVolumeLevelScalar(Math.Clamp(value / 100, 0, 1), Guid.Empty);
+        var endpoint = _render.Get();
+        endpoint?.SetMasterVolumeLevelScalar(Math.Clamp(value / 100, 0, 1), Guid.Empty);
     }
 
-    private enum EDataFlow
+    public bool GetCaptureMuted()
     {
-        Render
+        var endpoint = _capture.Get();
+        return endpoint is not null &&
+            CoreAudioInterop.Succeeded(endpoint.GetMute(out var isMuted)) &&
+            isMuted;
     }
 
-    private enum ERole
+    public void SetCaptureMuted(bool isMuted)
     {
-        Multimedia = 1
+        var endpoint = _capture.Get();
+        endpoint?.SetMute(isMuted, Guid.Empty);
     }
 
-    [ComImport]
-    [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-    private sealed class MMDeviceEnumerator;
-
-    [ComImport]
-    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDeviceEnumerator
+    public void RefreshDefaultEndpoints()
     {
-        int NotImpl1();
-        int GetDefaultAudioEndpoint(EDataFlow dataFlow, ERole role, out IMMDevice device);
+        _render.Clear();
+        _capture.Clear();
     }
 
-    [ComImport]
-    [Guid("D666063F-1587-4E43-81F1-B948E807363F")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IMMDevice
+    public void Dispose()
     {
-        int Activate(ref Guid iid, int clsCtx, IntPtr activationParams, [MarshalAs(UnmanagedType.IUnknown)] out object endpoint);
+        _render.Clear();
+        _capture.Clear();
     }
 
-    [ComImport]
-    [Guid("5CDF2C82-841E-4546-9722-0CF74078229A")]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    private interface IAudioEndpointVolume
+    private sealed class EndpointVolumeCache
     {
-        int RegisterControlChangeNotify(IntPtr client);
-        int UnregisterControlChangeNotify(IntPtr client);
-        int GetChannelCount(out int channelCount);
-        int SetMasterVolumeLevel(float level, Guid eventContext);
-        int SetMasterVolumeLevelScalar(float level, Guid eventContext);
-        int GetMasterVolumeLevel(out float level);
-        int GetMasterVolumeLevelScalar(out float level);
+        private readonly AudioDataFlow _dataFlow;
+        private string? _deviceId;
+        private AudioEndpointVolumeInterface? _endpoint;
+
+        public EndpointVolumeCache(AudioDataFlow dataFlow)
+        {
+            _dataFlow = dataFlow;
+        }
+
+        public AudioEndpointVolumeInterface? Get()
+        {
+            MMDeviceEnumeratorInterface? enumerator = null;
+            MMDeviceInterface? device = null;
+            try
+            {
+                enumerator = CoreAudioInterop.CreateEnumerator();
+                if (!CoreAudioInterop.Succeeded(enumerator.GetDefaultAudioEndpoint(_dataFlow, AudioRole.Multimedia, out device)))
+                {
+                    Clear();
+                    return null;
+                }
+
+                var currentId = CoreAudioInterop.ReadDeviceId(device);
+                if (string.IsNullOrWhiteSpace(currentId))
+                {
+                    Clear();
+                    return null;
+                }
+
+                if (_endpoint is not null && StringComparer.Ordinal.Equals(_deviceId, currentId))
+                {
+                    return _endpoint;
+                }
+
+                Clear();
+                _endpoint = CoreAudioInterop.Activate<AudioEndpointVolumeInterface>(device);
+                _deviceId = _endpoint is null ? null : currentId;
+                return _endpoint;
+            }
+            catch
+            {
+                Clear();
+                return null;
+            }
+            finally
+            {
+                CoreAudioInterop.Release(device);
+                CoreAudioInterop.Release(enumerator);
+            }
+        }
+
+        public void Clear()
+        {
+            CoreAudioInterop.Release(_endpoint);
+            _endpoint = null;
+            _deviceId = null;
+        }
     }
 }

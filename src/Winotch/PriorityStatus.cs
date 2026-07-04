@@ -10,11 +10,15 @@ public sealed class PriorityStatusService
             battery,
             wifi,
             ReadConnectedBluetoothDevice(),
-            IsCapabilityActive("microphone"),
-            IsCapabilityActive("webcam"));
+            IsMicrophoneActive(),
+            IsCameraActive());
 
     public static bool IsActivePrivacyUse(long? lastUsedStart, long? lastUsedStop) =>
         lastUsedStart.GetValueOrDefault() > 0 && lastUsedStop == 0;
+
+    public static bool IsMicrophoneActive() => IsCapabilityActive("microphone");
+
+    private static bool IsCameraActive() => IsCapabilityActive("webcam");
 
     private static bool IsCapabilityActive(string capability)
     {
