@@ -111,6 +111,7 @@
                         <TextBlock x:Name="LargeDateText" FontSize="14" Foreground="{StaticResource NotchMutedText}" />
                         <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Margin="0,16,0,8" Maximum="100" />
                         <TextBlock x:Name="BatteryDetailText" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
+                        <local:ClipboardHistoryPanel x:Name="ClipboardPanel" Margin="0,18,0,0" />
                     </StackPanel>
 
                     <StackPanel Grid.Column="1" Margin="0,0,22,0">

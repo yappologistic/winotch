@@ -13,10 +13,13 @@ public static class ShellMetrics
     public const double MediaToastShellHeight = 68;
     public const double MediaToastWindowHeight = 76;
     public const double ExpandedWidth = 840;
-    public const double ExpandedShellHeight = 246;
-    public const double ExpandedWindowHeight = 300;
+    public const double ExpandedShellHeight = 430;
+    public const double ExpandedWindowHeight = 484;
 
     public static double CenterLeft(double screenWidth, double width) => (screenWidth - width) / 2;
+
+    public static double ToDeviceIndependentWidth(double physicalScreenWidth, double dpiScale) =>
+        physicalScreenWidth / (dpiScale > 0 ? dpiScale : 1);
 
     public static ShellGeometry ForMode(bool isFullBar, double screenWidth)
     {

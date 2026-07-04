@@ -18,12 +18,14 @@ flowchart TD
     Tray --> SettingsWindow["Settings Window"]
     SettingsWindow --> Settings
     Settings --> Window
+    Window --> Clipboard["Clipboard Format Listener"]
     Battery --> Window
     Audio --> Window
     Media --> Window
     Wifi --> Window
     Notifications --> Window
     Priority --> Window
+    Clipboard --> Window
 ```
 
 ## UI System
@@ -40,6 +42,7 @@ flowchart LR
     Shell --> NotificationToast["Compact Notification/Status Toast"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Volume and Wi-Fi Controls"]
+    Expanded --> Clipboard["Clipboard History"]
 ```
 
 ## Design Tokens
@@ -80,6 +83,12 @@ Winotch reads the focused Windows system media transport session through `Global
 
 Winotch reads notification history through `UserNotificationListener` when Windows grants access and also watches live Windows toast windows through UI Automation in unpackaged builds. New unsilenced notifications show a compact toast with app/sender text, message body, time, app icon when available, and up to two live action buttons when Windows exposes invokable toast actions. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
 
+## Clipboard History
+
+The expanded panel includes an in-memory clipboard history backed by `AddClipboardFormatListener` on the notch window HWND. `ClipboardHistoryMonitor` coalesces rapid `WM_CLIPBOARDUPDATE` messages, retries brief clipboard read failures, and ignores Winotch's own re-copy updates by clipboard sequence number. The capture path stores Unicode text up to 4 KB, file-drop paths, and small image thumbnails only.
+
+Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy` skips items carrying `ExcludeClipboardContentFromMonitorProcessing` and honors `CanIncludeInClipboardHistory = 0`; `ClipboardHistoryStore` owns cap, dedupe, delete, and clear behavior. Nothing is persisted to disk.
+
 ## Priority Status Alerts
 
 Priority status alerts reuse the compact notification toast surface for system events that should be glanceable without opening the full capsule: low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activation. Battery and Wi-Fi reuse the existing status reads. Bluetooth uses the native Windows Bluetooth device enumeration API, while mic/camera activity comes from Windows privacy usage registry state. The tracker suppresses routine first-run connection state and repeated low-battery spam, but queues simultaneous critical alerts such as camera, microphone, and low battery.
@@ -100,6 +109,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Battery icon fill width, clamp behavior, charging color, and low-power thresholds.
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
+- Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
 - Foreground mode heuristics for desktop, own window, maximized apps, screen-filling apps, and near-threshold windows.

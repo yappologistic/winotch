@@ -605,6 +605,15 @@ public class StatusParsingTests
         Assert.True(expanded.WindowHeight > expanded.ShellHeight);
     }
 
+    [Theory]
+    [InlineData(1920, 1.0, 1920)]
+    [InlineData(1920, 1.5, 1280)]
+    [InlineData(1920, 0, 1920)]
+    public void ShellMetricsConvertsPhysicalScreenWidthToDips(double physicalWidth, double dpiScale, double expected)
+    {
+        Assert.Equal(expected, ShellMetrics.ToDeviceIndependentWidth(physicalWidth, dpiScale));
+    }
+
     [Fact]
     public void MediaToastIsCompactAndCentered()
     {

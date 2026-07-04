@@ -12,6 +12,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the p
 - `netsh wlan` for Wi-Fi status, network listing, and saved-profile connect attempts
 - `UserNotificationListener` for Windows toast notification access when the OS grants permission
 - Windows Bluetooth and privacy status APIs for connected-device and mic/camera alerts
+- Win32 clipboard format listener for the expanded-panel clipboard history
 
 WPF is the first implementation because it gives direct transparent-window and desktop interop support with a simple CLI build/run loop.
 
@@ -29,7 +30,7 @@ From the repository root:
 dotnet run --project src/Winotch/Winotch.csproj
 ```
 
-Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used.
 
@@ -41,7 +42,13 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, priority status alert transitions, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, settings persistence/startup helpers, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+
+## Clipboard History
+
+Winotch keeps the latest 10 clipboard items in memory while the app is running. It does not write clipboard history to disk, settings, logs, or roaming storage. That is the privacy default: closing Winotch clears its private clipboard history.
+
+The listener skips clipboard updates marked with Windows privacy exclusion formats such as `ExcludeClipboardContentFromMonitorProcessing` or `CanIncludeInClipboardHistory = 0`. Image captures store only a small thumbnail, not the original full bitmap.
 
 ## Install
 
