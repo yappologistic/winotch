@@ -22,12 +22,14 @@ public partial class MainWindow : Window
     private readonly AccountPictureService _accountPicture = new();
     private readonly AppBarReservationService _appBar = new();
     private bool _expanded;
-    private bool _mediaToastVisible;
+    private bool _compactToastVisible;
     private bool _updatingVolume;
     private int _animationFrameRate = 60;
     private DateTime _ignoreHoverUntilUtc;
     private CancellationTokenSource? _expandedReveal;
-    private CancellationTokenSource? _mediaToastHide;
+    private CancellationTokenSource? _compactToastHide;
+    private FrameworkElement? _activeCompactToast;
+    private IReadOnlyList<NotificationAction> _notificationToastActions = [];
 
     public MainWindow()
     {
@@ -124,7 +126,7 @@ public partial class MainWindow : Window
         NotificationList.ItemsSource = notifications.Items;
         if (_notificationChanges.ShouldPop(notifications.Items) && !NotificationSilenceService.IsSilenced())
         {
-            ExpandTemporarily();
+            ShowNotificationToast(notifications.Items[0]);
         }
     }
 
@@ -136,7 +138,11 @@ public partial class MainWindow : Window
         {
             MediaArtworkImage.Source = null;
             MediaToastArtworkImage.Source = null;
-            HideMediaToast(restoreShell: true);
+            if (ReferenceEquals(_activeCompactToast, MediaToastPanel))
+            {
+                HideCompactToast(restoreShell: true);
+            }
+
             return;
         }
 
@@ -175,7 +181,7 @@ public partial class MainWindow : Window
 
     private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (_mediaToastVisible || DateTime.UtcNow < _ignoreHoverUntilUtc)
+        if (_compactToastVisible || DateTime.UtcNow < _ignoreHoverUntilUtc)
         {
             return;
         }
@@ -208,7 +214,7 @@ public partial class MainWindow : Window
 
         if (expanded)
         {
-            HideMediaToast(restoreShell: false);
+            HideCompactToast(restoreShell: false);
         }
 
         _expanded = expanded;
@@ -237,27 +243,45 @@ public partial class MainWindow : Window
         _ = RevealExpandedContentAsync(_expandedReveal.Token);
     }
 
-    private async void ExpandTemporarily()
+    private void ShowMediaToast()
     {
-        SetExpanded(true);
-        await Task.Delay(4200);
-        if (!IsMouseOver)
-        {
-            SetExpanded(false);
-        }
+        ShowCompactToast(MediaToastPanel);
     }
 
-    private void ShowMediaToast()
+    private void ShowNotificationToast(NotificationItem notification)
+    {
+        NotificationToastTitleText.Text = notification.Title;
+        NotificationToastBodyText.Text = notification.Body;
+        NotificationToastAppText.Text = notification.App;
+        NotificationToastTimeText.Text = notification.TimeText;
+        NotificationToastIconFallback.Text = notification.BadgeText;
+
+        var icon = MediaArtwork.FromBytes(notification.Icon);
+        NotificationToastIconImage.Source = icon;
+        NotificationToastIconImage.Visibility = icon is null ? Visibility.Collapsed : Visibility.Visible;
+        NotificationToastIconFallback.Visibility = icon is null ? Visibility.Visible : Visibility.Collapsed;
+
+        _notificationToastActions = notification.Actions.Take(2).ToArray();
+        NotificationToastActionsPanel.Visibility = _notificationToastActions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        NotificationToastPrimaryActionButton.Visibility = _notificationToastActions.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        NotificationToastSecondaryActionButton.Visibility = _notificationToastActions.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        NotificationToastPrimaryActionText.Text = _notificationToastActions.Count > 0 ? _notificationToastActions[0].Label : "";
+        NotificationToastSecondaryActionText.Text = _notificationToastActions.Count > 1 ? _notificationToastActions[1].Label : "";
+
+        ShowCompactToast(NotificationToastPanel);
+    }
+
+    private void ShowCompactToast(FrameworkElement panel)
     {
         if (_expanded)
         {
             return;
         }
 
-        _mediaToastHide?.Cancel();
-        _mediaToastHide?.Dispose();
-        _mediaToastHide = new CancellationTokenSource();
-        _mediaToastVisible = true;
+        HideCompactToast(restoreShell: false);
+        _compactToastHide = new CancellationTokenSource();
+        _compactToastVisible = true;
+        _activeCompactToast = panel;
 
         _appBar.Release();
         SetMouseTransparent(false);
@@ -269,12 +293,12 @@ public partial class MainWindow : Window
         NotchShell.CornerRadius = new CornerRadius(0, 0, 24, 24);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.MediaToast(SystemParameters.PrimaryScreenWidth), _animationFrameRate);
-        MediaToastPanel.Opacity = 0;
-        ShellAnimator.Show(MediaToastPanel, _animationFrameRate);
-        _ = HideMediaToastAfterDelayAsync(_mediaToastHide.Token);
+        panel.Opacity = 0;
+        ShellAnimator.Show(panel, _animationFrameRate);
+        _ = HideCompactToastAfterDelayAsync(_compactToastHide.Token);
     }
 
-    private async Task HideMediaToastAfterDelayAsync(CancellationToken cancellationToken)
+    private async Task HideCompactToastAfterDelayAsync(CancellationToken cancellationToken)
     {
         try
         {
@@ -285,22 +309,27 @@ public partial class MainWindow : Window
             return;
         }
 
-        HideMediaToast(restoreShell: true);
+        HideCompactToast(restoreShell: true);
     }
 
-    private void HideMediaToast(bool restoreShell)
+    private void HideCompactToast(bool restoreShell)
     {
-        _mediaToastHide?.Cancel();
-        _mediaToastHide?.Dispose();
-        _mediaToastHide = null;
-        if (!_mediaToastVisible)
+        _compactToastHide?.Cancel();
+        _compactToastHide?.Dispose();
+        _compactToastHide = null;
+        if (!_compactToastVisible && _activeCompactToast is null)
         {
             return;
         }
 
-        _mediaToastVisible = false;
+        _compactToastVisible = false;
         _ignoreHoverUntilUtc = DateTime.UtcNow + ShellAnimationTiming.CollapseGuard;
-        ShellAnimator.Hide(MediaToastPanel);
+        if (_activeCompactToast is not null)
+        {
+            ShellAnimator.Hide(_activeCompactToast);
+            _activeCompactToast = null;
+        }
+
         ClockGroup.Visibility = Visibility.Visible;
         ClockGroup.Opacity = 1;
         if (restoreShell)
@@ -349,7 +378,7 @@ public partial class MainWindow : Window
 
     private void ApplyShellMode(ShellMode mode, bool animate = true)
     {
-        if (_expanded || _mediaToastVisible)
+        if (_expanded || _compactToastVisible)
         {
             return;
         }
@@ -446,9 +475,31 @@ public partial class MainWindow : Window
         await RunMediaActionAsync(_media.NextAsync);
     }
 
+    private async void NotificationToastPrimaryAction_Click(object sender, RoutedEventArgs e)
+    {
+        await RunNotificationActionAsync(0);
+    }
+
+    private async void NotificationToastSecondaryAction_Click(object sender, RoutedEventArgs e)
+    {
+        await RunNotificationActionAsync(1);
+    }
+
     private async Task RunMediaActionAsync(Func<Task> action)
     {
         await action();
+        await RefreshStatusAsync();
+    }
+
+    private async Task RunNotificationActionAsync(int index)
+    {
+        if (index < 0 || index >= _notificationToastActions.Count)
+        {
+            return;
+        }
+
+        await _notificationToastActions[index].InvokeAsync();
+        HideCompactToast(restoreShell: true);
         await RefreshStatusAsync();
     }
 
@@ -456,8 +507,8 @@ public partial class MainWindow : Window
     {
         _expandedReveal?.Cancel();
         _expandedReveal?.Dispose();
-        _mediaToastHide?.Cancel();
-        _mediaToastHide?.Dispose();
+        _compactToastHide?.Cancel();
+        _compactToastHide?.Dispose();
         _appBar.Dispose();
         _notifications.Dispose();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;

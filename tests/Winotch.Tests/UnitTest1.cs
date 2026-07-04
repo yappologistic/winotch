@@ -262,6 +262,17 @@ public class StatusParsingTests
         Assert.Equal(expected, NotificationSilenceService.IsGloballySilenced(enabled));
     }
 
+    [Theory]
+    [InlineData(UserNotificationState.AcceptsNotifications, false)]
+    [InlineData(UserNotificationState.QuietTime, true)]
+    [InlineData(UserNotificationState.Busy, false)]
+    [InlineData(UserNotificationState.PresentationMode, false)]
+    [InlineData(UserNotificationState.RunningDirect3DFullScreen, false)]
+    public void NotificationSilenceUsesShellNotificationState(UserNotificationState state, bool expected)
+    {
+        Assert.Equal(expected, NotificationSilenceService.IsShellNotificationSuppressed(state));
+    }
+
     [Fact]
     public void NotificationChangeTrackerPopsOnlyForNewNotifications()
     {
@@ -274,6 +285,23 @@ public class StatusParsingTests
         Assert.True(tracker.ShouldPop(second));
         Assert.False(tracker.ShouldPop(second));
         Assert.False(tracker.ShouldPop([]));
+    }
+
+    [Fact]
+    public void NotificationChangeTrackerTreatsCreationTimeAsPartOfSignature()
+    {
+        var first = new[]
+        {
+            new NotificationItem("Mail", "One", "Body", new DateTimeOffset(2026, 7, 4, 10, 0, 0, TimeSpan.Zero), null, [])
+        };
+        var repeatedLater = new[]
+        {
+            new NotificationItem("Mail", "One", "Body", new DateTimeOffset(2026, 7, 4, 10, 1, 0, TimeSpan.Zero), null, [])
+        };
+
+        Assert.NotEqual(
+            NotificationChangeTracker.CreateSignature(first),
+            NotificationChangeTracker.CreateSignature(repeatedLater));
     }
 
     [Fact]
@@ -313,7 +341,32 @@ public class StatusParsingTests
     [Fact]
     public void NotificationItemFormatsReadableDisplayText()
     {
-        Assert.Equal("Mail: Subject Body text", new NotificationItem("Mail", "Subject", "Body text").ToString());
+        var item = new NotificationItem(
+            "Mail",
+            "Subject",
+            "Body text",
+            new DateTimeOffset(2026, 7, 4, 15, 5, 0, TimeSpan.Zero),
+            null,
+            []);
+
+        Assert.Equal("Mail: Subject Body text", item.ToString());
+        Assert.Equal("M", item.BadgeText);
+        Assert.EndsWith("M", item.TimeText);
+    }
+
+    [Fact]
+    public async Task NotificationActionInvokesDelegate()
+    {
+        var invoked = false;
+        var action = new NotificationAction("Allow", () =>
+        {
+            invoked = true;
+            return Task.CompletedTask;
+        });
+
+        await action.InvokeAsync();
+
+        Assert.True(invoked);
     }
 
     [Theory]
@@ -455,10 +508,10 @@ public class StatusParsingTests
     [Fact]
     public void ShellMetricsCentersMiniAndExpandedWidths()
     {
-        Assert.Equal(850, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
+        Assert.Equal(838, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
         Assert.Equal(540, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
         Assert.Equal(new ShellGeometry(1920, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
-        Assert.Equal(new ShellGeometry(220, 40, 46, 850), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
+        Assert.Equal(new ShellGeometry(244, 44, 52, 838), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(520, 68, 76, 700), ShellMetrics.MediaToast(1920));
     }
 
@@ -470,7 +523,7 @@ public class StatusParsingTests
         var expanded = ShellMetrics.Expanded(1919);
 
         Assert.Equal(ShellMetrics.MiniWidth, mini.Width);
-        Assert.Equal(849.5, mini.Left);
+        Assert.Equal(837.5, mini.Left);
         Assert.Equal(1919, fullBar.Width);
         Assert.Equal(0, fullBar.Left);
         Assert.Equal(539.5, expanded.Left);
@@ -491,7 +544,8 @@ public class StatusParsingTests
     [Fact]
     public void MiniShellLeavesRoomForHeaderGlyphs()
     {
-        Assert.True(ShellMetrics.MiniShellHeight - 10 >= 28);
+        Assert.True(ShellMetrics.MiniShellHeight - 10 >= 32);
+        Assert.True(ShellMetrics.MiniWidth >= 244);
     }
 
     [Fact]

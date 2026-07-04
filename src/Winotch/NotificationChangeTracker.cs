@@ -19,5 +19,5 @@ public sealed class NotificationChangeTracker
     }
 
     public static string CreateSignature(IReadOnlyList<NotificationItem> items) =>
-        string.Join('\u001f', items.Select(item => $"{item.App}\u001e{item.Title}\u001e{item.Body}"));
+        string.Join('\u001f', items.Select(item => $"{item.App}\u001e{item.Title}\u001e{item.Body}\u001e{item.CreatedAt.UtcTicks}"));
 }

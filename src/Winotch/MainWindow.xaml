@@ -47,11 +47,11 @@
                         <Border x:Name="LogoBadge" Width="28" Height="28" CornerRadius="14" Background="{StaticResource NotchPanel}" Margin="0,0,10,0">
                             <Grid>
                                 <Ellipse x:Name="LogoAccountPicture" Visibility="Collapsed" />
-                                <TextBlock x:Name="LogoFallbackText" Text="W" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <TextBlock x:Name="LogoFallbackText" Text="W" FontWeight="Bold" FontSize="14" LineHeight="18" LineStackingStrategy="BlockLineHeight" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
                         <StackPanel>
-                            <TextBlock x:Name="TimeText" FontSize="17" FontWeight="SemiBold" LineHeight="22" />
+                            <TextBlock x:Name="TimeText" FontSize="17" FontWeight="SemiBold" LineHeight="24" LineStackingStrategy="BlockLineHeight" MinWidth="82" />
                             <TextBlock x:Name="DateText" Foreground="{StaticResource NotchMutedText}" FontSize="12" LineHeight="15" Margin="0,1,0,0" />
                         </StackPanel>
                     </StackPanel>
@@ -220,6 +220,44 @@
                         </Button>
                         <Button x:Name="MediaToastNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" AutomationProperties.Name="Toast next track" Click="MediaNext_Click">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE101;" FontSize="14" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="NotificationToastPanel" Grid.RowSpan="2" Visibility="Collapsed" Opacity="0" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="42" Height="42" CornerRadius="10" Background="{StaticResource NotchPanel}" ClipToBounds="True" VerticalAlignment="Center">
+                        <Grid>
+                            <Image x:Name="NotificationToastIconImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                            <TextBlock x:Name="NotificationToastIconFallback"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource NotchText}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Center">
+                        <DockPanel LastChildFill="True">
+                            <TextBlock x:Name="NotificationToastTimeText" DockPanel.Dock="Right" FontSize="10" Foreground="{StaticResource NotchMutedText}" Margin="8,1,0,0" />
+                            <TextBlock x:Name="NotificationToastTitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                        <TextBlock x:Name="NotificationToastBodyText" FontSize="11" Foreground="{StaticResource NotchText}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                        <TextBlock x:Name="NotificationToastAppText" FontSize="10" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="NotificationToastActionsPanel" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+                        <Button x:Name="NotificationToastPrimaryActionButton" Padding="10,5" Margin="0,0,8,0" AutomationProperties.Name="Notification toast primary action" Click="NotificationToastPrimaryAction_Click">
+                            <TextBlock x:Name="NotificationToastPrimaryActionText" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="90" />
+                        </Button>
+                        <Button x:Name="NotificationToastSecondaryActionButton" Padding="10,5" Margin="0" AutomationProperties.Name="Notification toast secondary action" Click="NotificationToastSecondaryAction_Click">
+                            <TextBlock x:Name="NotificationToastSecondaryActionText" FontSize="11" TextTrimming="CharacterEllipsis" MaxWidth="90" />
                         </Button>
                     </StackPanel>
                 </Grid>

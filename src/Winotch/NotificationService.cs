@@ -1,11 +1,17 @@
+using System.IO;
+using System.Windows.Automation;
 using Windows.Foundation.Metadata;
+using Windows.Storage.Streams;
 using Windows.UI.Notifications;
 using Windows.UI.Notifications.Management;
+using DrawingIcon = System.Drawing.Icon;
+using ImageFormat = System.Drawing.Imaging.ImageFormat;
 
 namespace Winotch;
 
 public sealed class NotificationService : IDisposable
 {
+    private const ulong MaxIconBytes = 512 * 1024;
     private readonly object _gate = new();
     private readonly List<NotificationItem> _liveToasts = [];
     private bool _watchingLiveToasts;
@@ -16,10 +22,10 @@ public sealed class NotificationService : IDisposable
     {
         try
         {
-            System.Windows.Automation.Automation.AddAutomationEventHandler(
-                System.Windows.Automation.WindowPattern.WindowOpenedEvent,
-                System.Windows.Automation.AutomationElement.RootElement,
-                System.Windows.Automation.TreeScope.Children,
+            Automation.AddAutomationEventHandler(
+                WindowPattern.WindowOpenedEvent,
+                AutomationElement.RootElement,
+                TreeScope.Children,
                 OnWindowOpened);
             _watchingLiveToasts = true;
         }
@@ -57,13 +63,15 @@ public sealed class NotificationService : IDisposable
             }
 
             var notifications = await listener.GetNotificationsAsync(NotificationKinds.Toast);
-            var items = notifications
-                .OrderByDescending(notification => notification.CreationTime)
-                .Take(4)
-                .Select(ReadNotification)
-                .Where(item => item is not null)
-                .Cast<NotificationItem>()
-                .ToList();
+            var items = new List<NotificationItem>();
+            foreach (var notification in notifications.OrderByDescending(notification => notification.CreationTime).Take(4))
+            {
+                var item = await ReadNotificationAsync(notification);
+                if (item is not null)
+                {
+                    items.Add(item);
+                }
+            }
 
             var status = items.Count == 0 && _watchingLiveToasts
                 ? "Watching for live toast pop-ups"
@@ -89,15 +97,15 @@ public sealed class NotificationService : IDisposable
             return;
         }
 
-        System.Windows.Automation.Automation.RemoveAutomationEventHandler(
-            System.Windows.Automation.WindowPattern.WindowOpenedEvent,
-            System.Windows.Automation.AutomationElement.RootElement,
+        Automation.RemoveAutomationEventHandler(
+            WindowPattern.WindowOpenedEvent,
+            AutomationElement.RootElement,
             OnWindowOpened);
     }
 
-    private async void OnWindowOpened(object sender, System.Windows.Automation.AutomationEventArgs e)
+    private async void OnWindowOpened(object sender, AutomationEventArgs e)
     {
-        if (sender is not System.Windows.Automation.AutomationElement element)
+        if (sender is not AutomationElement element)
         {
             return;
         }
@@ -111,7 +119,11 @@ public sealed class NotificationService : IDisposable
 
         lock (_gate)
         {
-            if (_liveToasts.Any(existing => existing.Title == item.Title && existing.Body == item.Body))
+            if (_liveToasts.Any(existing =>
+                existing.App == item.App &&
+                existing.Title == item.Title &&
+                existing.Body == item.Body &&
+                item.CreatedAt - existing.CreatedAt < TimeSpan.FromSeconds(2)))
             {
                 return;
             }
@@ -126,7 +138,7 @@ public sealed class NotificationService : IDisposable
         NotificationsChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private static NotificationItem? TryReadLiveToast(System.Windows.Automation.AutomationElement element)
+    private static NotificationItem? TryReadLiveToast(AutomationElement element)
     {
         try
         {
@@ -136,23 +148,29 @@ public sealed class NotificationService : IDisposable
             }
 
             var bounds = element.Current.BoundingRectangle;
-            if (bounds.IsEmpty || bounds.Width < 180 || bounds.Width > 760 || bounds.Height < 60 || bounds.Height > 520)
+            if (bounds.IsEmpty || bounds.Width < 180 || bounds.Width > 1400 || bounds.Height < 60 || bounds.Height > 800)
             {
                 return null;
             }
 
             var textElements = element.FindAll(
-                System.Windows.Automation.TreeScope.Descendants,
-                new System.Windows.Automation.PropertyCondition(
-                    System.Windows.Automation.AutomationElement.ControlTypeProperty,
-                    System.Windows.Automation.ControlType.Text));
+                TreeScope.Descendants,
+                new PropertyCondition(
+                    AutomationElement.ControlTypeProperty,
+                    ControlType.Text));
 
-            var texts = textElements
-                .Cast<System.Windows.Automation.AutomationElement>()
+            var rawTexts = textElements
+                .Cast<AutomationElement>()
                 .Select(text => text.Current.Name.Trim())
                 .Where(text => !string.IsNullOrWhiteSpace(text))
                 .Distinct(StringComparer.Ordinal)
                 .Take(5)
+                .ToArray();
+            var actions = ReadLiveActions(element);
+            var actionLabels = actions.Select(action => action.Label).ToHashSet(StringComparer.Ordinal);
+            var texts = rawTexts
+                .Where(text => !actionLabels.Contains(text))
+                .Take(3)
                 .ToArray();
 
             if (texts.Length < 2)
@@ -161,7 +179,13 @@ public sealed class NotificationService : IDisposable
             }
 
             var app = string.IsNullOrWhiteSpace(element.Current.Name) ? "Windows" : element.Current.Name;
-            return new NotificationItem(app, texts[0], string.Join(" ", texts.Skip(1)));
+            return new NotificationItem(
+                app,
+                texts[0],
+                string.Join(" ", texts.Skip(1)),
+                DateTimeOffset.Now,
+                ReadProcessIcon(element.Current.ProcessId),
+                actions);
         }
         catch
         {
@@ -177,7 +201,7 @@ public sealed class NotificationService : IDisposable
         }
     }
 
-    private static NotificationItem? ReadNotification(UserNotification notification)
+    private static async Task<NotificationItem?> ReadNotificationAsync(UserNotification notification)
     {
         var binding = notification.Notification.Visual.GetBinding(KnownNotificationBindings.ToastGeneric);
         var text = binding?.GetTextElements()
@@ -192,13 +216,129 @@ public sealed class NotificationService : IDisposable
 
         var title = text[0];
         var body = text.Length > 1 ? string.Join(" ", text.Skip(1)) : notification.AppInfo.DisplayInfo.DisplayName;
-        return new NotificationItem(notification.AppInfo.DisplayInfo.DisplayName, title, body);
+        var icon = await ReadIconAsync(notification.AppInfo.DisplayInfo.GetLogo(new Windows.Foundation.Size(32, 32)));
+        return new NotificationItem(notification.AppInfo.DisplayInfo.DisplayName, title, body, notification.CreationTime, icon, []);
+    }
+
+    private static IReadOnlyList<NotificationAction> ReadLiveActions(AutomationElement element)
+    {
+        var buttons = element.FindAll(
+            TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
+
+        return buttons
+            .Cast<AutomationElement>()
+            .Select(TryCreateAction)
+            .Where(action => action is not null)
+            .Cast<NotificationAction>()
+            .Take(2)
+            .ToList();
+    }
+
+    private static NotificationAction? TryCreateAction(AutomationElement button)
+    {
+        var label = button.Current.Name.Trim();
+        if (string.IsNullOrWhiteSpace(label) ||
+            label.Equals("Close", StringComparison.OrdinalIgnoreCase) ||
+            label.Equals("Dismiss", StringComparison.OrdinalIgnoreCase) ||
+            label.Equals("Minimize", StringComparison.OrdinalIgnoreCase) ||
+            label.Equals("Maximize", StringComparison.OrdinalIgnoreCase) ||
+            label.Equals("Restore", StringComparison.OrdinalIgnoreCase) ||
+            !button.TryGetCurrentPattern(InvokePattern.Pattern, out _))
+        {
+            return null;
+        }
+
+        return new NotificationAction(label, () =>
+        {
+            try
+            {
+                ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+            }
+            catch
+            {
+            }
+
+            return Task.CompletedTask;
+        });
+    }
+
+    private static async Task<byte[]?> ReadIconAsync(IRandomAccessStreamReference? icon)
+    {
+        if (icon is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = await icon.OpenReadAsync();
+            var length = (uint)Math.Min(stream.Size, MaxIconBytes);
+            if (length == 0)
+            {
+                return null;
+            }
+
+            using var reader = new DataReader(stream.GetInputStreamAt(0));
+            await reader.LoadAsync(length);
+            var bytes = new byte[length];
+            reader.ReadBytes(bytes);
+            return bytes;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static byte[]? ReadProcessIcon(int processId)
+    {
+        try
+        {
+            using var process = System.Diagnostics.Process.GetProcessById(processId);
+            var path = process.MainModule?.FileName;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return null;
+            }
+
+            using var icon = DrawingIcon.ExtractAssociatedIcon(path);
+            if (icon is null)
+            {
+                return null;
+            }
+
+            using var bitmap = icon.ToBitmap();
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, ImageFormat.Png);
+            return stream.ToArray();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 
 public sealed record NotificationSnapshot(string Status, IReadOnlyList<NotificationItem> Items);
 
-public sealed record NotificationItem(string App, string Title, string Body)
+public sealed record NotificationItem(
+    string App,
+    string Title,
+    string Body,
+    DateTimeOffset CreatedAt,
+    byte[]? Icon,
+    IReadOnlyList<NotificationAction> Actions)
 {
+    public NotificationItem(string app, string title, string body)
+        : this(app, title, body, DateTimeOffset.MinValue, null, [])
+    {
+    }
+
+    public string BadgeText => string.IsNullOrWhiteSpace(App) ? "!" : App.Trim()[0].ToString().ToUpperInvariant();
+    public string TimeText => CreatedAt == DateTimeOffset.MinValue ? "" : CreatedAt.LocalDateTime.ToString("h:mm tt");
+
     public override string ToString() => $"{App}: {Title} {Body}";
 }
+
+public sealed record NotificationAction(string Label, Func<Task> InvokeAsync);

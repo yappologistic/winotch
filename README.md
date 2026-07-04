@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, and Windows notifications in a compact black shell that expands on hover or notification activity. Media track changes use a brief compact toast with transport controls.
+Winotch is a native Windows notch overlay. It stays centered at the top of the primary screen and shows time, date, battery, Wi-Fi, volume, current media, and Windows notifications in a compact black shell that expands on hover. Media track changes and unsilenced Windows notifications use brief compact toasts.
 
 ## Stack
 
@@ -28,7 +28,7 @@ From the repository root:
 dotnet run --project src/Winotch/Winotch.csproj
 ```
 
-Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The volume slider changes the system master volume. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 ## Test
 
@@ -38,7 +38,7 @@ Run the full regression suite before sharing a build:
 dotnet test Winotch.slnx
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification pop-up dedupe behavior, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, shell mode/fullscreen heuristics, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 ## Install
 
@@ -82,4 +82,6 @@ Remove-Item "$env:LOCALAPPDATA\Winotch" -Recurse -Force
 
 ## Notification Access
 
-Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. If access is not granted or unavailable in the unpackaged dev build, Winotch shows the OS state in the notification panel instead of pretending notifications are available.
+Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. If access is not granted or unavailable in the unpackaged dev build, Winotch still watches live Windows toast windows where possible and shows the OS state in the notification panel instead of pretending history access is available.
+
+Winotch respects the Windows notification state before showing its own compact notification toast. If Windows reports that notifications should be suppressed, including Do Not Disturb/quiet states, Winotch updates the notification list but does not pop a toast.
