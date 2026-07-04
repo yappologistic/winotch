@@ -13,6 +13,8 @@ public class SettingsServiceTests
         Assert.True(service.Current.General.ShowDate);
         Assert.True(service.Current.Toasts.MediaToastsEnabled);
         Assert.Equal(ToastDurationScale.Normal, service.Current.Toasts.DurationScale);
+        Assert.False(service.Current.Calendar.Enabled);
+        Assert.Empty(service.Current.Calendar.SubscriptionUrls);
     }
 
     [Fact]
@@ -28,6 +30,11 @@ public class SettingsServiceTests
             {
                 NotificationToastsEnabled = false,
                 DurationScale = ToastDurationScale.Long
+            },
+            Calendar = new CalendarSettings
+            {
+                Enabled = true,
+                SubscriptionUrls = ["webcal://example.com/work.ics", "garbage", "https://example.com/personal.ics"]
             }
         });
 
@@ -36,6 +43,10 @@ public class SettingsServiceTests
         Assert.False(reloaded.Current.General.ShowDate);
         Assert.False(reloaded.Current.Toasts.NotificationToastsEnabled);
         Assert.Equal(ToastDurationScale.Long, reloaded.Current.Toasts.DurationScale);
+        Assert.True(reloaded.Current.Calendar.Enabled);
+        Assert.Equal(
+            ["https://example.com/work.ics", "https://example.com/personal.ics"],
+            reloaded.Current.Calendar.SubscriptionUrls);
         Assert.Contains(Environment.NewLine, File.ReadAllText(temp.SettingsPath));
     }
 

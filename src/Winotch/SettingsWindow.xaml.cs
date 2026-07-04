@@ -46,6 +46,13 @@ public partial class SettingsWindow : Window
         NotificationToastsToggle.IsChecked = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsChecked = settings.Toasts.PriorityAlertsEnabled;
         SelectDuration(settings.Toasts.DurationScale);
+        CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
+        var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
+        if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
+        {
+            CalendarUrlsTextBox.Text = calendarUrls;
+        }
+
         _syncing = false;
     }
 
@@ -81,6 +88,32 @@ public partial class SettingsWindow : Window
                 NotificationToastsEnabled = NotificationToastsToggle.IsChecked == true,
                 PriorityAlertsEnabled = PriorityAlertsToggle.IsChecked == true
             }
+        });
+    }
+
+    private void CalendarSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Calendar = settings.Calendar with { Enabled = CalendarEnabledToggle.IsChecked == true }
+        });
+    }
+
+    private void CalendarUrlsChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Calendar = settings.Calendar with { SubscriptionUrls = CalendarSubscriptionUrl.FromMultiline(CalendarUrlsTextBox.Text) }
         });
     }
 

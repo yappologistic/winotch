@@ -13,6 +13,7 @@ flowchart TD
     Status --> Wifi["netsh wlan"]
     Status --> Notifications["UserNotificationListener"]
     Status --> Priority["Priority Status Alerts"]
+    Window --> Calendar["ICS Calendar Refresh"]
     App --> Settings["SettingsService JSON Store"]
     App --> Tray["NotifyIcon Tray Surface"]
     Tray --> SettingsWindow["Settings Window"]
@@ -30,6 +31,7 @@ flowchart TD
     Priority --> Window
     Clipboard --> Window
     Focus --> Window
+    Calendar --> Window
     Shelf --> Window
     Brightness --> Window
 ```
@@ -45,7 +47,9 @@ flowchart LR
     Shell --> Expanded["Expanded State"]
     Expanded --> Media["Now Playing Controls"]
     Expanded --> FocusPanel["Focus Timer Controls"]
+    Expanded --> Agenda["Agenda"]
     Compact --> FocusLive["Focus Live Activity"]
+    Compact --> CalendarLive["Meeting Countdown"]
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
     Expanded --> Notifications["Notifications"]
@@ -120,6 +124,14 @@ Start with Windows is backed by `HKCU\Software\Microsoft\Windows\CurrentVersion\
 
 The focus timer is a pure timestamp-driven state machine persisted as JSON under `%LOCALAPPDATA%\Winotch\focus-timer.json`. The UI refreshes it on the existing one-second clock timer and on power resume, then recomputes remaining time from wall clock instead of accumulating ticks. Focus phases always advance into a break; break completion starts another focus phase only when auto-cycle is enabled. Completion messages reuse the compact notification toast surface and collapse multiple closed-app completions to one visible toast on load.
 
+## Calendar Agenda
+
+Calendar integration is subscription-only: users paste `webcal://`, `https://`, or `http://` ICS feed URLs in Settings, and Winotch never uses Microsoft Graph, OAuth, or packaged calendar APIs. `CalendarRefreshService` refreshes feeds every five minutes with `HttpClient`, sends `ETag` and `Last-Modified` conditional GET headers when a feed supplies them, and keeps the last good parsed data silently on offline or HTTP failures. The expanded Agenda section surfaces the next three occurrences in the coming 24 hours and shows the last successful update age as muted text.
+
+ICS parsing is split into plain classes for line unfolding, date/time parsing, recurrence expansion, join-link detection, agenda selection, countdown formatting, and toast dedupe. The parser handles `DTSTART`, `DTEND`, `DURATION`, `SUMMARY`, `LOCATION`, `DESCRIPTION`, `URL`, `UID`, `STATUS`, `EXDATE`, and a pragmatic `RRULE` subset: daily, weekly with `BYDAY`, and monthly with `BYMONTHDAY`, plus `INTERVAL`, `COUNT`, and `UNTIL`. `TZID` values are resolved through `TimeZoneInfo`; common IANA IDs are mapped to Windows IDs, and unknown IDs fall back to local time so malformed feeds do not break the UI. All-day DATE values appear in Agenda but are excluded from countdown chips and join-reminder toasts.
+
+The compact pill uses a deterministic priority: focus timer live activity wins, otherwise a timed meeting starting within 15 minutes can show `Title · 4m`; the chip switches to `now` for the first five minutes after start and then disappears. Meeting reminders reuse the notification toast surface at T-2 minutes with a Join action, but only after the event was observed before the threshold, preventing stale reminder toasts on app launch.
+
 ## File Shelf
 
 The notch window accepts Explorer `CF_HDROP` file drags. During drag enter/over, the normal expanded shell animation opens the notch and shows a highlighted drop target. Dropping stores only full paths in `FileShelf`, then persists them as JSON at `%LOCALAPPDATA%\Winotch\shelf.json` through `FileShelfStore`; missing or corrupt JSON falls back to an empty shelf.
@@ -133,6 +145,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Wi-Fi netsh/profile parsing, de-duplication, blank values, and visible list limits.
 - Battery icon fill width, clamp behavior, charging color, and low-power thresholds.
 - Focus timer start/pause/resume/skip/stop/auto-cycle transitions, wall-clock remaining math, persistence roundtrip, expired-while-closed handling, formatting, and progress clamp behavior.
+- ICS URL normalization, folded-line parsing, all-day handling, timezone/DST conversion, recurrence expansion, `EXDATE`, join-link extraction, agenda selection, countdown formatting, focus priority, conditional GET caching, and stale-toast suppression.
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.

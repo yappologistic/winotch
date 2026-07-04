@@ -168,6 +168,42 @@
 
             <Border Background="{StaticResource NotchPanel}"
                     CornerRadius="8"
+                    Padding="18"
+                    Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="Calendar" Style="{StaticResource SettingsSectionHeader}" />
+                    <CheckBox x:Name="CalendarEnabledToggle"
+                              Content="Next meeting countdown"
+                              Style="{StaticResource ToggleSwitch}"
+                              Checked="CalendarSettingChanged"
+                              Unchecked="CalendarSettingChanged" />
+                    <TextBlock Text="ICS subscription URLs"
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               Margin="0,14,0,6" />
+                    <TextBox x:Name="CalendarUrlsTextBox"
+                             Height="86"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             Background="{StaticResource NotchBlack}"
+                             Foreground="{StaticResource NotchText}"
+                             BorderBrush="#343434"
+                             BorderThickness="1"
+                             Padding="9,7"
+                             CaretBrush="{StaticResource NotchText}"
+                             FontFamily="Segoe UI Variable Text, Segoe UI"
+                             FontSize="12"
+                             TextChanged="CalendarUrlsChanged" />
+                    <TextBlock Text="Refreshes every 5 minutes"
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Background="{StaticResource NotchPanel}"
+                    CornerRadius="8"
                     Padding="18">
                 <StackPanel>
                     <TextBlock Text="About" Style="{StaticResource SettingsSectionHeader}" />

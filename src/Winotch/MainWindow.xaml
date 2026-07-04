@@ -88,6 +88,15 @@
                                        TextAlignment="Right"
                                        Typography.NumeralAlignment="Tabular" />
                         </StackPanel>
+                        <StackPanel x:Name="CalendarLiveActivity" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed" Margin="10,0,0,0">
+                            <Border CornerRadius="13" Background="{StaticResource NotchPanel}" Padding="8,4">
+                                <TextBlock x:Name="CalendarLiveText"
+                                           Width="90"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Border>
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel x:Name="StatusGroup" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
@@ -155,6 +164,56 @@
                         <TextBlock x:Name="LargeDateText" FontSize="14" Foreground="{StaticResource NotchMutedText}" />
                         <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Margin="0,16,0,8" Maximum="100" />
                         <TextBlock x:Name="BatteryDetailText" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
+                        <StackPanel x:Name="AgendaPanel" Margin="0,18,0,0">
+                            <TextBlock Text="Agenda" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                            <TextBlock x:Name="AgendaUpdatedText" FontSize="11" Foreground="{StaticResource NotchMutedText}" Margin="0,3,0,7" />
+                            <TextBlock x:Name="AgendaEmptyText"
+                                       Text="No meetings in the next 24h"
+                                       FontSize="12"
+                                       Foreground="{StaticResource NotchMutedText}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,2" />
+                            <ItemsControl x:Name="AgendaList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type local:CalendarAgendaRow}">
+                                        <Grid Height="32" Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="58" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding TimeText}"
+                                                       FontSize="11"
+                                                       Foreground="{StaticResource NotchMutedText}"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Title}"
+                                                       ToolTip="{Binding Title}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Margin="6,0,8,0" />
+                                            <Button x:Name="AgendaJoinButton"
+                                                    Grid.Column="2"
+                                                    Padding="9,5"
+                                                    Tag="{Binding JoinUrl}"
+                                                    ToolTip="Join meeting"
+                                                    AutomationProperties.Name="Join meeting"
+                                                    Click="AgendaJoin_Click">
+                                                <TextBlock Text="Join" FontSize="11" />
+                                            </Button>
+                                        </Grid>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding HasJoin}" Value="False">
+                                                <Setter TargetName="AgendaJoinButton" Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                         <local:ClipboardHistoryPanel x:Name="ClipboardPanel" Margin="0,18,0,0" />
                     </StackPanel>
 
