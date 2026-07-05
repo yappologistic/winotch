@@ -54,7 +54,16 @@ public sealed class FocusTimerStore
 
     public void Clear()
     {
-        File.Delete(_path);
+        var directory = Path.GetDirectoryName(_filePath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        if (File.Exists(_filePath))
+        {
+            File.Delete(_filePath);
+        }
     }
 
     private FocusTimerState ReadState()
