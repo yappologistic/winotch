@@ -12,10 +12,15 @@ public static class ShellAnimator
     public static void Animate(UIElement target, DependencyProperty property, double value, int frameRate)
     {
         var from = target.GetValue(property) is double current && !double.IsNaN(current) ? current : value;
-        target.SetValue(property, value);
         var animation = new DoubleAnimation(from, value, MotionDuration)
         {
-            EasingFunction = Easing
+            EasingFunction = Easing,
+            FillBehavior = FillBehavior.Stop
+        };
+        animation.Completed += (_, _) =>
+        {
+            target.BeginAnimation(property, null);
+            target.SetValue(property, value);
         };
         Timeline.SetDesiredFrameRate(animation, frameRate);
         target.BeginAnimation(property, animation, HandoffBehavior.SnapshotAndReplace);

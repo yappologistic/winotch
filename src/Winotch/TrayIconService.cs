@@ -12,17 +12,19 @@ public sealed class TrayIconService : IDisposable
     private readonly MainWindow _mainWindow;
     private readonly SettingsService _settings;
     private readonly StartupService _startup;
+    private readonly NotificationService _notifications;
     private readonly Forms.NotifyIcon _notifyIcon;
     private readonly Forms.ToolStripMenuItem _pauseItem;
     private readonly Forms.ToolStripMenuItem _startupItem;
     private SettingsWindow? _settingsWindow;
     private HwndSource? _source;
 
-    public TrayIconService(MainWindow mainWindow, SettingsService settings, StartupService startup)
+    public TrayIconService(MainWindow mainWindow, SettingsService settings, StartupService startup, NotificationService notifications)
     {
         _mainWindow = mainWindow;
         _settings = settings;
         _startup = startup;
+        _notifications = notifications;
         _pauseItem = new Forms.ToolStripMenuItem();
         _startupItem = new Forms.ToolStripMenuItem("Start with Windows") { CheckOnClick = false };
         _notifyIcon = new Forms.NotifyIcon
@@ -75,7 +77,7 @@ public sealed class TrayIconService : IDisposable
     {
         if (_settingsWindow is null)
         {
-            _settingsWindow = new SettingsWindow(_settings, _startup);
+            _settingsWindow = new SettingsWindow(_settings, _startup, _notifications);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 

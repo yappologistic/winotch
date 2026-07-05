@@ -70,7 +70,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _brightnessWriter = new DebouncedBrightnessWriter(TimeSpan.FromMilliseconds(150), _brightness.SetBrightnessAsync);
-        _trayIcon = new TrayIconService(this, _settings, _startup);
+        _trayIcon = new TrayIconService(this, _settings, _startup, _notifications);
         _settings.Changed += Settings_Changed;
         _clockTimer.Tick += (_, _) =>
         {
@@ -760,7 +760,8 @@ public partial class MainWindow : Window
         }
 
         HideCompactToast(restoreShell: false);
-        _compactToastHide = new CancellationTokenSource();
+        var hide = new CancellationTokenSource();
+        _compactToastHide = hide;
         _compactToastVisible = true;
         _activeCompactToast = panel;
 
@@ -777,25 +778,31 @@ public partial class MainWindow : Window
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.MediaToast(monitor.WidthDip), monitor), _animationFrameRate);
         panel.Opacity = 0;
         ShellAnimator.Show(panel, _animationFrameRate);
-        _ = HideCompactToastAfterDelayAsync(_compactToastHide.Token);
+        _ = HideCompactToastAfterDelayAsync(hide);
     }
 
-    private async Task HideCompactToastAfterDelayAsync(CancellationToken cancellationToken)
+    private async Task HideCompactToastAfterDelayAsync(CancellationTokenSource hide)
     {
         try
         {
-            await Task.Delay(_settings.Current.Toasts.DurationScale.ApplyTo(ShellAnimationTiming.MediaToastDuration), cancellationToken);
+            await Task.Delay(_settings.Current.Toasts.DurationScale.ApplyTo(ShellAnimationTiming.MediaToastDuration), hide.Token);
         }
         catch (OperationCanceledException)
         {
             return;
         }
 
-        HideCompactToast(restoreShell: true);
+        HideCompactToast(restoreShell: true, owner: hide);
     }
 
-    private void HideCompactToast(bool restoreShell)
+    private void HideCompactToast(bool restoreShell, CancellationTokenSource? owner = null)
     {
+        if (owner is not null && !ReferenceEquals(_compactToastHide, owner))
+        {
+            owner.Dispose();
+            return;
+        }
+
         _compactToastHide?.Cancel();
         _compactToastHide?.Dispose();
         _compactToastHide = null;

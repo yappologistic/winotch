@@ -88,11 +88,11 @@ Animation timings live in `ShellAnimationTiming`:
 
 ## Shell States
 
-- `Mini`: tiny centered pill for desktop, idle, maximized, and fullscreen foreground contexts.
+- `Mini`: tiny centered pill used for every foreground app state today.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
 
-Foreground detection uses Win32 window bounds and falls back to `Mini` for the desktop shell and Winotch's own window. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
 
 ## Multi-Monitor Targeting
 
@@ -124,7 +124,7 @@ The camera mirror button opens a separate topmost rounded flyout positioned unde
 
 ## Notifications
 
-Winotch reads notification history through `UserNotificationListener` when Windows grants access and also watches live Windows toast windows through UI Automation in unpackaged builds. New unsilenced notifications show a compact toast with app/sender text, message body, time, app icon when available, and up to two live action buttons when Windows exposes invokable toast actions. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
+Winotch reads notification history through `UserNotificationListener` when Windows grants access and also watches live Windows toast windows through UI Automation in unpackaged builds. Settings owns the explicit Request access button, while `NotificationService.RequestHistoryAccessAsync` owns the Windows permission prompt so passive refreshes never request permission. Source builds treat history access as optional and keep the live-toast fallback accurate. New unsilenced notifications show a compact toast with app/sender text, message body, time, app icon when available, and up to two live action buttons when Windows exposes invokable toast actions. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
 
 ## Clipboard History
 
@@ -145,6 +145,8 @@ When the camera mirror is open, `PriorityStatusTracker` suppresses the camera-ac
 Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI. The model is additive JSON: General, Toasts, Calendar, and Features groups normalize missing fields to defaults so older files keep working.
 
 Feature settings gate runtime work, not only visibility: clipboard off unregisters the Win32 listener; app mixer off skips audio-session enumeration; stats off stops sampling; follow-active-monitor off pins targeting to the primary monitor.
+
+Privacy surfaces stay local by default: clipboard history is memory-only, camera frames are preview-only and never persisted, settings JSON stays under `%LOCALAPPDATA%\Winotch`, and network fetches are limited to user-provided calendar URLs.
 
 The tray surface is a WinForms `NotifyIcon` with Open Settings, Pause/Resume notch, Start with Windows, and Exit. Pause hides the overlay and releases any app-bar reservation; resume reapplies the detected shell mode. Exit is explicit from the tray so closing the settings window does not terminate the app.
 

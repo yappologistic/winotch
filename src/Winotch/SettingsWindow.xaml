@@ -3,10 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Winotch"
         Title="Winotch Settings"
-        Width="520"
-        Height="640"
-        MinWidth="480"
-        MinHeight="560"
+        Width="560"
+        Height="700"
+        MinWidth="520"
+        MinHeight="620"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         Topmost="False"
@@ -15,17 +15,24 @@
         SnapsToDevicePixels="True">
     <Window.Resources>
         <Style x:Key="SettingsSectionHeader" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="Foreground" Value="{StaticResource NotchMutedText}" />
-            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+
+        <Style x:Key="SettingsCard" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource NotchPanel}" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="20" />
+            <Setter Property="Margin" Value="0,0,0,18" />
         </Style>
 
         <Style x:Key="ToggleSwitch" TargetType="CheckBox">
             <Setter Property="Foreground" Value="{StaticResource NotchText}" />
             <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="MinHeight" Value="38" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -36,19 +43,20 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <ContentPresenter VerticalAlignment="Center"
+                                              Margin="0,0,16,0"
                                               RecognizesAccessKey="True" />
                             <Border x:Name="SwitchTrack"
                                     Grid.Column="1"
-                                    Width="52"
-                                    Height="28"
-                                    CornerRadius="14"
+                                    Width="54"
+                                    Height="30"
+                                    CornerRadius="15"
                                     Background="{StaticResource NotchStroke}"
                                     BorderBrush="Transparent"
                                     BorderThickness="1"
-                                    Margin="16,0,0,0">
+                                    Margin="14,0,0,0">
                                 <Ellipse x:Name="SwitchThumb"
-                                         Width="22"
-                                         Height="22"
+                                         Width="24"
+                                         Height="24"
                                          HorizontalAlignment="Left"
                                          Margin="3"
                                          Fill="{StaticResource NotchText}" />
@@ -188,16 +196,13 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
                   PanningMode="VerticalOnly">
-        <StackPanel Margin="28">
+        <StackPanel Margin="32">
             <TextBlock Text="Winotch Settings"
-                       FontSize="24"
+                       FontSize="26"
                        FontWeight="SemiBold"
-                       Margin="0,0,0,24" />
+                       Margin="0,0,0,26" />
 
-            <Border Background="{StaticResource NotchPanel}"
-                    CornerRadius="8"
-                    Padding="18"
-                    Margin="0,0,0,16">
+            <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
                     <TextBlock Text="General" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="Use24HourClockToggle"
@@ -208,13 +213,13 @@
                     <CheckBox x:Name="ShowDateToggle"
                               Content="Show date"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="GeneralSettingChanged"
                               Unchecked="GeneralSettingChanged" />
                     <CheckBox x:Name="StartWithWindowsToggle"
                               Content="Start with Windows"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="StartWithWindowsChanged"
                               Unchecked="StartWithWindowsChanged" />
                     <TextBlock x:Name="StartupStatusText"
@@ -226,10 +231,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource NotchPanel}"
-                    CornerRadius="8"
-                    Padding="18"
-                    Margin="0,0,0,16">
+            <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
                     <TextBlock Text="Features" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="ClipboardHistoryEnabledToggle"
@@ -240,28 +242,25 @@
                     <CheckBox x:Name="ShowAppMixerToggle"
                               Content="Per-app audio mixer"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="FeatureSettingChanged"
                               Unchecked="FeatureSettingChanged" />
                     <CheckBox x:Name="SystemStatsEnabledToggle"
                               Content="System stats sampling"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="FeatureSettingChanged"
                               Unchecked="FeatureSettingChanged" />
                     <CheckBox x:Name="FollowActiveMonitorToggle"
                               Content="Follow active monitor"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="FeatureSettingChanged"
                               Unchecked="FeatureSettingChanged" />
                 </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource NotchPanel}"
-                    CornerRadius="8"
-                    Padding="18"
-                    Margin="0,0,0,16">
+            <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
                     <TextBlock Text="Toasts" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="MediaToastsToggle"
@@ -272,17 +271,39 @@
                     <CheckBox x:Name="NotificationToastsToggle"
                               Content="Notification toasts"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="ToastSettingChanged"
                               Unchecked="ToastSettingChanged" />
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Notification history"
+                                   VerticalAlignment="Center"
+                                   FontSize="14" />
+                        <Button x:Name="RequestNotificationAccessButton"
+                                Grid.Column="1"
+                                Content="Request access"
+                                AutomationProperties.Name="Request notification access"
+                                Click="RequestNotificationAccessClick" />
+                    </Grid>
+                    <TextBlock x:Name="NotificationAccessStatusText"
+                               Text=""
+                               Visibility="Collapsed"
+                               AutomationProperties.LiveSetting="Polite"
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,6,0,0" />
                     <CheckBox x:Name="PriorityAlertsToggle"
                               Content="Priority alerts"
                               Style="{StaticResource ToggleSwitch}"
-                              Margin="0,10,0,0"
+                              Margin="0,12,0,0"
                               Checked="ToastSettingChanged"
                               Unchecked="ToastSettingChanged" />
 
-                    <Grid Margin="0,16,0,0">
+                    <Grid Margin="0,18,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -292,6 +313,7 @@
                                    FontSize="14" />
                         <ComboBox x:Name="ToastDurationComboBox"
                                   Grid.Column="1"
+                                  AutomationProperties.Name="Toast duration scale"
                                   SelectionChanged="ToastDurationChanged">
                             <ComboBoxItem Content="0.75x" Tag="{x:Static local:ToastDurationScale.Short}" />
                             <ComboBoxItem Content="1x" Tag="{x:Static local:ToastDurationScale.Normal}" />
@@ -301,10 +323,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource NotchPanel}"
-                    CornerRadius="8"
-                    Padding="18"
-                    Margin="0,0,0,16">
+            <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
                     <TextBlock Text="Calendar" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="CalendarEnabledToggle"
@@ -315,10 +334,11 @@
                     <TextBlock Text="ICS subscription URLs"
                                Foreground="{StaticResource NotchMutedText}"
                                FontSize="12"
-                               Margin="0,14,0,6" />
+                               Margin="0,16,0,7" />
                     <TextBox x:Name="CalendarUrlsTextBox"
-                             Height="86"
+                             Height="96"
                              AcceptsReturn="True"
+                             AutomationProperties.Name="ICS subscription URLs"
                              TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
                              Background="{StaticResource NotchBlack}"
@@ -333,9 +353,8 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="{StaticResource NotchPanel}"
-                    CornerRadius="8"
-                    Padding="18">
+            <Border Style="{StaticResource SettingsCard}"
+                    Margin="0">
                 <StackPanel>
                     <TextBlock Text="About" Style="{StaticResource SettingsSectionHeader}" />
                     <TextBlock Text="Winotch"

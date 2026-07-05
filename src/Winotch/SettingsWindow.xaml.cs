@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using Windows.UI.Notifications.Management;
 
 namespace Winotch;
 
@@ -7,12 +8,14 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly StartupService _startup;
+    private readonly NotificationService _notifications;
     private bool _syncing;
 
-    public SettingsWindow(SettingsService settings, StartupService startup)
+    public SettingsWindow(SettingsService settings, StartupService startup, NotificationService notifications)
     {
         _settings = settings;
         _startup = startup;
+        _notifications = notifications;
         InitializeComponent();
         SourceInitialized += (_, _) => WindowChromeInterop.UseDarkCaption(this);
         Loaded += SettingsWindow_Loaded;
@@ -152,6 +155,28 @@ public partial class SettingsWindow : Window
         {
             Toasts = settings.Toasts with { DurationScale = SelectedDuration() }
         });
+    }
+
+    private async void RequestNotificationAccessClick(object sender, RoutedEventArgs e)
+    {
+        RequestNotificationAccessButton.IsEnabled = false;
+        NotificationAccessStatusText.Text = "Requesting notification access...";
+        NotificationAccessStatusText.Visibility = Visibility.Visible;
+        try
+        {
+            var access = await _notifications.RequestHistoryAccessAsync();
+            NotificationAccessStatusText.Text = access == UserNotificationListenerAccessStatus.Allowed
+                ? "Notification history access enabled."
+                : "Notification history not enabled. Live toast watching still works.";
+        }
+        catch
+        {
+            NotificationAccessStatusText.Text = "Notification access request failed. Live toast watching still works.";
+        }
+        finally
+        {
+            RequestNotificationAccessButton.IsEnabled = true;
+        }
     }
 
     private void StartWithWindowsChanged(object sender, RoutedEventArgs e)

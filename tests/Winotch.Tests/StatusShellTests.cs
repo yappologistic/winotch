@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 using System.Xml.Linq;
 using Windows.Storage;
 
@@ -764,7 +765,7 @@ public class StatusShellTests
     }
 
     [Fact]
-    public void ShellAnimatorKeepsAnimatedGeometryAtTargetValue()
+    public void ShellAnimatorKeepsBaseGeometryWhileAnimating()
     {
         Exception? failure = null;
         var thread = new Thread(() => failure = Record.Exception(() =>
@@ -774,12 +775,44 @@ public class StatusShellTests
                 Width = ShellMetrics.MiniWidth,
                 Height = ShellMetrics.MiniWindowHeight
             };
+            var window = new Window
+            {
+                Width = 1,
+                Height = 1,
+                Content = target,
+                Opacity = 0,
+                ShowInTaskbar = false,
+                WindowStyle = WindowStyle.None
+            };
+            window.Show();
 
-            ShellAnimator.Animate(target, FrameworkElement.WidthProperty, ShellMetrics.ExpandedWidth, 60);
-            ShellAnimator.Animate(target, FrameworkElement.HeightProperty, ShellMetrics.ExpandedWindowHeight, 60);
+            try
+            {
+                ShellAnimator.Animate(target, FrameworkElement.WidthProperty, ShellMetrics.ExpandedWidth, 60);
+                ShellAnimator.Animate(target, FrameworkElement.HeightProperty, ShellMetrics.ExpandedWindowHeight, 60);
 
-            Assert.Equal(ShellMetrics.ExpandedWidth, target.ReadLocalValue(FrameworkElement.WidthProperty));
-            Assert.Equal(ShellMetrics.ExpandedWindowHeight, target.ReadLocalValue(FrameworkElement.HeightProperty));
+                Assert.Equal(ShellMetrics.MiniWidth, target.GetAnimationBaseValue(FrameworkElement.WidthProperty));
+                Assert.Equal(ShellMetrics.MiniWindowHeight, target.GetAnimationBaseValue(FrameworkElement.HeightProperty));
+                Assert.True(target.HasAnimatedProperties);
+
+                var frame = new DispatcherFrame();
+                var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ShellAnimationTiming.MotionMilliseconds + 80) };
+                timer.Tick += (_, _) =>
+                {
+                    timer.Stop();
+                    frame.Continue = false;
+                };
+                timer.Start();
+                Dispatcher.PushFrame(frame);
+
+                Assert.Equal(ShellMetrics.ExpandedWidth, target.Width);
+                Assert.Equal(ShellMetrics.ExpandedWindowHeight, target.Height);
+                Assert.False(target.HasAnimatedProperties);
+            }
+            finally
+            {
+                window.Close();
+            }
         }));
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();

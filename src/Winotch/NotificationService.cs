@@ -53,14 +53,9 @@ public sealed class NotificationService : IDisposable
         {
             var listener = UserNotificationListener.Current;
             var access = listener.GetAccessStatus();
-            if (access == UserNotificationListenerAccessStatus.Unspecified)
+            if (!CanReadNotificationHistory(access))
             {
-                access = await listener.RequestAccessAsync();
-            }
-
-            if (access != UserNotificationListenerAccessStatus.Allowed)
-            {
-                return new NotificationSnapshot("Allow notification access in Windows Settings.", []);
+                return new NotificationSnapshot(HistoryAccessStatus(access), []);
             }
 
             var notifications = await listener.GetNotificationsAsync(NotificationKinds.Toast);
@@ -91,6 +86,19 @@ public sealed class NotificationService : IDisposable
         }
     }
 
+    public async Task<UserNotificationListenerAccessStatus> RequestHistoryAccessAsync()
+    {
+        if (!ApiInformation.IsTypePresent("Windows.UI.Notifications.Management.UserNotificationListener"))
+        {
+            return UserNotificationListenerAccessStatus.Denied;
+        }
+
+        return await UserNotificationListener.Current.RequestAccessAsync();
+    }
+
+    public static bool CanReadNotificationHistory(UserNotificationListenerAccessStatus access) =>
+        access == UserNotificationListenerAccessStatus.Allowed;
+
     public void Dispose()
     {
         _disposed = true;
@@ -112,6 +120,11 @@ public sealed class NotificationService : IDisposable
 
         _watchingLiveToasts = false;
     }
+
+    private static string HistoryAccessStatus(UserNotificationListenerAccessStatus access) =>
+        access == UserNotificationListenerAccessStatus.Unspecified
+            ? "Notification history access has not been requested."
+            : "Allow notification access in Windows Settings.";
 
     private async void OnWindowOpened(object sender, AutomationEventArgs e)
     {

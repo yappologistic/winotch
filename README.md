@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the active monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, controls, and system health in a compact black shell that expands on hover.
+Winotch is a native Windows notch overlay. It stays centered at the top of the selected monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, controls, and system health in a compact black shell. Foreground detection currently keeps the shell in Mini for every foreground app state; hover still expands the shell when the user opens it.
 
 ## Alpha Status
 
@@ -10,7 +10,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 
 ## Features
 
-- Notch shell: centered mini pill, hover-expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
+- Notch shell: centered Mini pill for foreground states, hover-expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
 - Media: current Windows media session metadata, artwork, playback controls, and media-change toasts.
 - Notifications: Windows notification list, compact notification toasts, live action buttons when Windows exposes them, and OS quiet-state suppression.
 - Priority alerts: low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, microphone/camera activity, and focus completion toasts.
@@ -77,7 +77,7 @@ dotnet test
 
 Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
-On multi-monitor setups, the notch follows the monitor containing the foreground app. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed. Settings can disable active-monitor following and keep the notch on the primary monitor.
+On multi-monitor setups, the notch follows the monitor containing the foreground app while the shell mode remains Mini until hover expansion or a compact toast. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed. Settings can disable active-monitor following and keep the notch on the primary monitor.
 
 The Calendar settings group accepts one or more `webcal://`, `https://`, or `http://` ICS URLs, refreshes them every five minutes, and adds the next three 24-hour agenda items plus Join buttons for Zoom, Teams, and Google Meet links.
 
@@ -103,7 +103,7 @@ Charging flourish tests cover reusable fill-width math, animation parameter deri
 
 ## Clipboard History
 
-Winotch keeps the latest 10 clipboard items in memory while the app is running. It does not write clipboard history to disk, settings, logs, or roaming storage. That is the privacy default: closing Winotch clears its private clipboard history.
+Clipboard history stays in memory while the app is running, capped to the latest 10 items. Winotch does not write clipboard history to disk, settings, logs, or roaming storage. That is the privacy default: closing Winotch clears its private clipboard history.
 
 The listener skips clipboard updates marked with Windows privacy exclusion formats such as `ExcludeClipboardContentFromMonitorProcessing` or `CanIncludeInClipboardHistory = 0`. Image captures store only a small thumbnail, not the original full bitmap.
 
@@ -144,7 +144,7 @@ Remove-Item "$env:LOCALAPPDATA\Winotch" -Recurse -Force
 
 ## Notification Access
 
-Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. If access is not granted or unavailable in the unpackaged dev build, Winotch still watches live Windows toast windows where possible and shows the OS state in the notification panel instead of pretending history access is available.
+Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. Current source builds treat notification history as optional and still watch live Windows toast windows where possible when history access is denied or unavailable. Winotch requests notification history access only when the user clicks Request access in Settings; passive status refreshes do not open the Windows permission prompt.
 
 Winotch respects the Windows notification state before showing its own compact notification toast. If Windows reports that notifications should be suppressed, including Do Not Disturb/quiet states, Winotch updates the notification list but does not pop a toast.
 
@@ -152,6 +152,6 @@ Winotch respects the Windows notification state before showing its own compact n
 
 - Camera: Winotch opens the default Windows camera only while the live mirror flyout is visible. It does not record, persist frames, or offer a camera picker.
 - Clipboard: clipboard history is in-memory only and clears when Winotch exits.
-- Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly when those are unavailable.
+- Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly to live-toast watching when those are unavailable.
 - Calendar: Winotch fetches only user-provided ICS URLs and caches conditional GET metadata locally.
-- Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`.
+- Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`; Winotch does not add telemetry or background network calls beyond user-provided calendar URLs.
