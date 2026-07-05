@@ -20,7 +20,7 @@ public static class ShellAnimator
         var from = target.GetValue(property) is double current && !double.IsNaN(current) ? current : value;
         var animation = new DoubleAnimation(from, value, MotionDuration)
         {
-            EasingFunction = CreateEasing(),
+            EasingFunction = ShellAnimationTiming.CreateEasing(),
             FillBehavior = FillBehavior.Stop
         };
         animation.Completed += (_, _) =>
@@ -55,7 +55,7 @@ public static class ShellAnimator
 
         var animation = new DoubleAnimation(from, 0, FadeDuration)
         {
-            EasingFunction = CreateEasing(),
+            EasingFunction = ShellAnimationTiming.CreateEasing(),
             FillBehavior = FillBehavior.Stop
         };
         animation.Completed += (_, _) =>
@@ -82,7 +82,7 @@ public static class ShellAnimator
         target.Visibility = Visibility.Visible;
         var animation = new DoubleAnimation(from, 1, FadeDuration)
         {
-            EasingFunction = CreateEasing(),
+            EasingFunction = ShellAnimationTiming.CreateEasing(),
             FillBehavior = FillBehavior.Stop
         };
         animation.Completed += (_, _) =>
@@ -109,8 +109,6 @@ public static class ShellAnimator
 
         return Math.Clamp(opacity, 0, 1);
     }
-
-    private static IEasingFunction CreateEasing() => new CubicEase { EasingMode = EasingMode.EaseOut };
 
     private static int NextOpacityAnimationGeneration(UIElement target)
     {

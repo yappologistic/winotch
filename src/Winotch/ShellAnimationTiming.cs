@@ -1,3 +1,5 @@
+using System.Windows.Media.Animation;
+
 namespace Winotch;
 
 public static class ShellAnimationTiming
@@ -14,9 +16,12 @@ public static class ShellAnimationTiming
     public static TimeSpan MotionDuration => TimeSpan.FromMilliseconds(MotionMilliseconds);
     public static TimeSpan FadeDuration => TimeSpan.FromMilliseconds(FadeMilliseconds);
     public static TimeSpan DetailRevealDelay => TimeSpan.FromMilliseconds(DetailRevealDelayMilliseconds);
+    public static TimeSpan DetailRevealCompletionDelay => MotionDuration - DetailRevealDelay;
     public static TimeSpan CollapseGuard => TimeSpan.FromMilliseconds(CollapseGuardMilliseconds);
     public static TimeSpan MediaToastDuration => TimeSpan.FromMilliseconds(MediaToastMilliseconds);
     public static TimeSpan ForegroundPollInterval => TimeSpan.FromMilliseconds(ForegroundPollMilliseconds);
     public static TimeSpan ChargingFillDuration => TimeSpan.FromMilliseconds(ChargingFillMilliseconds);
     public static TimeSpan ChargingTintSweepDuration => TimeSpan.FromMilliseconds(ChargingTintSweepMilliseconds);
+
+    public static IEasingFunction CreateEasing() => new CubicEase { EasingMode = EasingMode.EaseOut };
 }

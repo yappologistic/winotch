@@ -2,6 +2,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using System.Xml.Linq;
 using Windows.Storage;
@@ -1013,6 +1014,17 @@ public class StatusShellTests
     public void DetailRevealStartsDuringShellMotion()
     {
         Assert.InRange(ShellAnimationTiming.DetailRevealDelayMilliseconds, 1, ShellAnimationTiming.MotionMilliseconds - 1);
+        Assert.Equal(
+            ShellAnimationTiming.MotionDuration,
+            ShellAnimationTiming.DetailRevealDelay + ShellAnimationTiming.DetailRevealCompletionDelay);
+    }
+
+    [Fact]
+    public void ShellMotionEasingComesFromSharedTiming()
+    {
+        var easing = Assert.IsType<CubicEase>(ShellAnimationTiming.CreateEasing());
+
+        Assert.Equal(EasingMode.EaseOut, easing.EasingMode);
     }
 
     [Fact]

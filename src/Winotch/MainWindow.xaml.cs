@@ -846,7 +846,7 @@ public partial class MainWindow : Window
         ShellAnimator.Animate(DetailPanel, OpacityProperty, 1, _animationFrameRate);
         try
         {
-            await Task.Delay(ShellAnimationTiming.MotionDuration - ShellAnimationTiming.DetailRevealDelay, cancellationToken);
+            await Task.Delay(ShellAnimationTiming.DetailRevealCompletionDelay, cancellationToken);
         }
         catch (OperationCanceledException)
         {
