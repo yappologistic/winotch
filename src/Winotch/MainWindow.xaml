@@ -265,19 +265,19 @@
 
                         <Grid>
                             <StackPanel x:Name="ModeTabs" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                <Button x:Name="NowModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchHitTestFill}" BorderBrush="Transparent" BorderThickness="1" Padding="14,8" Margin="0,0,10,0" Click="TimerModeTab_Click">
+                                <Button x:Name="NowModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchHitTestFill}" BorderBrush="Transparent" BorderThickness="1" Padding="14,8" Margin="0,0,10,0" PreviewMouseLeftButtonDown="TimerModeTab_PreviewMouseLeftButtonDown" Click="TimerModeTab_Click">
                                     <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
                                         <TextBlock x:Name="NowModeIcon" Style="{StaticResource IconText}" Text="&#xE121;" Foreground="{StaticResource NotchMutedText}" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock x:Name="NowModeText" Text="Timer" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
                                     </StackPanel>
                                 </Button>
-                                <Button x:Name="ControlsModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" Padding="16,8" Margin="0,0,10,0" Click="ControlsModeTab_Click">
+                                <Button x:Name="ControlsModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" Padding="16,8" Margin="0,0,10,0" PreviewMouseLeftButtonDown="ControlsModeTab_PreviewMouseLeftButtonDown" Click="ControlsModeTab_Click">
                                     <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
                                         <TextBlock x:Name="ControlsModeIcon" Style="{StaticResource IconText}" Text="&#xE9E9;" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock x:Name="ControlsModeText" Text="Controls" FontSize="13" FontWeight="SemiBold" />
                                     </StackPanel>
                                 </Button>
-                                <Button x:Name="ActivityModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchHitTestFill}" BorderBrush="Transparent" BorderThickness="1" Padding="14,8" Click="ActivityModeTab_Click">
+                                <Button x:Name="ActivityModeTab" Style="{StaticResource ModeTabButton}" Background="{StaticResource NotchHitTestFill}" BorderBrush="Transparent" BorderThickness="1" Padding="14,8" PreviewMouseLeftButtonDown="ActivityModeTab_PreviewMouseLeftButtonDown" Click="ActivityModeTab_Click">
                                     <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
                                         <TextBlock x:Name="ActivityModeIcon" Style="{StaticResource IconText}" Text="&#xEA8F;" Foreground="{StaticResource NotchMutedText}" FontSize="14" Margin="0,0,8,0" />
                                         <TextBlock x:Name="ActivityModeText" Text="Activity" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />

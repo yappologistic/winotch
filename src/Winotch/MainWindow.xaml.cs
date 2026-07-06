@@ -1003,6 +1003,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        SetMouseTransparent(false);
         ClockGroup.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
         HeaderRow.Height = new GridLength(48);
         NotchShell.Padding = new Thickness(18, 8, 18, 12);
@@ -1167,12 +1168,28 @@ public partial class MainWindow : Window
         SelectExpandedPanelMode(ExpandedPanelMode.Timer);
     }
 
+    private void TimerModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        SelectExpandedPanelMode(ExpandedPanelMode.Timer);
+    }
+
     private void ControlsModeTab_Click(object sender, RoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
     }
 
+    private void ControlsModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        SelectExpandedPanelMode(ExpandedPanelMode.Controls);
+    }
+
     private void ActivityModeTab_Click(object sender, RoutedEventArgs e)
+    {
+        SelectExpandedPanelMode(ExpandedPanelMode.Activity);
+        NotificationList.Focus();
+    }
+
+    private void ActivityModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Activity);
         NotificationList.Focus();

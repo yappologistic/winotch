@@ -177,12 +177,21 @@ public class SettingsPolishTests
         Assert.Equal("TimerModeTab_Click", (string?)doc.Descendants(ui + "Button")
             .Single(element => (string?)element.Attribute(xamlName) == "NowModeTab")
             .Attribute("Click"));
+        Assert.Equal("TimerModeTab_PreviewMouseLeftButtonDown", (string?)doc.Descendants(ui + "Button")
+            .Single(element => (string?)element.Attribute(xamlName) == "NowModeTab")
+            .Attribute("PreviewMouseLeftButtonDown"));
         Assert.Equal("ControlsModeTab_Click", (string?)doc.Descendants(ui + "Button")
             .Single(element => (string?)element.Attribute(xamlName) == "ControlsModeTab")
             .Attribute("Click"));
+        Assert.Equal("ControlsModeTab_PreviewMouseLeftButtonDown", (string?)doc.Descendants(ui + "Button")
+            .Single(element => (string?)element.Attribute(xamlName) == "ControlsModeTab")
+            .Attribute("PreviewMouseLeftButtonDown"));
         Assert.Equal("ActivityModeTab_Click", (string?)doc.Descendants(ui + "Button")
             .Single(element => (string?)element.Attribute(xamlName) == "ActivityModeTab")
             .Attribute("Click"));
+        Assert.Equal("ActivityModeTab_PreviewMouseLeftButtonDown", (string?)doc.Descendants(ui + "Button")
+            .Single(element => (string?)element.Attribute(xamlName) == "ActivityModeTab")
+            .Attribute("PreviewMouseLeftButtonDown"));
         Assert.Equal("{StaticResource NotchBlack}", (string?)doc.Descendants(ui + "Border")
             .Single(element => (string?)element.Attribute(xamlName) == "ActivityStrip")
             .Attribute("Background"));
