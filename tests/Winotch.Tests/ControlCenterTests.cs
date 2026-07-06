@@ -77,6 +77,27 @@ public class ControlCenterTests
     }
 
     [Fact]
+    public void BrightnessSelectionKeepsWmiWhenItIsTheOnlyControlPath()
+    {
+        var builtIn = new BrightnessDisplay("wmi:panel", "Built-in display", 55, BrightnessDisplayKind.Internal);
+
+        var displays = BrightnessDisplaySelection.PreferControllableDisplays([builtIn]);
+
+        Assert.Equal([builtIn], displays);
+    }
+
+    [Fact]
+    public void BrightnessSelectionPrefersDdcWhenWmiDuplicatesDisplay()
+    {
+        var builtIn = new BrightnessDisplay("wmi:panel", "Built-in display", 55, BrightnessDisplayKind.Internal);
+        var ddc = new BrightnessDisplay("ddc:0", "Display", 55, BrightnessDisplayKind.External);
+
+        var displays = BrightnessDisplaySelection.PreferControllableDisplays([builtIn, ddc]);
+
+        Assert.Equal([ddc], displays);
+    }
+
+    [Fact]
     public async Task BrightnessWriterDebouncesRepeatedWritesPerDisplay()
     {
         var delays = new Queue<TaskCompletionSource>();

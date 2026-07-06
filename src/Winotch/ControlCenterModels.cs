@@ -40,6 +40,16 @@ public sealed record BrightnessDisplay(
     int Minimum = 0,
     int Maximum = 100);
 
+public static class BrightnessDisplaySelection
+{
+    public static IReadOnlyList<BrightnessDisplay> PreferControllableDisplays(IEnumerable<BrightnessDisplay> displays)
+    {
+        var list = displays.ToList();
+        var external = list.Where(display => display.Kind == BrightnessDisplayKind.External).ToList();
+        return external.Count > 0 ? external : list;
+    }
+}
+
 public static class BrightnessMath
 {
     public static int ToPercent(int minimum, int current, int maximum)

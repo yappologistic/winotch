@@ -8,7 +8,7 @@ public sealed class BrightnessService
             var displays = new List<BrightnessDisplay>();
             displays.AddRange(WmiBrightness.ReadDisplays());
             displays.AddRange(DdcBrightness.ReadDisplays());
-            return displays;
+            return BrightnessDisplaySelection.PreferControllableDisplays(displays);
         }, cancellationToken);
 
     public Task SetBrightnessAsync(BrightnessDisplay display, int percent, CancellationToken cancellationToken = default) =>
