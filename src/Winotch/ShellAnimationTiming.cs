@@ -4,9 +4,9 @@ namespace Winotch;
 
 public static class ShellAnimationTiming
 {
-    public const int MotionMilliseconds = 460;
-    public const int FadeMilliseconds = 210;
-    public const int DetailRevealDelayMilliseconds = 70;
+    public const int MotionMilliseconds = 360;
+    public const int FadeMilliseconds = 180;
+    public const int DetailRevealDelayMilliseconds = 55;
     public const int CollapseGuardMilliseconds = 650;
     public const int MediaToastMilliseconds = 3800;
     public const int ForegroundPollMilliseconds = 200;
@@ -23,5 +23,5 @@ public static class ShellAnimationTiming
     public static TimeSpan ChargingFillDuration => TimeSpan.FromMilliseconds(ChargingFillMilliseconds);
     public static TimeSpan ChargingTintSweepDuration => TimeSpan.FromMilliseconds(ChargingTintSweepMilliseconds);
 
-    public static IEasingFunction CreateEasing() => new CubicEase { EasingMode = EasingMode.EaseOut };
+    public static IEasingFunction CreateEasing() => new QuarticEase { EasingMode = EasingMode.EaseOut };
 }

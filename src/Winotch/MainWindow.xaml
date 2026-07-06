@@ -16,9 +16,7 @@
         ShowInTaskbar="False"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        Loaded="Window_Loaded"
-        MouseEnter="Window_MouseEnter"
-        MouseLeave="Window_MouseLeave">
+        Loaded="Window_Loaded">
     <Window.Resources>
         <SolidColorBrush x:Key="NotchHitTestFill" Color="#01000000" />
         <Style x:Key="ModeTabButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -50,7 +48,7 @@
             </Setter>
         </Style>
     </Window.Resources>
-    <Grid Background="Transparent">
+    <Grid>
         <Border x:Name="NotchShell"
                 Width="220"
                 Height="40"
@@ -59,7 +57,9 @@
                 Background="{StaticResource NotchBlack}"
                 CornerRadius="0,0,20,20"
                 Padding="10,4,10,6"
-                SnapsToDevicePixels="True">
+                SnapsToDevicePixels="True"
+                MouseEnter="Window_MouseEnter"
+                MouseLeave="Window_MouseLeave">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.16" Color="#000000" />
             </Border.Effect>

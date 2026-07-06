@@ -973,6 +973,80 @@ public class StatusShellTests
     }
 
     [Fact]
+    public void ShellAnimatorKeepsHostStableDuringShellMorph()
+    {
+        Exception? failure = null;
+        var thread = new Thread(() => failure = Record.Exception(() =>
+        {
+            var expanded = new ShellGeometry(
+                ShellMetrics.ExpandedWidth,
+                ShellMetrics.ExpandedShellHeight,
+                ShellMetrics.ExpandedWindowHeight,
+                540);
+            var mini = new ShellGeometry(
+                ShellMetrics.MiniWidth,
+                ShellMetrics.MiniShellHeight,
+                ShellMetrics.MiniWindowHeight,
+                838);
+            var shell = new Border
+            {
+                Width = expanded.Width,
+                Height = expanded.ShellHeight,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            var window = new Window
+            {
+                Width = expanded.Width,
+                Height = expanded.WindowHeight,
+                Left = expanded.Left,
+                Top = expanded.Top,
+                Content = shell,
+                Opacity = 0,
+                ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                WindowStyle = WindowStyle.None
+            };
+            window.Show();
+
+            try
+            {
+                ShellAnimator.AnimateShell(window, shell, mini, 60);
+
+                Assert.Equal(expanded.Left, window.Left);
+                Assert.Equal(expanded.Width, window.Width);
+                Assert.Equal(expanded.WindowHeight, window.Height);
+                Assert.False(window.HasAnimatedProperties);
+                Assert.True(shell.HasAnimatedProperties);
+                Assert.Equal(HorizontalAlignment.Left, shell.HorizontalAlignment);
+                Assert.Equal(VerticalAlignment.Top, shell.VerticalAlignment);
+
+                PumpUntil(
+                    () => !shell.HasAnimatedProperties,
+                    TimeSpan.FromMilliseconds(ShellAnimationTiming.MotionMilliseconds + 500));
+
+                Assert.Equal(expanded.Left, window.Left, precision: 0);
+                Assert.Equal(expanded.Width, window.Width, precision: 0);
+                Assert.Equal(expanded.WindowHeight, window.Height, precision: 0);
+                Assert.Equal(mini.Width, shell.Width);
+                Assert.Equal(mini.ShellHeight, shell.Height);
+                Assert.Equal(HorizontalAlignment.Left, shell.HorizontalAlignment);
+                Assert.Equal(new Thickness(mini.Left - expanded.Left, 0, 0, 0), shell.Margin);
+                Assert.False(shell.HasAnimatedProperties);
+            }
+            finally
+            {
+                window.Close();
+            }
+        }));
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        thread.Join();
+
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public void ShellAnimatorPreservesCurrentOpacityWhenFadeIsInterrupted()
     {
         Exception? failure = null;
@@ -1049,7 +1123,7 @@ public class StatusShellTests
     [Fact]
     public void ShellMotionEasingComesFromSharedTiming()
     {
-        var easing = Assert.IsType<CubicEase>(ShellAnimationTiming.CreateEasing());
+        var easing = Assert.IsType<QuarticEase>(ShellAnimationTiming.CreateEasing());
 
         Assert.Equal(EasingMode.EaseOut, easing.EasingMode);
     }

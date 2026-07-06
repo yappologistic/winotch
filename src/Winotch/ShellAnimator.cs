@@ -11,6 +11,12 @@ public static class ShellAnimator
             typeof(int),
             typeof(ShellAnimator),
             new PropertyMetadata(0));
+    private static readonly DependencyProperty ShellAnimationGenerationProperty =
+        DependencyProperty.RegisterAttached(
+            "ShellAnimationGeneration",
+            typeof(int),
+            typeof(ShellAnimator),
+            new PropertyMetadata(0));
 
     private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
     private static readonly Duration FadeDuration = new(ShellAnimationTiming.FadeDuration);
@@ -123,6 +129,87 @@ public static class ShellAnimator
 
     public static void AnimateShell(Window window, FrameworkElement shell, ShellGeometry geometry, int frameRate)
     {
+        var current = CurrentShellGeometry(window, shell);
+        if (ShouldAnimateWindowDirectly(current, geometry))
+        {
+            AnimateWindowShellDirectly(window, shell, current, geometry, frameRate);
+            return;
+        }
+
+        var generation = NextShellAnimationGeneration(window);
+        var hostLeft = Math.Min(Math.Min(current.Left, geometry.Left), window.Left);
+        var hostTop = Math.Min(Math.Min(current.Top, geometry.Top), window.Top);
+        var hostRight = Math.Max(
+            Math.Max(current.Left + current.Width, geometry.Left + geometry.Width),
+            window.Left + Current(window.Width, window.ActualWidth));
+        var hostBottom = Math.Max(
+            Math.Max(current.Top + current.WindowHeight, geometry.Top + geometry.WindowHeight),
+            window.Top + Current(window.Height, window.ActualHeight));
+        var host = new ShellGeometry(
+            hostRight - hostLeft,
+            hostBottom - hostTop,
+            hostBottom - hostTop,
+            hostLeft,
+            hostTop);
+        var fromMargin = new Thickness(current.Left - hostLeft, current.Top - hostTop, 0, 0);
+        var toMargin = new Thickness(geometry.Left - hostLeft, geometry.Top - hostTop, 0, 0);
+
+        StopShellAnimations(window, shell);
+        ApplyShellGeometry(window, shell, current, host);
+        window.UpdateLayout();
+
+        BeginShellAnimation(shell, FrameworkElement.WidthProperty, current.Width, geometry.Width, frameRate);
+        BeginShellAnimation(shell, FrameworkElement.HeightProperty, current.ShellHeight, geometry.ShellHeight, frameRate);
+        var marginAnimation = new ThicknessAnimation(fromMargin, toMargin, MotionDuration)
+        {
+            EasingFunction = ShellAnimationTiming.CreateEasing(),
+            FillBehavior = FillBehavior.HoldEnd
+        };
+        marginAnimation.Completed += (_, _) =>
+        {
+            if (!IsCurrentShellAnimation(window, generation))
+            {
+                return;
+            }
+
+            StopShellAnimations(window, shell);
+            ApplyShellGeometry(window, shell, geometry, host);
+        };
+        Timeline.SetDesiredFrameRate(marginAnimation, frameRate);
+        shell.BeginAnimation(FrameworkElement.MarginProperty, marginAnimation, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    public static void SetShellGeometry(
+        Window window,
+        FrameworkElement shell,
+        ShellGeometry shellGeometry,
+        ShellGeometry hostGeometry)
+    {
+        _ = NextShellAnimationGeneration(window);
+        StopShellAnimations(window, shell);
+        ApplyShellGeometry(window, shell, shellGeometry, hostGeometry);
+    }
+
+    public static void Clear(Window window, FrameworkElement shell, FrameworkElement detail)
+    {
+        var current = CurrentShellGeometry(window, shell);
+        var host = CurrentHostGeometry(window);
+        _ = NextShellAnimationGeneration(window);
+        StopShellAnimations(window, shell);
+        detail.BeginAnimation(UIElement.OpacityProperty, null);
+        ApplyShellGeometry(window, shell, current, host);
+    }
+
+    private static void AnimateWindowShellDirectly(
+        Window window,
+        FrameworkElement shell,
+        ShellGeometry current,
+        ShellGeometry geometry,
+        int frameRate)
+    {
+        _ = NextShellAnimationGeneration(window);
+        StopShellAnimations(window, shell);
+        ApplyShellGeometry(window, shell, current);
         Animate(window, Window.WidthProperty, geometry.Width, frameRate);
         Animate(window, Window.HeightProperty, geometry.WindowHeight, frameRate);
         Animate(window, Window.LeftProperty, geometry.Left, frameRate);
@@ -131,35 +218,104 @@ public static class ShellAnimator
         Animate(shell, FrameworkElement.HeightProperty, geometry.ShellHeight, frameRate);
     }
 
-    public static void Clear(Window window, FrameworkElement shell, FrameworkElement detail)
+    private static bool ShouldAnimateWindowDirectly(ShellGeometry current, ShellGeometry target) =>
+        Math.Abs(current.Left - target.Left) > Math.Max(current.Width, target.Width);
+
+    private static void BeginShellAnimation(
+        FrameworkElement shell,
+        DependencyProperty property,
+        double from,
+        double value,
+        int frameRate)
     {
-        var current = new ShellGeometry(
-            Current(window.Width, window.ActualWidth),
+        var animation = new DoubleAnimation(from, value, MotionDuration)
+        {
+            EasingFunction = ShellAnimationTiming.CreateEasing(),
+            FillBehavior = FillBehavior.HoldEnd
+        };
+        Timeline.SetDesiredFrameRate(animation, frameRate);
+        shell.BeginAnimation(property, animation, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    private static ShellGeometry CurrentShellGeometry(Window window, FrameworkElement shell)
+    {
+        var shellLeft = window.Left;
+        var shellTop = window.Top;
+        if (shell.HorizontalAlignment == System.Windows.HorizontalAlignment.Left)
+        {
+            shellLeft += shell.Margin.Left;
+        }
+
+        if (shell.VerticalAlignment == VerticalAlignment.Top)
+        {
+            shellTop += shell.Margin.Top;
+        }
+
+        return new ShellGeometry(
+            Current(shell.Width, shell.ActualWidth),
             Current(shell.Height, shell.ActualHeight),
+            Current(window.Height, window.ActualHeight),
+            shellLeft,
+            shellTop);
+    }
+
+    private static ShellGeometry CurrentHostGeometry(Window window) =>
+        new(
+            Current(window.Width, window.ActualWidth),
+            Current(window.Height, window.ActualHeight),
             Current(window.Height, window.ActualHeight),
             window.Left,
             window.Top);
+
+    private static void StopShellAnimations(Window window, FrameworkElement shell)
+    {
         window.BeginAnimation(Window.WidthProperty, null);
         window.BeginAnimation(Window.HeightProperty, null);
         window.BeginAnimation(Window.LeftProperty, null);
         window.BeginAnimation(Window.TopProperty, null);
         shell.BeginAnimation(FrameworkElement.WidthProperty, null);
         shell.BeginAnimation(FrameworkElement.HeightProperty, null);
-        detail.BeginAnimation(UIElement.OpacityProperty, null);
-        ApplyShellGeometry(window, shell, current);
+        shell.BeginAnimation(FrameworkElement.MarginProperty, null);
     }
 
     private static double Current(double propertyValue, double actualValue) =>
         actualValue > 0 ? actualValue : propertyValue;
 
+    private static int NextShellAnimationGeneration(Window window)
+    {
+        var current = (int)window.GetValue(ShellAnimationGenerationProperty);
+        var next = current == int.MaxValue ? 1 : current + 1;
+        window.SetValue(ShellAnimationGenerationProperty, next);
+        return next;
+    }
+
+    private static bool IsCurrentShellAnimation(Window window, int generation) =>
+        (int)window.GetValue(ShellAnimationGenerationProperty) == generation;
+
     private static void ApplyShellGeometry(Window window, FrameworkElement shell, ShellGeometry geometry)
     {
+        ApplyShellGeometry(window, shell, geometry, geometry);
+    }
+
+    private static void ApplyShellGeometry(
+        Window window,
+        FrameworkElement shell,
+        ShellGeometry shellGeometry,
+        ShellGeometry hostGeometry)
+    {
         window.Top = 0;
-        window.Width = geometry.Width;
-        window.Height = geometry.WindowHeight;
-        window.Left = geometry.Left;
-        window.Top = geometry.Top;
-        shell.Width = geometry.Width;
-        shell.Height = geometry.ShellHeight;
+        window.Width = hostGeometry.Width;
+        window.Height = hostGeometry.WindowHeight;
+        window.Left = hostGeometry.Left;
+        window.Top = hostGeometry.Top;
+        shell.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+        shell.VerticalAlignment = VerticalAlignment.Top;
+        shell.Margin = new Thickness(
+            shellGeometry.Left - hostGeometry.Left,
+            shellGeometry.Top - hostGeometry.Top,
+            0,
+            0);
+        shell.Width = shellGeometry.Width;
+        shell.Height = shellGeometry.ShellHeight;
     }
 }

@@ -1060,12 +1060,10 @@ public partial class MainWindow : Window
 
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
-        Width = geometry.Width;
-        Height = geometry.WindowHeight;
-        Left = geometry.Left;
-        Top = geometry.Top;
-        NotchShell.Width = geometry.Width;
-        NotchShell.Height = geometry.ShellHeight;
+        var hostGeometry = isFullBar
+            ? geometry
+            : ShellMetrics.PlaceOnMonitor(ShellMetrics.Expanded(monitor.WidthDip), monitor);
+        ShellAnimator.SetShellGeometry(this, NotchShell, geometry, hostGeometry);
         SetMouseTransparent(isFullBar && !_expanded);
     }
 
