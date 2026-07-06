@@ -129,236 +129,168 @@
 
                 <Grid x:Name="DetailPanel" Grid.Row="1" Opacity="0" Margin="0,12,0,0" ClipToBounds="True">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="260" />
-                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="244" />
+                        <ColumnDefinition Width="1" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Margin="0,0,24,0">
+                    <Grid x:Name="SystemRail" Margin="0,0,18,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
                         <TextBlock Text="System" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                        <TextBlock x:Name="LargeTimeText" FontSize="38" FontWeight="Light" Margin="0,8,0,0" />
-                        <TextBlock x:Name="LargeDateText" FontSize="14" Foreground="{StaticResource NotchMutedText}" />
-                        <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Margin="0,16,0,8" Maximum="100" />
-                        <TextBlock x:Name="BatteryDetailText" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
-                        <StackPanel x:Name="SystemStatsSection" Margin="0,16,0,0" Visibility="Collapsed" SnapsToDevicePixels="True">
-                            <TextBlock Text="Stats" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                            <Grid x:Name="StatsCpuRow" Height="24" Margin="0,8,0,0" Visibility="Collapsed">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="CPU" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
-                                <TextBlock x:Name="StatsCpuValueText" Grid.Column="1" FontSize="11" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
-                            </Grid>
-                            <Grid x:Name="StatsRamRow" Height="24" Margin="0,4,0,0" Visibility="Collapsed">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="RAM" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
-                                <TextBlock x:Name="StatsRamValueText" Grid.Column="1" FontSize="11" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
-                            </Grid>
-                            <Grid x:Name="StatsNetRow" Height="24" Margin="0,4,0,0" Visibility="Collapsed">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="48" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Net" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
-                                <TextBlock x:Name="StatsNetValueText" Grid.Column="1" FontSize="11" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
-                            </Grid>
+                        <StackPanel Grid.Row="1" Margin="0,12,0,0">
+                            <TextBlock x:Name="LargeTimeText" FontSize="34" FontWeight="Light" LineHeight="42" Typography.NumeralAlignment="Tabular" />
+                            <TextBlock x:Name="LargeDateText" FontSize="14" Foreground="{StaticResource NotchMutedText}" Margin="0,2,0,0" />
                         </StackPanel>
-                        <StackPanel x:Name="AgendaPanel" Margin="0,16,0,0">
-                            <TextBlock Text="Agenda" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                            <TextBlock x:Name="AgendaUpdatedText" FontSize="11" Foreground="{StaticResource NotchMutedText}" Margin="0,3,0,7" />
-                            <TextBlock x:Name="AgendaEmptyText"
-                                       Text="No meetings in the next 24h"
-                                       FontSize="12"
-                                       Foreground="{StaticResource NotchMutedText}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,0,0,2" />
-                            <ItemsControl x:Name="AgendaList">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type local:CalendarAgendaRow}">
-                                        <Grid Height="32" Margin="0,0,0,4">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="58" />
-                                                <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="{Binding TimeText}"
-                                                       FontSize="11"
-                                                       Foreground="{StaticResource NotchMutedText}"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding Title}"
-                                                       ToolTip="{Binding Title}"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis"
-                                                       Margin="6,0,8,0" />
-                                            <Button x:Name="AgendaJoinButton"
-                                                    Grid.Column="2"
-                                                    Padding="9,5"
-                                                    Tag="{Binding JoinUrl}"
-                                                    ToolTip="Join meeting"
-                                                    AutomationProperties.Name="Join meeting"
-                                                    Click="AgendaJoin_Click">
-                                                <TextBlock Text="Join" FontSize="11" />
-                                            </Button>
-                                        </Grid>
-                                        <DataTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding HasJoin}" Value="False">
-                                                <Setter TargetName="AgendaJoinButton" Property="Visibility" Value="Collapsed" />
-                                            </DataTrigger>
-                                        </DataTemplate.Triggers>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                        <StackPanel Grid.Row="2" Margin="0,22,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xEBA0;" FontSize="15" Margin="0,0,10,0" />
+                                <TextBlock x:Name="BatteryDetailText" FontSize="13" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Maximum="100" />
                         </StackPanel>
-                        <local:ClipboardHistoryPanel x:Name="ClipboardPanel" Margin="0,16,0,0" />
-                    </StackPanel>
+                        <StackPanel x:Name="SystemStatsSection" Grid.Row="3" Margin="0,22,0,0" Visibility="Collapsed" SnapsToDevicePixels="True">
+                            <TextBlock Text="Stats" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,8" />
+                            <Grid x:Name="StatsCpuRow" Height="28" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="CPU" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsCpuValueText" Grid.Column="1" FontSize="12" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                            </Grid>
+                            <Grid x:Name="StatsRamRow" Height="28" Margin="0,4,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="RAM" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsRamValueText" Grid.Column="1" FontSize="12" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                            </Grid>
+                            <Grid x:Name="StatsNetRow" Height="28" Margin="0,4,0,0" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="48" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Net" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatsNetValueText" Grid.Column="1" FontSize="12" TextAlignment="Right" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                            </Grid>
+                            <StackPanel x:Name="AgendaPanel" Margin="0,22,0,0">
+                                <TextBlock Text="Agenda" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                <TextBlock x:Name="AgendaUpdatedText" FontSize="11" Foreground="{StaticResource NotchMutedText}" Margin="0,3,0,7" />
+                                <TextBlock x:Name="AgendaEmptyText"
+                                           Text="No meetings in the next 24h"
+                                           FontSize="12"
+                                           Foreground="{StaticResource NotchMutedText}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,2" />
+                                <ItemsControl x:Name="AgendaList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type local:CalendarAgendaRow}">
+                                            <Grid Height="32" Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="58" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding TimeText}" FontSize="11" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Grid.Column="1" Text="{Binding Title}" ToolTip="{Binding Title}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0,8,0" />
+                                                <Button x:Name="AgendaJoinButton" Grid.Column="2" Padding="9,5" Tag="{Binding JoinUrl}" ToolTip="Join meeting" AutomationProperties.Name="Join meeting" Click="AgendaJoin_Click">
+                                                    <TextBlock Text="Join" FontSize="11" />
+                                                </Button>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding HasJoin}" Value="False">
+                                                    <Setter TargetName="AgendaJoinButton" Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <local:ClipboardHistoryPanel x:Name="ClipboardPanel" Margin="0,16,0,0" />
+                        </StackPanel>
+                        <Button x:Name="OpenSettingsButton" Grid.Row="4" HorizontalAlignment="Left" Padding="12,8" ToolTip="Settings" AutomationProperties.Name="Open Settings" Click="OpenSettings_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE713;" FontSize="14" Margin="0,0,8,0" />
+                                <TextBlock Text="Settings" FontSize="12" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
 
-                    <StackPanel Grid.Column="2" Margin="0,0,0,0" ClipToBounds="True">
-                        <Grid x:Name="MediaPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                    <Border Grid.Column="1" Background="{StaticResource NotchStroke}" Opacity="0.65" />
+
+                    <Grid x:Name="ExpandedWorkspace" Grid.Column="2" Margin="18,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="48" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="70" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <StackPanel x:Name="ModeTabs" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                <Border CornerRadius="18" Background="Transparent" Padding="14,8" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE121;" Foreground="{StaticResource NotchMutedText}" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="Now" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="ControlsModeTab" CornerRadius="18" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" Padding="16,8" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE9E9;" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="Controls" FontSize="13" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Border>
+                                <Border CornerRadius="18" Background="Transparent" Padding="14,8">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xEA8F;" Foreground="{StaticResource NotchMutedText}" FontSize="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="Activity" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                            <Button HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Style="{StaticResource MediaIconButton}"
+                                    Width="30"
+                                    Height="30"
+                                    Margin="0,1,0,0"
+                                    ToolTip="Camera mirror"
+                                    AutomationProperties.Name="Open camera mirror"
+                                    Click="CameraMirror_Click">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE722;" FontSize="13" />
+                            </Button>
+                        </Grid>
+
+                        <Grid Grid.Row="1" ClipToBounds="True">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="340" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Border Width="54" Height="54" CornerRadius="9" Background="{StaticResource NotchPanel}" ClipToBounds="True">
-                                <Grid>
-                                    <Image x:Name="MediaArtworkImage" Stretch="UniformToFill" Visibility="Collapsed" />
-                                    <TextBlock x:Name="MediaArtworkFallback"
-                                               Text="Audio"
-                                               FontSize="11"
-                                               FontWeight="SemiBold"
-                                               Foreground="{StaticResource NotchMutedText}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                            </Border>
-                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock x:Name="MediaTitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock x:Name="MediaArtistText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,7" />
-                                <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="MediaPreviousButton" Style="{StaticResource MediaIconButton}" ToolTip="Previous" AutomationProperties.Name="Previous track" Click="MediaPrevious_Click">
-                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE100;" FontSize="14" />
-                                    </Button>
-                                    <Button x:Name="MediaPlayPauseButton" Style="{StaticResource MediaIconButton}" ToolTip="Play or pause" AutomationProperties.Name="Play or pause media" Click="MediaPlayPause_Click">
-                                        <TextBlock x:Name="MediaPlayPauseIcon" Style="{StaticResource IconText}" Text="&#xE768;" FontSize="14" />
-                                    </Button>
-                                    <Button x:Name="MediaNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" AutomationProperties.Name="Next track" Click="MediaNext_Click">
-                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE101;" FontSize="14" />
-                                    </Button>
-                                </StackPanel>
-                            </StackPanel>
-                        </Grid>
-                        <TextBlock Text="Notifications" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                        <TextBlock x:Name="NotificationStateText" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,4,0,8" />
-                        <ListBox x:Name="NotificationList"
-                                  Height="118"
-                                 BorderThickness="0"
-                                 Background="Transparent"
-                                 Foreground="{StaticResource NotchText}"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                 ItemContainerStyle="{StaticResource NotchListBoxItem}">
-                            <ListBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type local:NotificationItem}">
-                                    <StackPanel MaxHeight="85" ClipToBounds="True">
-                                        <TextBlock Text="{Binding App}"
-                                                   FontSize="10"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource NotchMutedText}"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding Title}"
-                                                   FontSize="12"
-                                                   FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Margin="0,1,0,0" />
-                                        <TextBlock Text="{Binding Body}"
-                                                   FontSize="11"
-                                                   LineHeight="16"
-                                                   MaxHeight="48"
-                                                   ClipToBounds="True"
-                                                   TextWrapping="Wrap"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Margin="0,1,0,0" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
-                        <StackPanel Margin="0,16,0,0">
-                            <TextBlock Text="Focus" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                            <StackPanel x:Name="FocusSetupPanel" Margin="0,7,0,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Content="25/5" Padding="9,5" Margin="0,0,6,0" Click="FocusShortPreset_Click" />
-                                    <Button Content="50/10" Padding="9,5" Margin="0,0,8,0" Click="FocusLongPreset_Click" />
-                                    <TextBox x:Name="FocusCustomMinutesBox"
-                                             Width="48"
-                                             Height="28"
-                                             Padding="5,3"
-                                             Style="{StaticResource NotchTextBox}"
-                                             TextAlignment="Center"
-                                             ToolTip="Custom focus minutes"
-                                             Typography.NumeralAlignment="Tabular" />
-                                </StackPanel>
-                                <DockPanel Margin="0,8,0,0" LastChildFill="False">
-                                    <CheckBox x:Name="FocusAutoCycleCheckBox"
-                                              Content="Auto-cycle"
-                                              Foreground="{StaticResource NotchMutedText}"
-                                              FontFamily="Segoe UI Variable Text, Segoe UI"
-                                              FontSize="11"
-                                              VerticalAlignment="Center"
-                                              Margin="0,0,10,0" />
-                                    <Button Content="Start" Padding="12,5" Click="FocusStart_Click" />
-                                </DockPanel>
-                                <TextBlock x:Name="FocusValidationText" FontSize="11" Foreground="{StaticResource NotchDanger}" Visibility="Collapsed" Margin="0,5,0,0" />
-                            </StackPanel>
-                            <StackPanel x:Name="FocusRunningPanel" Visibility="Collapsed" Margin="0,7,0,0">
-                                <DockPanel LastChildFill="True">
-                                    <TextBlock x:Name="FocusPhaseText" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                                    <TextBlock x:Name="FocusRemainingText"
-                                               DockPanel.Dock="Right"
-                                               FontSize="22"
-                                               FontWeight="SemiBold"
-                                               TextAlignment="Right"
-                                               Typography.NumeralAlignment="Tabular" />
-                                </DockPanel>
-                                <ProgressBar x:Name="FocusProgressBar" Style="{StaticResource ModernProgressBar}" Height="4" Margin="0,6,0,8" Maximum="100" />
-                                <StackPanel Orientation="Horizontal">
-                                    <Button x:Name="FocusPauseResumeButton" Content="Pause" Padding="9,5" Margin="0,0,6,0" Click="FocusPauseResume_Click" />
-                                    <Button Content="Skip" Padding="9,5" Margin="0,0,6,0" Click="FocusSkip_Click" />
-                                    <Button Content="Stop" Padding="9,5" Click="FocusStop_Click" />
-                                </StackPanel>
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
 
-                    <ScrollViewer Grid.Column="1" Margin="0,0,24,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock Text="Controls" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" VerticalAlignment="Center" />
-                                <Button DockPanel.Dock="Right"
-                                        Style="{StaticResource MediaIconButton}"
-                                        Width="28"
-                                        Height="28"
-                                        Margin="0"
-                                        ToolTip="Camera mirror"
-                                        AutomationProperties.Name="Open camera mirror"
-                                        Click="CameraMirror_Click">
-                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE722;" FontSize="13" />
-                                </Button>
-                            </DockPanel>
-
-                            <Border x:Name="AudioControlsSection" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,8,0,12">
+                            <Border x:Name="AudioControlsSection" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="14" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="Audio" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                                    <ItemsControl x:Name="OutputDeviceList" Margin="0,8,0,8">
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="44" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="36" Height="36" CornerRadius="8" Background="{StaticResource NotchPanelRaised}">
+                                            <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                                            <TextBlock Text="Audio" FontSize="13" FontWeight="SemiBold" />
+                                            <TextBlock Text="Default output and live levels" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <ItemsControl x:Name="OutputDeviceList" Margin="0,0,0,8">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Button Padding="8,5" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" Click="OutputDevice_Click" ToolTip="{Binding Name}">
+                                                <Button Padding="8,6" Margin="0,0,0,5" HorizontalContentAlignment="Stretch" Click="OutputDevice_Click" ToolTip="{Binding Name}">
                                                     <Grid HorizontalAlignment="Stretch">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="20" />
@@ -385,10 +317,10 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
 
-                                    <Grid Margin="0,0,0,8">
+                                    <Grid Margin="0,2,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="24" />
-                                            <ColumnDefinition Width="54" />
+                                            <ColumnDefinition Width="70" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" />
@@ -396,10 +328,42 @@
                                         <Slider x:Name="VolumeSlider" Grid.Column="2" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="100" ValueChanged="VolumeSlider_ValueChanged" />
                                     </Grid>
 
-                                    <StackPanel x:Name="AudioSessionMixerSection" Margin="0,0,0,8">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="24" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="MicRowGlyph" Style="{StaticResource IconText}" Text="&#xE720;" />
+                                        <TextBlock x:Name="MicRowStateText" Grid.Column="1" FontSize="12" VerticalAlignment="Center" />
+                                        <Button x:Name="MicMuteButton" Grid.Column="2" Padding="10,5" Click="MicMute_Click">
+                                            <TextBlock x:Name="MicMuteButtonText" FontSize="11" />
+                                        </Button>
+                                    </Grid>
+
+                                    <Border x:Name="BrightnessBlock" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,10" Visibility="Collapsed">
+                                        <ItemsControl x:Name="BrightnessList" Margin="10,6,10,2">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Height="31" Margin="0,0,0,5" ToolTip="{Binding Name}">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="32" />
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE706;" FontSize="13" />
+                                                        <Slider Grid.Column="1" Style="{StaticResource ModernSlider}" AutomationProperties.Name="{Binding Name}" Minimum="0" Maximum="100" Value="{Binding Percent}" ValueChanged="BrightnessSlider_ValueChanged" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+
+                                    <Expander Header="More" IsExpanded="False">
+                                        <StackPanel>
+                                            <StackPanel x:Name="AudioSessionMixerSection" Margin="0,0,0,10">
                                         <TextBlock Text="Apps" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
                                         <TextBlock x:Name="NoAudioSessionsText" Text="No active audio sessions" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,5,0,6" />
-                                        <ScrollViewer x:Name="AudioSessionScroll" Height="132" Margin="0,4,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                <ScrollViewer x:Name="AudioSessionScroll" Height="86" Margin="0,4,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                             <ItemsControl x:Name="AudioSessionList">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
@@ -448,43 +412,8 @@
                                         </ScrollViewer>
                                     </StackPanel>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="24" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock x:Name="MicRowGlyph" Style="{StaticResource IconText}" Text="&#xE720;" />
-                                        <TextBlock x:Name="MicRowStateText" Grid.Column="1" FontSize="12" VerticalAlignment="Center" />
-                                        <Button x:Name="MicMuteButton" Grid.Column="2" Padding="9,5" Click="MicMute_Click">
-                                            <TextBlock x:Name="MicMuteButtonText" FontSize="11" />
-                                        </Button>
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
-
-                            <Border x:Name="BrightnessBlock" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12" Visibility="Collapsed">
-                                <StackPanel>
-                                    <TextBlock Text="Brightness" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
-                                    <ItemsControl x:Name="BrightnessList" Margin="0,5,0,0">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Height="31" Margin="0,0,0,5" ToolTip="{Binding Name}">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="32" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE706;" FontSize="13" />
-                                                    <Slider Grid.Column="1" Style="{StaticResource ModernSlider}" AutomationProperties.Name="{Binding Name}" Minimum="0" Maximum="100" Value="{Binding Percent}" ValueChanged="BrightnessSlider_ValueChanged" />
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </StackPanel>
-                            </Border>
-
-                            <Border x:Name="WifiControlsSection" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12">
-                                <StackPanel>
+                                            <Border x:Name="WifiControlsSection" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                                <StackPanel>
                                     <TextBlock Text="Wi-Fi" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
                                     <TextBlock x:Name="WifiStateText" FontSize="12" Foreground="{StaticResource NotchText}" Margin="0,5,0,6" TextWrapping="Wrap" />
                                     <ListBox x:Name="WifiList"
@@ -499,7 +428,126 @@
                                 </StackPanel>
                             </Border>
                         </StackPanel>
-                    </ScrollViewer>
+                                    </Expander>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Grid.Column="1">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="Now" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,8" />
+                                        <Grid x:Name="MediaPanel" Visibility="Collapsed">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Width="54" Height="54" CornerRadius="9" Background="{StaticResource NotchPanelRaised}" ClipToBounds="True">
+                                                <Grid>
+                                                    <Image x:Name="MediaArtworkImage" Stretch="UniformToFill" Visibility="Collapsed" />
+                                                    <TextBlock x:Name="MediaArtworkFallback" Text="Audio" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock x:Name="MediaTitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock x:Name="MediaArtistText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" Margin="0,1,0,7" />
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Button x:Name="MediaPreviousButton" Style="{StaticResource MediaIconButton}" ToolTip="Previous" AutomationProperties.Name="Previous track" Click="MediaPrevious_Click">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE100;" FontSize="14" />
+                                                    </Button>
+                                                    <Button x:Name="MediaPlayPauseButton" Style="{StaticResource MediaIconButton}" ToolTip="Play or pause" AutomationProperties.Name="Play or pause media" Click="MediaPlayPause_Click">
+                                                        <TextBlock x:Name="MediaPlayPauseIcon" Style="{StaticResource IconText}" Text="&#xE768;" FontSize="14" />
+                                                    </Button>
+                                                    <Button x:Name="MediaNextButton" Style="{StaticResource MediaIconButton}" ToolTip="Next" AutomationProperties.Name="Next track" Click="MediaNext_Click">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE101;" FontSize="14" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Row="1" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                    <StackPanel ClipToBounds="True">
+                                        <TextBlock Text="Activity" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                        <ListBox x:Name="NotificationList"
+                                                 Height="92"
+                                                 Margin="0,8,0,12"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 Foreground="{StaticResource NotchText}"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                 ItemContainerStyle="{StaticResource NotchListBoxItem}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type local:NotificationItem}">
+                                                    <StackPanel MaxHeight="85" ClipToBounds="True">
+                                                        <TextBlock Text="{Binding App}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                                        <TextBlock Text="{Binding Body}" FontSize="11" LineHeight="16" MaxHeight="48" ClipToBounds="True" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Margin="0,1,0,0" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <TextBlock Text="Focus" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                        <StackPanel x:Name="FocusSetupPanel" Margin="0,7,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="25/5" Padding="9,5" Margin="0,0,6,0" Click="FocusShortPreset_Click" />
+                                                <Button Content="50/10" Padding="9,5" Margin="0,0,8,0" Click="FocusLongPreset_Click" />
+                                                <TextBox x:Name="FocusCustomMinutesBox" Width="48" Height="28" Padding="5,3" Style="{StaticResource NotchTextBox}" TextAlignment="Center" ToolTip="Custom focus minutes" Typography.NumeralAlignment="Tabular" />
+                                            </StackPanel>
+                                            <DockPanel Margin="0,8,0,0" LastChildFill="False">
+                                                <CheckBox x:Name="FocusAutoCycleCheckBox" Content="Auto-cycle" Foreground="{StaticResource NotchMutedText}" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                                <Button Content="Start" Padding="12,5" Click="FocusStart_Click" />
+                                            </DockPanel>
+                                            <TextBlock x:Name="FocusValidationText" FontSize="11" Foreground="{StaticResource NotchDanger}" Visibility="Collapsed" Margin="0,5,0,0" />
+                                        </StackPanel>
+                                        <StackPanel x:Name="FocusRunningPanel" Visibility="Collapsed" Margin="0,7,0,0">
+                                            <DockPanel LastChildFill="True">
+                                                <TextBlock x:Name="FocusPhaseText" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                                <TextBlock x:Name="FocusRemainingText" DockPanel.Dock="Right" FontSize="22" FontWeight="SemiBold" TextAlignment="Right" Typography.NumeralAlignment="Tabular" />
+                                            </DockPanel>
+                                            <ProgressBar x:Name="FocusProgressBar" Style="{StaticResource ModernProgressBar}" Height="4" Margin="0,6,0,8" Maximum="100" />
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button x:Name="FocusPauseResumeButton" Content="Pause" Padding="9,5" Margin="0,0,6,0" Click="FocusPauseResume_Click" />
+                                                <Button Content="Skip" Padding="9,5" Margin="0,0,6,0" Click="FocusSkip_Click" />
+                                                <Button Content="Stop" Padding="9,5" Click="FocusStop_Click" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </Grid>
+
+                        <Border x:Name="ActivityStrip" Grid.Row="2" Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,14,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource NotchPanelRaised}" Margin="0,0,10,0">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEA8F;" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Notifications" FontSize="13" FontWeight="SemiBold" />
+                                    <TextBlock x:Name="NotificationStateText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Padding="12,7" Margin="12,0,8,0" AutomationProperties.Name="View notifications" Click="ViewNotifications_Click">
+                                    <TextBlock Text="View" FontSize="12" FontWeight="SemiBold" />
+                                </Button>
+                                <Button x:Name="CopyDiagnosticsButton" Grid.Column="3" Padding="12,7" ToolTip="Copy diagnostics" AutomationProperties.Name="Copy diagnostics" Click="CopyDiagnostics_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8C8;" FontSize="13" Margin="0,0,8,0" />
+                                        <TextBlock Text="Copy diagnostics" FontSize="12" FontWeight="SemiBold" />
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Grid>
 
                 <Grid x:Name="MediaToastPanel" Grid.RowSpan="2" Visibility="Collapsed" Opacity="0" VerticalAlignment="Center">

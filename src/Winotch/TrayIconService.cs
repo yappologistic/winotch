@@ -73,7 +73,7 @@ public sealed class TrayIconService : IDisposable
         return menu;
     }
 
-    private void OpenSettings()
+    public void OpenSettings()
     {
         if (_settingsWindow is null)
         {

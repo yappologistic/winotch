@@ -125,7 +125,7 @@ public class MonitorTargetingTests
 
         var placed = ShellMetrics.PlaceOnMonitor(geometryFromWiderScreen, monitor);
 
-        Assert.Equal(385, placed.Left);
+        Assert.Equal(525, placed.Left);
         Assert.True(placed.Left + placed.Width <= monitor.LeftDip + monitor.WidthDip);
     }
 
@@ -142,8 +142,8 @@ public class MonitorTargetingTests
 
         var placed = ShellMetrics.PlaceOnMonitor(ShellMetrics.Expanded(monitor.WidthDip), monitor);
 
-        Assert.Equal(241.6, placed.Left, precision: 1);
-        Assert.Equal(1221.6, placed.Left + placed.Width, precision: 1);
+        Assert.Equal(311.6, placed.Left, precision: 1);
+        Assert.Equal(1151.6, placed.Left + placed.Width, precision: 1);
         Assert.True(placed.Left + placed.Width <= monitor.LeftDip + monitor.WidthDip);
     }
 

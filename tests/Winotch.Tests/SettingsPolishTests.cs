@@ -127,12 +127,20 @@ public class SettingsPolishTests
         var wifiSection = doc.Descendants(ui + "Border")
             .Single(element => (string?)element.Attribute(xamlName) == "WifiControlsSection");
 
-        Assert.Equal("12", (string?)audioSection.Attribute("Padding"));
+        Assert.Equal("14", (string?)audioSection.Attribute("Padding"));
         Assert.Equal("8", (string?)audioSection.Attribute("CornerRadius"));
         Assert.Contains(audioSection.Descendants(), element => (string?)element.Attribute(xamlName) == "OutputDeviceList");
         Assert.Contains(audioSection.Descendants(), element => (string?)element.Attribute(xamlName) == "VolumeSlider");
         Assert.Contains(audioSection.Descendants(), element => (string?)element.Attribute(xamlName) == "AudioSessionMixerSection");
         Assert.Contains(audioSection.Descendants(), element => (string?)element.Attribute(xamlName) == "MicMuteButton");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "SystemRail");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ModeTabs");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ControlsModeTab");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ActivityStrip");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "OpenSettingsButton");
+        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "CopyDiagnosticsButton");
+        Assert.Contains(audioSection.Descendants(ui + "Expander"), expander =>
+            (string?)expander.Attribute("Header") == "More");
         Assert.Contains(audioSection.Descendants(ui + "Button"), button =>
             (string?)button.Attribute("Click") == "OutputDevice_Click" &&
             (string?)button.Attribute("HorizontalContentAlignment") == "Stretch");

@@ -1137,6 +1137,21 @@ public partial class MainWindow : Window
         VolumeText.Text = $"{e.NewValue:0}%";
     }
 
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        _trayIcon.OpenSettings();
+    }
+
+    private void ViewNotifications_Click(object sender, RoutedEventArgs e)
+    {
+        NotificationList.Focus();
+    }
+
+    private async void CopyDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        System.Windows.Clipboard.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+    }
+
     private void FocusShortPreset_Click(object sender, RoutedEventArgs e)
     {
         _selectedFocusSettings = FocusTimerSettings.ShortPreset;

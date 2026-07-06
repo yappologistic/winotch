@@ -17,7 +17,7 @@ public static class ShellMetrics
     public const double MediaToastWidth = 520;
     public const double MediaToastShellHeight = 68;
     public const double MediaToastWindowHeight = 76;
-    public const double ExpandedWidth = 980;
+    public const double ExpandedWidth = 840;
     public const double ExpandedShellHeight = 480;
     public const double ExpandedWindowHeight = 540;
 
