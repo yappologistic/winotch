@@ -107,6 +107,8 @@ Clipboard history stays in memory while the app is running, capped to the latest
 
 The listener skips clipboard updates marked with Windows privacy exclusion formats such as `ExcludeClipboardContentFromMonitorProcessing` or `CanIncludeInClipboardHistory = 0`. Image captures store only a small thumbnail, not the original full bitmap.
 
+Diagnostics export copies a local device and settings summary to the Windows clipboard from Settings. It includes OS/runtime, monitor geometry/DPI, battery, notification access, startup state, and feature toggles, but omits clipboard contents, notification text, calendar URLs, Wi-Fi names, camera frames, audio device names, and raw user-profile paths.
+
 ## Camera Mirror
 
 The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed frame reading and renders frames into WPF as an in-memory preview. If Windows reports no camera, access denial, or exclusive-use failure, the flyout shows a quiet inline message instead of retrying. Opening the mirror suppresses Winotch's own camera-in-use priority alert while the preview is active.

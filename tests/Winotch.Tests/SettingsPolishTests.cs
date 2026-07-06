@@ -29,8 +29,10 @@ public class SettingsPolishTests
         Assert.Contains("AutomationProperties.Name=\"Toast duration scale\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"ICS subscription URLs\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Request notification access\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"Copy diagnostics\"", xaml);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", xaml);
         Assert.Contains("Click=\"RequestNotificationAccessClick\"", xaml);
+        Assert.Contains("Click=\"CopyDiagnosticsClick\"", xaml);
         Assert.Contains("Icon=\"Resources/WinotchTray.ico\"", xaml);
         Assert.DoesNotContain("DropShadowEffect", xaml);
     }
@@ -55,6 +57,7 @@ public class SettingsPolishTests
 
         Assert.Contains("Foreground detection currently keeps the shell in Mini for every foreground app state", readme);
         Assert.Contains("Winotch requests notification history access only when the user clicks Request access in Settings", readme);
+        Assert.Contains("Diagnostics export copies a local device and settings summary", readme);
         Assert.Contains("Clipboard history stays in memory", readme);
         Assert.Contains("`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state", architecture);
         Assert.Contains("Settings owns the explicit Request access button", architecture);

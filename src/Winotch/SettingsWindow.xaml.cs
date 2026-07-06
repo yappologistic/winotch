@@ -179,6 +179,26 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private async void CopyDiagnosticsClick(object sender, RoutedEventArgs e)
+    {
+        CopyDiagnosticsButton.IsEnabled = false;
+        DiagnosticsStatusText.Text = "Preparing diagnostics...";
+        DiagnosticsStatusText.Visibility = Visibility.Visible;
+        try
+        {
+            System.Windows.Clipboard.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+            DiagnosticsStatusText.Text = "Diagnostics copied. Review before sharing.";
+        }
+        catch
+        {
+            DiagnosticsStatusText.Text = "Diagnostics copy failed.";
+        }
+        finally
+        {
+            CopyDiagnosticsButton.IsEnabled = true;
+        }
+    }
+
     private void StartWithWindowsChanged(object sender, RoutedEventArgs e)
     {
         if (_syncing)
