@@ -378,6 +378,63 @@
                 </StackPanel>
             </Border>
 
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <TextBlock Text="Command Bar" Style="{StaticResource SettingsSectionHeader}" />
+                    <CheckBox x:Name="CommandBarEnabledToggle"
+                              Content="Global command bar"
+                              Style="{StaticResource ToggleSwitch}"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <TextBlock Text="Hotkey"
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               Margin="0,16,0,7" />
+                    <TextBox x:Name="CommandBarHotkeyTextBox"
+                             Style="{StaticResource NotchTextBox}"
+                             Background="{StaticResource NotchBlack}"
+                             FontSize="13"
+                             Padding="9,7"
+                             AutomationProperties.Name="Command bar hotkey"
+                             TextChanged="CommandBarSettingChanged" />
+                    <CheckBox x:Name="CommandBarAppsToggle"
+                              Content="App launcher"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,14,0,0"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <CheckBox x:Name="CommandBarWindowsToggle"
+                              Content="Window switcher"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <CheckBox x:Name="CommandBarCalculatorToggle"
+                              Content="Calculator"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <CheckBox x:Name="CommandBarUnitsToggle"
+                              Content="Unit converter"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <CheckBox x:Name="CommandBarQuickCommandsToggle"
+                              Content="Quick commands"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="CommandBarSettingChanged"
+                              Unchecked="CommandBarSettingChanged" />
+                    <TextBlock Text="All command providers are local. Currency conversion and web lookup are not included."
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,10,0,0" />
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource SettingsCard}"
                     Margin="0">
                 <StackPanel>

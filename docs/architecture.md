@@ -58,6 +58,7 @@ flowchart LR
     Compact --> CalendarLive["Meeting Countdown"]
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
+    Shell --> CommandBar["Command Bar"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Control Center"]
     Expanded --> Clipboard["Clipboard History"]
@@ -91,8 +92,15 @@ Animation timings live in `ShellAnimationTiming`:
 - `Mini`: tiny centered pill used for every foreground app state today.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
+- `Command`: hotkey-driven centered command surface with one input row and a compact results list.
 
 `ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+
+## Command Bar
+
+The command bar is a shell mode, not a separate flyout window. `MainWindow.CommandBar` registers the configurable global hotkey on the notch HWND, opens `ShellMode.Command`, animates through `ShellMetrics.Command`, and blocks hover expansion, foreground polling, and compact toasts while the input owns focus. `Esc` collapses back to the normal foreground-driven shell mode.
+
+`CommandBarService` fans queries out to enabled providers and ranks their local results by fuzzy score plus provider priority. Providers live under `CommandBar/`: Start Menu shortcut launch through `.lnk` COM parsing and `ShellExecuteEx`, visible top-level window switching through Win32 enumeration and `SetForegroundWindow`, a custom tokenizer/shunting-yard calculator, local unit conversion, and quick commands backed by existing Winotch services/state. The feature adds no network calls; currency conversion is out of scope.
 
 ## Multi-Monitor Targeting
 

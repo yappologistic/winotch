@@ -22,6 +22,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - System stats: expanded-only CPU, RAM, and network text values.
 - Camera mirror: live default-camera flyout below the notch with mirror toggle and no recording or saved frames.
 - Calendar/agenda: ICS subscriptions, next-24-hour agenda, countdown chip, meeting reminder toast, and Join actions.
+- Command bar: `Ctrl+Alt+Space` morphs the notch into a centered command row for app launch, window switching, calculator, local unit conversion, and quick Winotch actions.
 - Multi-monitor: follows the foreground app monitor, cursor monitor for shell/desktop focus, and can be pinned back to the primary monitor from Settings.
 
 ## Stack
@@ -81,6 +82,12 @@ On multi-monitor setups, the notch follows the monitor containing the foreground
 
 The Calendar settings group accepts one or more `webcal://`, `https://`, or `http://` ICS URLs, refreshes them every five minutes, and adds the next three 24-hour agenda items plus Join buttons for Zoom, Teams, and Google Meet links.
 
+## Command Bar
+
+Press `Ctrl+Alt+Space` to morph the notch into a command input row and local results list. `Esc` collapses it; Up/Down move selection; Enter runs the selected result. Settings can change the hotkey and enable or disable the app launcher, window switcher, calculator, unit converter, and quick-command providers.
+
+The command bar is local-only. It scans Start Menu shortcuts, enumerates visible top-level windows, evaluates math with a custom safe parser, converts local units, and runs existing Winotch actions such as mute, Wi-Fi adapter requests, focus timer start/stop, and pause/resume. Currency conversion and web lookup are intentionally not included.
+
 The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
 
 Charger-connect priority toasts add a compact green battery-fill flourish with a prominent percent readout. Charger disconnect keeps the existing quieter status toast.
@@ -97,7 +104,7 @@ Run the full regression suite before sharing a build:
 dotnet test
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats sampling/rate math/formatting, camera mirror lifecycle/layout/suppression behavior, settings persistence/startup helpers, shell mode sizing heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats sampling/rate math/formatting, camera mirror lifecycle/layout/suppression behavior, command-bar scoring/calculator/unit/hotkey logic, settings persistence/startup helpers, shell mode sizing heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 Charging flourish tests cover reusable fill-width math, animation parameter derivation, charger-alert mapping, full and low-percent edge cases, and existing low-battery queue ordering.
 

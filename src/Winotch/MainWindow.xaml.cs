@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using Winotch.CommandBar;
 using Microsoft.Win32;
 
 namespace Winotch;
@@ -76,6 +77,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeCommandBar();
         _brightnessWriter = new DebouncedBrightnessWriter(TimeSpan.FromMilliseconds(150), _brightness.SetBrightnessAsync);
         _trayIcon = new TrayIconService(this, _settings, _startup, _notifications);
         _settings.Changed += Settings_Changed;
@@ -115,6 +117,7 @@ public partial class MainWindow : Window
         _statusTimer.Start();
         _shellTimer.Start();
         RefreshClipboardPanel();
+        RegisterCommandBarHotkey();
         await ApplyAccountPictureAsync();
         await RefreshCalendarAsync();
         await RefreshStatusAsync();
@@ -651,7 +654,7 @@ public partial class MainWindow : Window
 
     private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (_compactToastVisible || DateTime.UtcNow < _ignoreHoverUntilUtc)
+        if (_commandBarVisible || _compactToastVisible || DateTime.UtcNow < _ignoreHoverUntilUtc)
         {
             return;
         }
@@ -662,6 +665,11 @@ public partial class MainWindow : Window
 
     private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
+        if (_commandBarVisible)
+        {
+            return;
+        }
+
         _collapseTimer.Stop();
         _collapseTimer.Start();
     }
@@ -899,7 +907,7 @@ public partial class MainWindow : Window
 
     private void ShowCompactToast(FrameworkElement panel)
     {
-        if (_expanded)
+        if (_expanded || _commandBarVisible)
         {
             return;
         }
@@ -1021,7 +1029,7 @@ public partial class MainWindow : Window
 
     private void ApplyShellMode(ShellMode mode, bool animate = true)
     {
-        if (_expanded || _compactToastVisible)
+        if (_expanded || _compactToastVisible || (_commandBarVisible && mode != ShellMode.Command))
         {
             return;
         }
@@ -1083,6 +1091,11 @@ public partial class MainWindow : Window
 
     private void ApplyForegroundState(ForegroundWindowSnapshot foreground, bool animate, bool force = false)
     {
+        if (_commandBarVisible)
+        {
+            return;
+        }
+
         var monitors = MonitorTargeting.CaptureScreens();
         if (monitors.Count == 0)
         {
@@ -1454,6 +1467,7 @@ public partial class MainWindow : Window
             UpdateClock();
             ApplyCalendarSettings(settings);
             ApplyFeatureSettings(settings);
+            ApplyCommandBarSettings(settings);
             if (!_expanded || !settings.General.ShowDate)
             {
                 ShellAnimator.Hide(DateText);
@@ -1511,6 +1525,7 @@ public partial class MainWindow : Window
         _clipboardHistory.Dispose();
         _calendarTimer.Stop();
         _calendarRefresh.Dispose();
+        DisposeCommandBar();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
         base.OnClosed(e);
