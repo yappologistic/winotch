@@ -64,6 +64,17 @@ public partial class SettingsWindow : Window
         QrStudioEnabledToggle.IsChecked = settings.Droplets.QrStudioEnabled;
         TextScrubberEnabledToggle.IsChecked = settings.Droplets.TextScrubberEnabled;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
+        CommandBarEnabledToggle.IsChecked = settings.CommandBar.Enabled;
+        if (!StringComparer.Ordinal.Equals(CommandBarHotkeyTextBox.Text, settings.CommandBar.Hotkey))
+        {
+            CommandBarHotkeyTextBox.Text = settings.CommandBar.Hotkey;
+        }
+
+        CommandBarAppsToggle.IsChecked = settings.CommandBar.AppLauncherEnabled;
+        CommandBarWindowsToggle.IsChecked = settings.CommandBar.WindowSwitcherEnabled;
+        CommandBarCalculatorToggle.IsChecked = settings.CommandBar.CalculatorEnabled;
+        CommandBarUnitsToggle.IsChecked = settings.CommandBar.UnitConverterEnabled;
+        CommandBarQuickCommandsToggle.IsChecked = settings.CommandBar.QuickCommandsEnabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
         {

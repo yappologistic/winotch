@@ -63,6 +63,7 @@ flowchart LR
     Shell --> LiveStrip["Live Activity Strip"]
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
+    Shell --> CommandBar["Command Bar"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Control Center"]
     Expanded --> Clipboard["Clipboard History"]
@@ -99,6 +100,7 @@ Animation timings live in `ShellAnimationTiming`:
 - `Live`: a centered slim strip that auto-grows from Mini for one ongoing activity without opening the expanded panel.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
+- `Command`: hotkey-driven centered command surface with one input row and a compact results list.
 
 `ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. `MainWindow.LiveActivities` can lift that Mini result to `Live` while an activity is active, then falls back to the foreground mode when the activity ends. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
 
@@ -111,6 +113,12 @@ The transient quick timer is separate from the persisted focus timer. It stores 
 The now-playing strip reuses `MediaService` and `MediaSnapshot` artwork/title/playback state. If Windows exposes timeline data, the strip progress bar uses it as a scrubber; otherwise it stays at zero while still showing the playing track.
 
 Call detection is gated by `LiveActivitySettings.CallDetectionEnabled` and is off by default. `LiveCallDetector` reads local process names and window titles through an injectable seam so tests can pass fake windows; no titles are persisted, logged, or sent over the network.
+
+## Command Bar
+
+The command bar is a shell mode, not a separate flyout window. `MainWindow.CommandBar` registers the configurable global hotkey on the notch HWND, opens `ShellMode.Command`, animates through `ShellMetrics.Command`, and blocks hover expansion, foreground polling, and compact toasts while the input owns focus. `Esc` collapses back to the normal foreground-driven shell mode.
+
+`CommandBarService` fans queries out to enabled providers and ranks their local results by fuzzy score plus provider priority. Providers live under `CommandBar/`: Start Menu shortcut launch through `.lnk` COM parsing and `ShellExecuteEx`, visible top-level window switching through Win32 enumeration and `SetForegroundWindow`, a custom tokenizer/shunting-yard calculator, local unit conversion, and quick commands backed by existing Winotch services/state. The feature adds no network calls; currency conversion is out of scope.
 
 ## Multi-Monitor Targeting
 

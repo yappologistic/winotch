@@ -19,6 +19,9 @@ public sealed record CommandBarSettings
     // Map phrases to existing Winotch services (mute, wi-fi, focus, pause notch, etc.).
     public bool QuickCommandsEnabled { get; init; } = true;
 
-    public CommandBarSettings Normalize() =>
-        string.IsNullOrWhiteSpace(Hotkey) ? this with { Hotkey = "Ctrl+Alt+Space" } : this;
+    public CommandBarSettings Normalize()
+    {
+        var hotkey = string.IsNullOrWhiteSpace(Hotkey) ? "Ctrl+Alt+Space" : Hotkey.Trim();
+        return this with { Hotkey = hotkey };
+    }
 }

@@ -100,6 +100,17 @@ public sealed class WifiService
             : $"Windows needs a saved profile for {profileName}.";
     }
 
+    public async Task<string> SetRadioEnabledAsync(bool enabled)
+    {
+        var verb = enabled ? "Enable-NetAdapter" : "Disable-NetAdapter";
+        var output = await _runPowerShellAsync(
+            "Get-NetAdapter | Where-Object { $_.Name -like '*Wi-Fi*' -or $_.InterfaceDescription -match 'Wireless|Wi-Fi|802.11' } | " +
+            $"{verb} -Confirm:$false");
+        return string.IsNullOrWhiteSpace(output)
+            ? $"Wi-Fi {(enabled ? "enable" : "disable")} requested."
+            : output.Trim();
+    }
+
     private static string? ReadValue(string output, string name)
     {
         foreach (var rawLine in SplitLines(output))
