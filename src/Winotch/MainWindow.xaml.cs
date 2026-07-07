@@ -100,6 +100,7 @@ public partial class MainWindow : Window
         ClipboardPanel.CopyRequested += ClipboardPanel_CopyRequested;
         ClipboardPanel.DeleteRequested += ClipboardPanel_DeleteRequested;
         ClipboardPanel.ClearRequested += ClipboardPanel_ClearRequested;
+        InitializeFeatureFlyouts();
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
     }
@@ -428,6 +429,7 @@ public partial class MainWindow : Window
         ApplyAppMixerEnabled(settings.Features.ShowAppMixer);
         ApplySystemStatsEnabled(settings.Features.SystemStatsEnabled);
         ApplyLiveActivitySettings(settings.LiveActivities);
+        ApplyShelfAndDropletSettings(settings);
     }
 
     private void ApplyClipboardHistoryEnabled(bool enabled)
@@ -493,6 +495,7 @@ public partial class MainWindow : Window
             _expandedReveal = null;
             _expanded = false;
             _ = CloseCameraMirrorAsync();
+            _ = CloseShelfAndDropletsAsync();
             HideCompactToast(restoreShell: false);
             _appBar.Release();
             Hide();
@@ -640,6 +643,7 @@ public partial class MainWindow : Window
     {
         ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
         PositionCameraMirror();
+        PositionShelfAndDroplets();
     }
 
     private async void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
@@ -647,6 +651,7 @@ public partial class MainWindow : Window
         if (e.Mode is PowerModes.Suspend or PowerModes.Resume)
         {
             await CloseCameraMirrorAsync();
+            await CloseShelfAndDropletsAsync();
         }
 
         RefreshFocusTimer();
@@ -699,6 +704,7 @@ public partial class MainWindow : Window
         {
             StopSystemStats();
             _ = CloseCameraMirrorAsync();
+            _ = CloseShelfAndDropletsAsync();
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
             return;
         }
@@ -1528,6 +1534,7 @@ public partial class MainWindow : Window
         _systemStats.Dispose();
         _trayIcon.Dispose();
         _settings.Changed -= Settings_Changed;
+        _shelf.Changed -= Shelf_Changed;
         _brightnessWriter.Dispose();
         _audio.Dispose();
         _cameraMirror.Dispose();
