@@ -198,13 +198,22 @@ public sealed record WinotchSettings
     public ToastSettings Toasts { get; init; } = new();
     public CalendarSettings Calendar { get; init; } = new();
     public FeatureSettings Features { get; init; } = new();
+    // --- Feature settings added by the Live Activities / Shelf / Droplets / Command Bar work ---
+    public LiveActivitySettings LiveActivities { get; init; } = new();
+    public ShelfSettings Shelf { get; init; } = new();
+    public DropletSettings Droplets { get; init; } = new();
+    public CommandBarSettings CommandBar { get; init; } = new();
 
     public WinotchSettings Normalize() => this with
     {
         General = General is null ? new GeneralSettings() : General,
         Toasts = Toasts is null ? new ToastSettings() : Toasts.Normalize(),
         Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize(),
-        Features = Features is null ? new FeatureSettings() : Features
+        Features = Features is null ? new FeatureSettings() : Features,
+        LiveActivities = (LiveActivities ?? new()).Normalize(),
+        Shelf = (Shelf ?? new()).Normalize(),
+        Droplets = (Droplets ?? new()).Normalize(),
+        CommandBar = (CommandBar ?? new()).Normalize()
     };
 }
 
