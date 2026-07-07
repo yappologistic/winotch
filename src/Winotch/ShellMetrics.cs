@@ -14,16 +14,16 @@ public static class ShellMetrics
     public const double MiniWindowHeight = 52;
     public const double FullBarShellHeight = 32;
     public const double FullBarWindowHeight = 34;
-    public const double LiveStripWidth = 520;
+    public const double LiveStripWidth = 460;
     public const double LiveStripShellHeight = 58;
     public const double LiveStripWindowHeight = 66;
-    public const double MediaToastWidth = 520;
+    public const double MediaToastWidth = 460;
     public const double MediaToastShellHeight = 68;
     public const double MediaToastWindowHeight = 76;
-    public const double ExpandedWidth = 840;
+    public const double ExpandedWidth = 960;
     public const double ExpandedShellHeight = 520;
     public const double ExpandedWindowHeight = 580;
-    public const double CommandWidth = 720;
+    public const double CommandWidth = 600;
     public const double CommandShellHeight = 300;
     public const double CommandWindowHeight = 316;
 

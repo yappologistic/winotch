@@ -54,6 +54,28 @@ public class LiveActivityTests
     }
 
     [Fact]
+    public void NowPlayingActivityUsesMediaTimelineProgress()
+    {
+        var service = new LiveActivityService(new LiveCallDetector(() => []));
+        var now = new DateTimeOffset(2026, 7, 6, 12, 0, 0, TimeSpan.Zero);
+        var media = new MediaSnapshot("Song", "Artist", "Spotify.exe", null, MediaState.Playing, false, true, true, false)
+        {
+            Position = TimeSpan.FromSeconds(45),
+            Duration = TimeSpan.FromMinutes(3)
+        };
+
+        var activity = service.Update(new LiveActivityInput(
+            WinotchSettings.Defaults.LiveActivities,
+            new PrivacyActivitySnapshot(false, false, false),
+            media,
+            now));
+
+        Assert.Equal(LiveActivityKind.NowPlaying, activity.Kind);
+        Assert.Equal(0.25, activity.Progress, precision: 3);
+        Assert.Equal("0:45", activity.TimeText);
+    }
+
+    [Fact]
     public void LiveActivityModeReturnsMiniWhenNoActivityIsActive()
     {
         var service = new LiveActivityService(new LiveCallDetector(() => []));

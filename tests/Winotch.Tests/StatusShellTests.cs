@@ -829,10 +829,10 @@ public class StatusShellTests
     public void ShellMetricsCentersMiniAndExpandedWidths()
     {
         Assert.Equal(838, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
-        Assert.Equal(540, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
+        Assert.Equal(480, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
         Assert.Equal(new ShellGeometry(1920, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(244, 44, 52, 838), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
-        Assert.Equal(new ShellGeometry(520, 68, 76, 700), ShellMetrics.MediaToast(1920));
+        Assert.Equal(new ShellGeometry(460, 68, 76, 730), ShellMetrics.MediaToast(1920));
     }
 
     [Fact]
@@ -846,7 +846,7 @@ public class StatusShellTests
         Assert.Equal(837.5, mini.Left);
         Assert.Equal(1919, fullBar.Width);
         Assert.Equal(0, fullBar.Left);
-        Assert.Equal(539.5, expanded.Left);
+        Assert.Equal(479.5, expanded.Left);
         Assert.True(expanded.WindowHeight > expanded.ShellHeight);
     }
 
@@ -895,7 +895,7 @@ public class StatusShellTests
         var toast = ShellMetrics.MediaToast(1919);
 
         Assert.Equal(ShellMetrics.MediaToastWidth, toast.Width);
-        Assert.Equal(699.5, toast.Left);
+        Assert.Equal(729.5, toast.Left);
         Assert.True(toast.Width < ShellMetrics.ExpandedWidth);
         Assert.True(toast.WindowHeight < ShellMetrics.ExpandedWindowHeight);
     }

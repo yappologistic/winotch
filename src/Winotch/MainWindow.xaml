@@ -269,7 +269,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="48" />
                             <RowDefinition Height="*" />
-                            <RowDefinition Height="76" />
                         </Grid.RowDefinitions>
 
                         <Grid>
@@ -309,7 +308,7 @@
                         <Grid x:Name="ModeContentHost" Grid.Row="1" ClipToBounds="True">
                             <Grid x:Name="ControlsTabContent">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="340" />
+                                <ColumnDefinition Width="300" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
@@ -650,32 +649,6 @@
                             </Border>
                         </Grid>
 
-                        <Border x:Name="ActivityStrip" Grid.Row="2" Background="{StaticResource NotchBlack}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,12,0,0">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border Width="32" Height="32" CornerRadius="8" Background="{StaticResource NotchPanelRaised}" Margin="0,0,10,0">
-                                    <TextBlock Style="{StaticResource IconText}" Text="&#xEA8F;" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </Border>
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="Notifications" FontSize="13" FontWeight="SemiBold" />
-                                    <TextBlock x:Name="NotificationStateText" FontSize="12" Foreground="{StaticResource NotchMutedText}" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                                <Button Grid.Column="2" Padding="12,7" Margin="12,0,8,0" AutomationProperties.Name="View notifications" Click="ViewNotifications_Click">
-                                    <TextBlock Text="View" FontSize="12" FontWeight="SemiBold" />
-                                </Button>
-                                <Button x:Name="CopyDiagnosticsButton" Grid.Column="3" Padding="12,7" ToolTip="Copy diagnostics" AutomationProperties.Name="Copy diagnostics" Click="CopyDiagnostics_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8C8;" FontSize="13" Margin="0,0,8,0" />
-                                        <TextBlock Text="Copy diagnostics" FontSize="12" FontWeight="SemiBold" />
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-                        </Border>
                     </Grid>
                 </Grid>
 

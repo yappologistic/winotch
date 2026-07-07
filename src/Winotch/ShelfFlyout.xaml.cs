@@ -111,10 +111,25 @@ public partial class ShelfFlyout : Window
 
     private void ShelfRow_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed && sender is FrameworkElement { DataContext: ShelfRow row })
+        if (e.LeftButton == MouseButtonState.Pressed &&
+            !IsInsideButton((DependencyObject)e.OriginalSource) &&
+            sender is FrameworkElement { DataContext: ShelfRow row })
         {
             DragDrop.DoDragDrop(this, ToDataObject(row.Item), WpfDragDropEffects.Copy);
         }
+    }
+
+    private static bool IsInsideButton(DependencyObject source)
+    {
+        for (var current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is WpfButton)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void Shelf_Changed(object? sender, EventArgs e) => Dispatcher.Invoke(Refresh);

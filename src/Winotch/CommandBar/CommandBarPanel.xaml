@@ -5,7 +5,7 @@
              Focusable="False">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50" />
+            <RowDefinition Height="58" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -13,8 +13,10 @@
                  Style="{StaticResource NotchTextBox}"
                  Background="{StaticResource NotchPanel}"
                  BorderBrush="{StaticResource NotchStroke}"
+                 Height="54"
                  FontSize="15"
-                 Padding="12,9"
+                 Padding="14,0"
+                 VerticalContentAlignment="Center"
                  AutomationProperties.Name="Command" />
 
         <ListBox x:Name="CommandResultsList"

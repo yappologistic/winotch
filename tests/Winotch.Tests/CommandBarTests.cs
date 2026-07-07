@@ -88,6 +88,19 @@ public sealed class CommandBarTests
     }
 
     [Fact]
+    public async Task AppLaunchProviderShowsDefaultAppsForBlankQuery()
+    {
+        var provider = new AppLaunchProvider();
+
+        var results = await provider.QueryAsync("", CancellationToken.None);
+
+        Assert.Equal("Calculator", results[0].Title);
+        Assert.Contains(results, result => result.Title == "Calculator");
+        Assert.Contains(results, result => result.Title == "Settings");
+        Assert.All(results, result => Assert.Equal("Apps", result.ProviderName));
+    }
+
+    [Fact]
     public void HotkeyParserParsesDefaultHotkey()
     {
         var parsed = CommandHotkeyParser.TryParse("Ctrl+Alt+Space", out var hotkey);

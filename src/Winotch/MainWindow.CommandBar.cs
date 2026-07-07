@@ -137,6 +137,7 @@ public partial class MainWindow
         var monitor = CurrentMonitor(preferCursor: true);
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.Command(monitor.WidthDip), monitor), _animationFrameRate);
         ShellAnimator.Show(CommandBarPanel, _animationFrameRate);
+        _ = RefreshCommandBarResultsAsync();
         Dispatcher.BeginInvoke(FocusCommandBarInput, DispatcherPriority.ApplicationIdle);
     }
 

@@ -421,7 +421,6 @@ public partial class MainWindow : Window
 
     private void ApplyNotificationStatus(NotificationSnapshot notifications)
     {
-        NotificationStateText.Text = notifications.Status;
         NotificationCountText.Text = notifications.Items.Count.ToString();
         NotificationList.ItemsSource = notifications.Items;
     }

@@ -13,11 +13,6 @@ public sealed class CommandBarService
 
     public async Task<IReadOnlyList<CommandBarResult>> QueryAsync(string query, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return [];
-        }
-
         var settings = _settings();
         if (!settings.Enabled)
         {
@@ -25,11 +20,12 @@ public sealed class CommandBarService
         }
 
         var results = new List<CommandBarResult>();
+        var trimmedQuery = query.Trim();
         foreach (var provider in _providers.Where(provider => provider.IsEnabled(settings)))
         {
             try
             {
-                results.AddRange(await provider.QueryAsync(query.Trim(), cancellationToken));
+                results.AddRange(await provider.QueryAsync(trimmedQuery, cancellationToken));
             }
             catch
             {

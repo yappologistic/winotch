@@ -16,12 +16,20 @@ public sealed class AppLaunchProvider : ICommandProvider
 
     public Task<IReadOnlyList<CommandBarResult>> QueryAsync(string query, CancellationToken cancellationToken)
     {
-        var results = Shortcuts()
-            .Select(shortcut => (shortcut, score: CommandMatch.Score(query, shortcut.Name)))
-            .Where(match => match.score > 0)
-            .OrderByDescending(match => match.score)
-            .Take(6)
-            .Select(match => new CommandBarResult(
+        var shortcuts = Shortcuts();
+        var matches = string.IsNullOrWhiteSpace(query)
+            ? shortcuts
+                .OrderBy(DefaultAppRank)
+                .ThenBy(shortcut => shortcut.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Take(6)
+                .Select(shortcut => (shortcut, score: DefaultAppScore(shortcut)))
+            : shortcuts
+                .Select(shortcut => (shortcut, score: CommandMatch.Score(query, shortcut.Name)))
+                .Where(match => match.score > 0)
+                .OrderByDescending(match => match.score)
+                .Take(6);
+
+        var results = matches.Select(match => new CommandBarResult(
                 match.shortcut.Name,
                 string.IsNullOrWhiteSpace(match.shortcut.TargetPath) ? "App" : match.shortcut.TargetPath,
                 Name,
@@ -66,8 +74,24 @@ public sealed class AppLaunchProvider : ICommandProvider
 
     private static IReadOnlyList<AppShortcut> SystemShortcuts() =>
     [
-        new("Calculator", "calc.exe", "Windows Calculator")
+        new("Calculator", "calc.exe", "Windows Calculator"),
+        new("Settings", "ms-settings:", "Windows Settings"),
+        new("File Explorer", "explorer.exe", "Windows File Explorer"),
+        new("Notepad", "notepad.exe", "Windows Notepad"),
+        new("Paint", "mspaint.exe", "Microsoft Paint")
     ];
+
+    private static int DefaultAppRank(AppShortcut shortcut) => shortcut.Name switch
+    {
+        "Calculator" => 0,
+        "Settings" => 1,
+        "File Explorer" => 2,
+        "Notepad" => 3,
+        "Paint" => 4,
+        _ => 100
+    };
+
+    private static double DefaultAppScore(AppShortcut shortcut) => Math.Max(40, 60 - DefaultAppRank(shortcut));
 
     private sealed record AppShortcut(string Name, string ShortcutPath, string? TargetPath);
 }

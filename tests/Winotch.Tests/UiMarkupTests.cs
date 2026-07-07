@@ -40,6 +40,20 @@ public sealed class UiMarkupTests
 
         Assert.Contains("KeyDown=\"Window_KeyDown\"", xaml, StringComparison.Ordinal);
         Assert.Contains("HideCommandBar(restoreShell: true)", code, StringComparison.Ordinal);
+        Assert.Contains("_ = RefreshCommandBarResultsAsync();", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ScrollViewersAutoHideScrollBarsUntilScrolled()
+    {
+        var appXaml = ReadRepoFile("src", "Winotch", "App.xaml");
+        var appCode = ReadRepoFile("src", "Winotch", "App.xaml.cs");
+
+        Assert.Contains("AutoHideScrollViewer_Loaded", appXaml, StringComparison.Ordinal);
+        Assert.Contains("AutoHideScrollViewer_ScrollChanged", appXaml, StringComparison.Ordinal);
+        Assert.Contains("TargetType=\"{x:Type ScrollBar}\"", appXaml, StringComparison.Ordinal);
+        Assert.Contains("SetScrollBarsOpacity(viewer, 0)", appCode, StringComparison.Ordinal);
+        Assert.Contains("SetScrollBarsOpacity(viewer, 1)", appCode, StringComparison.Ordinal);
     }
 
     [Theory]

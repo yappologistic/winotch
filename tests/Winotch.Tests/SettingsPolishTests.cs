@@ -143,9 +143,9 @@ public class SettingsPolishTests
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "TimerColumn");
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ActivityModeTab");
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ControlsTabContent");
-        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ActivityStrip");
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "OpenSettingsButton");
-        Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "CopyDiagnosticsButton");
+        Assert.DoesNotContain(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "ActivityStrip");
+        Assert.DoesNotContain(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "CopyDiagnosticsButton");
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "NowPlayingSection");
         Assert.Contains(doc.Descendants(), element => (string?)element.Attribute(xamlName) == "NoMediaText");
         Assert.Contains(doc.Descendants(ui + "ScrollViewer"), element => (string?)element.Attribute(xamlName) == "AudioControlsScroll");
@@ -192,9 +192,6 @@ public class SettingsPolishTests
         Assert.Equal("ActivityModeTab_PreviewMouseLeftButtonDown", (string?)doc.Descendants(ui + "Button")
             .Single(element => (string?)element.Attribute(xamlName) == "ActivityModeTab")
             .Attribute("PreviewMouseLeftButtonDown"));
-        Assert.Equal("{StaticResource NotchBlack}", (string?)doc.Descendants(ui + "Border")
-            .Single(element => (string?)element.Attribute(xamlName) == "ActivityStrip")
-            .Attribute("Background"));
         Assert.Contains(audioSection.Descendants(), element => (string?)element.Attribute(xamlName) == "AudioMoreToggleButton");
         var audioMorePanel = audioSection.Descendants()
             .Single(element => (string?)element.Attribute(xamlName) == "AudioMorePanel");
