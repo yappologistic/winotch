@@ -12,8 +12,9 @@ using WpfDragDropEffects = System.Windows.DragDropEffects;
 
 namespace Winotch;
 
-public sealed record ShelfRow(ShelfItem Item, string Glyph, string Preview, BitmapSource? Thumbnail)
+public sealed record ShelfRow(ShelfItem Item, string Glyph, string Preview, ImageSource? Icon, BitmapSource? Thumbnail)
 {
+    public bool HasIcon => Icon is not null;
     public bool HasThumbnail => Thumbnail is not null;
 }
 
@@ -80,6 +81,7 @@ public partial class ShelfFlyout : Window
         if (sender is WpfButton { Tag: ShelfItem item })
         {
             CopyToClipboard(item);
+            e.Handled = true;
         }
     }
 
@@ -90,13 +92,12 @@ public partial class ShelfFlyout : Window
             return;
         }
 
-        var target = item.Kind == ShelfItemKind.Files ? item.FilePaths.FirstOrDefault() : item.Kind == ShelfItemKind.Link ? item.Text : null;
-        if (string.IsNullOrWhiteSpace(target))
+        foreach (var target in ShelfLaunchTargets.For(item))
         {
-            return;
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
         }
 
-        Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void RemoveButton_Click(object sender, RoutedEventArgs e)
@@ -104,6 +105,7 @@ public partial class ShelfFlyout : Window
         if (sender is WpfButton { Tag: ShelfItem item })
         {
             _shelf.Remove(item.Id);
+            e.Handled = true;
         }
     }
 
@@ -119,7 +121,12 @@ public partial class ShelfFlyout : Window
 
     private void Refresh()
     {
-        var rows = _shelf.Items.Select(item => new ShelfRow(item, GlyphFor(item.Kind), item.Preview, ClipboardThumbnail.ToBitmapSource(item.ThumbnailPng))).ToArray();
+        var rows = _shelf.Items.Select(item => new ShelfRow(
+            item,
+            GlyphFor(item.Kind),
+            item.Preview,
+            IconFor(item),
+            ClipboardThumbnail.ToBitmapSource(item.ThumbnailPng))).ToArray();
         ShelfList.ItemsSource = rows;
         EmptyText.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -162,6 +169,10 @@ public partial class ShelfFlyout : Window
         ShelfItemKind.Image => "\uEB9F",
         _ => "\uE8D2"
     };
+
+    private static ImageSource? IconFor(ShelfItem item) => item.Kind == ShelfItemKind.Files
+        ? ShellIconService.LoadSmallIcon(item.FilePaths.FirstOrDefault())
+        : null;
 
     private void AnimateIn()
     {

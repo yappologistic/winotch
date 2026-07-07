@@ -27,9 +27,19 @@ public sealed class UiMarkupTests
     {
         var xaml = ReadRepoFile("src", "Winotch", "CommandBar", "CommandBarPanel.xaml");
 
-        Assert.Contains("MinHeight=\"46\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MinHeight=\"50\"", xaml, StringComparison.Ordinal);
         Assert.Contains("MaxWidth=\"112\"", xaml, StringComparison.Ordinal);
         Assert.Contains("TextWrapping=\"NoWrap\"", xaml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommandBarCanBeDismissedFromMainWindowWithEscape()
+    {
+        var xaml = ReadRepoFile("src", "Winotch", "MainWindow.xaml");
+        var code = ReadRepoFile("src", "Winotch", "MainWindow.CommandBar.cs");
+
+        Assert.Contains("KeyDown=\"Window_KeyDown\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("HideCommandBar(restoreShell: true)", code, StringComparison.Ordinal);
     }
 
     [Theory]

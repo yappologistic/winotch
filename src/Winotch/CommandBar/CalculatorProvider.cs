@@ -26,7 +26,9 @@ public sealed class CalculatorProvider : ICommandProvider
                 {
                     System.Windows.Clipboard.SetText(formatted);
                     return Task.CompletedTask;
-                })
+                },
+                null,
+                "\uE8EF")
         ]);
     }
 }

@@ -17,7 +17,8 @@
         ShowInTaskbar="False"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
-        Loaded="Window_Loaded">
+        Loaded="Window_Loaded"
+        KeyDown="Window_KeyDown">
     <Window.Resources>
         <SolidColorBrush x:Key="NotchHitTestFill" Color="#01000000" />
         <Style x:Key="ModeTabButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
@@ -190,7 +191,7 @@
                             <ProgressBar x:Name="BatteryBar" Style="{StaticResource ModernProgressBar}" Maximum="100" />
                         </StackPanel>
                         <ScrollViewer Grid.Row="3" Margin="0,22,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel x:Name="SystemStatsSection" SnapsToDevicePixels="True">
+                            <StackPanel x:Name="SystemStatsSection" Margin="0,0,12,0" SnapsToDevicePixels="True">
                                 <StackPanel x:Name="StatsRowsPanel" Visibility="Collapsed">
                                     <TextBlock Text="Stats" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,8" />
                                     <Grid x:Name="StatsCpuRow" Height="28" Visibility="Collapsed">
@@ -680,6 +681,7 @@
 
                 <commandBar:CommandBarPanel x:Name="CommandBarPanel"
                                             Grid.RowSpan="2"
+                                            Panel.ZIndex="20"
                                             Margin="8,8,8,12"
                                             Visibility="Collapsed"
                                             Opacity="0" />

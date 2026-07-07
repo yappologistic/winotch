@@ -1,11 +1,11 @@
 <UserControl x:Class="Winotch.CommandBar.CommandBarPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinHeight="236"
+             MinHeight="248"
              Focusable="False">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="42" />
+            <RowDefinition Height="50" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -14,7 +14,7 @@
                  Background="{StaticResource NotchPanel}"
                  BorderBrush="{StaticResource NotchStroke}"
                  FontSize="15"
-                 Padding="10,7"
+                 Padding="12,9"
                  AutomationProperties.Name="Command" />
 
         <ListBox x:Name="CommandResultsList"
@@ -28,12 +28,19 @@
                  ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid MinHeight="46">
+                    <Grid MinHeight="50">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="34" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
+                        <Border Width="24" Height="24" CornerRadius="7" Background="{StaticResource NotchPanel}" VerticalAlignment="Center">
+                            <Grid>
+                                <Image x:Name="ResultIcon" Source="{Binding Icon}" Width="22" Height="22" Stretch="UniformToFill" Visibility="Collapsed" />
+                                <TextBlock x:Name="ResultGlyph" Text="{Binding Glyph}" Style="{StaticResource IconText}" FontSize="12" Foreground="{StaticResource NotchMutedText}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
                             <TextBlock Text="{Binding Title}"
                                        FontSize="13"
                                        FontWeight="SemiBold"
@@ -44,7 +51,7 @@
                                        TextTrimming="CharacterEllipsis"
                                        Margin="0,1,0,0" />
                         </StackPanel>
-                        <TextBlock Grid.Column="1"
+                        <TextBlock Grid.Column="2"
                                    Text="{Binding ProviderName}"
                                    MaxWidth="112"
                                    FontSize="11"
@@ -54,6 +61,12 @@
                                    TextWrapping="NoWrap"
                                    Margin="16,0,0,0" />
                     </Grid>
+                    <DataTemplate.Triggers>
+                        <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                            <Setter TargetName="ResultIcon" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="ResultGlyph" Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </DataTemplate.Triggers>
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>

@@ -28,7 +28,9 @@ public sealed class UnitConverterProvider : ICommandProvider
                 {
                     System.Windows.Clipboard.SetText(conversion.ResultText);
                     return Task.CompletedTask;
-                })
+                },
+                null,
+                "\uE9D2")
         ]);
     }
 }

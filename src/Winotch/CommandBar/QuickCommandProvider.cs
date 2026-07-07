@@ -29,7 +29,9 @@ public sealed class QuickCommandProvider : ICommandProvider
                 Name,
                 CommandMatch.Rank(match.score, Priority),
                 Priority,
-                match.command.ExecuteAsync))
+                match.command.ExecuteAsync,
+                null,
+                "\uE713"))
             .ToList();
         return Task.FromResult<IReadOnlyList<CommandBarResult>>(results);
     }

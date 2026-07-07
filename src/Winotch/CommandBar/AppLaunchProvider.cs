@@ -31,7 +31,9 @@ public sealed class AppLaunchProvider : ICommandProvider
                 {
                     ShellExecute.Launch(match.shortcut.ShortcutPath);
                     return Task.CompletedTask;
-                }))
+                },
+                ShellIconService.LoadSmallIcon(match.shortcut.TargetPath ?? match.shortcut.ShortcutPath),
+                "\uE756"))
             .ToList();
         return Task.FromResult<IReadOnlyList<CommandBarResult>>(results);
     }

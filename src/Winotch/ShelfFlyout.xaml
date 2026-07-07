@@ -80,7 +80,10 @@
                                     <ColumnDefinition Width="34" />
                                     <ColumnDefinition Width="34" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="{Binding Glyph}" Style="{StaticResource IconText}" FontSize="14" VerticalAlignment="Center" />
+                                <Grid Grid.Column="0" Width="22" Height="22" VerticalAlignment="Center">
+                                    <Image x:Name="ItemIcon" Source="{Binding Icon}" Width="22" Height="22" Stretch="UniformToFill" Visibility="Collapsed" />
+                                    <TextBlock x:Name="ItemGlyph" Text="{Binding Glyph}" Style="{StaticResource IconText}" FontSize="14" VerticalAlignment="Center" />
+                                </Grid>
                                 <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
                                     <TextBlock x:Name="PreviewText" Text="{Binding Preview}" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                     <Image x:Name="ThumbnailImage" Source="{Binding Thumbnail}" MaxWidth="62" MaxHeight="44" Stretch="Uniform" HorizontalAlignment="Left" Visibility="Collapsed" />
@@ -99,6 +102,10 @@
                                 <DataTrigger Binding="{Binding HasThumbnail}" Value="True">
                                     <Setter TargetName="PreviewText" Property="Visibility" Value="Collapsed" />
                                     <Setter TargetName="ThumbnailImage" Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                                    <Setter TargetName="ItemIcon" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="ItemGlyph" Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </DataTemplate.Triggers>
                         </DataTemplate>

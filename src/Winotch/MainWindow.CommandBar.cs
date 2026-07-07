@@ -123,6 +123,9 @@ public partial class MainWindow
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(DateText, _animationFrameRate);
+        ShellAnimator.Hide(LiveStrip, _animationFrameRate);
+        ShellAnimator.Hide(MediaToastPanel, _animationFrameRate);
+        ShellAnimator.Hide(NotificationToastPanel, _animationFrameRate);
         DetailPanel.Opacity = 0;
         CommandBarPanel.Clear();
         CommandBarPanel.Opacity = 0;
@@ -142,6 +145,15 @@ public partial class MainWindow
         Activate();
         CommandBarPanel.FocusInput();
         Keyboard.Focus(CommandBarPanel.InputBox);
+    }
+
+    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (_commandBarVisible && e.Key == Key.Escape)
+        {
+            HideCommandBar(restoreShell: true);
+            e.Handled = true;
+        }
     }
 
     private void HideCommandBar(bool restoreShell)

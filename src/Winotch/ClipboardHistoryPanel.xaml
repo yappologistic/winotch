@@ -43,17 +43,21 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="32" />
                                 <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="26" />
                                 <ColumnDefinition Width="26" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding Glyph}"
-                                       Style="{StaticResource IconText}"
-                                       FontSize="14"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Center" />
+                            <Grid Grid.Column="0" Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Image x:Name="ItemIcon" Source="{Binding Icon}" Width="22" Height="22" Stretch="UniformToFill" Visibility="Collapsed" />
+                                <TextBlock x:Name="ItemGlyph"
+                                           Text="{Binding Glyph}"
+                                           Style="{StaticResource IconText}"
+                                           FontSize="14"
+                                           HorizontalAlignment="Left"
+                                           VerticalAlignment="Center" />
+                            </Grid>
 
                             <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,0,8,0">
                                 <TextBlock x:Name="PreviewText"
@@ -84,13 +88,25 @@
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
 
+                            <Button x:Name="CopyClipboardButton"
+                                     Grid.Column="4"
+                                     Width="24"
+                                     Height="24"
+                                     Padding="0"
+                                     Tag="{Binding Entry}"
+                                     ToolTip="Copy"
+                                     AutomationProperties.Name="Copy clipboard history item"
+                                     Click="ClipboardCopyButton_Click">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE8C8;" FontSize="11" />
+                            </Button>
+
                             <Button x:Name="DeleteClipboardButton"
-                                    Grid.Column="4"
-                                    Width="24"
-                                    Height="24"
-                                    Padding="0"
-                                    Opacity="0"
-                                    Tag="{Binding Entry}"
+                                     Grid.Column="5"
+                                     Width="24"
+                                     Height="24"
+                                     Padding="0"
+                                     Opacity="0"
+                                     Tag="{Binding Entry}"
                                     ToolTip="Delete"
                                     AutomationProperties.Name="Delete clipboard history item"
                                     Click="DeleteClipboardItem_Click">
@@ -102,6 +118,10 @@
                         <DataTrigger Binding="{Binding HasThumbnail}" Value="True">
                             <Setter TargetName="PreviewText" Property="Visibility" Value="Collapsed" />
                             <Setter TargetName="ThumbnailImage" Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding HasIcon}" Value="True">
+                            <Setter TargetName="ItemIcon" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="ItemGlyph" Property="Visibility" Value="Collapsed" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
                             <Setter TargetName="DeleteClipboardButton" Property="Opacity" Value="1" />

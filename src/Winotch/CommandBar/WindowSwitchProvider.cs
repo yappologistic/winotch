@@ -27,7 +27,9 @@ public sealed class WindowSwitchProvider : ICommandProvider
                 {
                     WindowEnumerator.Activate(match.window.Handle);
                     return Task.CompletedTask;
-                }))
+                },
+                null,
+                "\uE8A7"))
             .ToList();
         return Task.FromResult<IReadOnlyList<CommandBarResult>>(results);
     }

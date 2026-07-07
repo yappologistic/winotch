@@ -91,6 +91,24 @@ public class ShelfTests
         Assert.Equal([1, 2, 3], image.ThumbnailPng);
     }
 
+    [Fact]
+    public void LaunchTargetsIncludeEveryFileInMultiFileShelfItem()
+    {
+        var item = ShelfItem.FromFiles([@"C:\temp\one.txt", @"C:\temp\two.txt"], Now)!;
+
+        Assert.Equal([@"C:\temp\one.txt", @"C:\temp\two.txt"], ShelfLaunchTargets.For(item));
+    }
+
+    [Fact]
+    public void LaunchTargetsUseLinkTextOnlyForLinks()
+    {
+        var link = ShelfItem.FromText("https://example.com", Now)!;
+        var text = ShelfItem.FromText("just text", Now)!;
+
+        Assert.Equal(["https://example.com"], ShelfLaunchTargets.For(link));
+        Assert.Empty(ShelfLaunchTargets.For(text));
+    }
+
     private static ShelfItem Text(string value, DateTimeOffset? stagedAt = null) =>
         ShelfItem.FromText(value, stagedAt ?? Now)!;
 
