@@ -48,18 +48,24 @@ public sealed class AppLaunchProvider : ICommandProvider
             Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu)
         };
 
-        return roots
+        return SystemShortcuts()
+            .Concat(roots
             .Where(root => !string.IsNullOrWhiteSpace(root) && Directory.Exists(root))
             .SelectMany(root => Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
             .Select(path => new AppShortcut(
                 Path.GetFileNameWithoutExtension(path),
                 path,
-                ShellLinkTargetReader.TryReadTarget(path)))
+                ShellLinkTargetReader.TryReadTarget(path))))
             .GroupBy(shortcut => shortcut.Name, StringComparer.CurrentCultureIgnoreCase)
             .Select(group => group.First())
             .OrderBy(shortcut => shortcut.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
     }
+
+    private static IReadOnlyList<AppShortcut> SystemShortcuts() =>
+    [
+        new("Calculator", "calc.exe", "Windows Calculator")
+    ];
 
     private sealed record AppShortcut(string Name, string ShortcutPath, string? TargetPath);
 }

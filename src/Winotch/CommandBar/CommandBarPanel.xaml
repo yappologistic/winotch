@@ -1,7 +1,7 @@
 <UserControl x:Class="Winotch.CommandBar.CommandBarPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinHeight="170"
+             MinHeight="236"
              Focusable="False">
     <Grid>
         <Grid.RowDefinitions>
@@ -28,7 +28,7 @@
                  ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid Height="38">
+                    <Grid MinHeight="46">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -46,9 +46,12 @@
                         </StackPanel>
                         <TextBlock Grid.Column="1"
                                    Text="{Binding ProviderName}"
+                                   MaxWidth="112"
                                    FontSize="11"
                                    Foreground="{StaticResource NotchMutedText}"
                                    VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap"
                                    Margin="16,0,0,0" />
                     </Grid>
                 </DataTemplate>

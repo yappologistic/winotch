@@ -45,6 +45,8 @@ public partial class ShelfFlyout : Window
         Close();
     }
 
+    public bool HasManualPosition { get; private set; }
+
     private void Window_Loaded(object sender, RoutedEventArgs e) => AnimateIn();
 
     private async void Window_Deactivated(object? sender, EventArgs e)
@@ -67,6 +69,17 @@ public partial class ShelfFlyout : Window
     private async void CloseButton_Click(object sender, RoutedEventArgs e) => await CloseShelfAsync();
 
     private void ClearButton_Click(object sender, RoutedEventArgs e) => _shelf.Clear();
+
+    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed)
+        {
+            return;
+        }
+
+        HasManualPosition = true;
+        DragMove();
+    }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {

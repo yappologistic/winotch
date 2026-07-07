@@ -28,15 +28,19 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="38" />
             </Grid.RowDefinitions>
-            <DockPanel Margin="2,0,2,8">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+            <Grid Margin="2,0,2,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE8D2;" FontSize="15" Margin="0,0,8,0" />
                     <TextBlock Text="Text" FontSize="13" FontWeight="SemiBold" />
                 </StackPanel>
-                <Button DockPanel.Dock="Right" Style="{StaticResource MediaIconButton}" Width="28" Height="28" Margin="0" ToolTip="Close" AutomationProperties.Name="Close text scrubber" Click="CloseButton_Click">
+                <Button Grid.Column="1" Style="{StaticResource MediaIconButton}" Width="28" Height="28" Margin="0" ToolTip="Close" AutomationProperties.Name="Close text scrubber" Click="CloseButton_Click">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
                 </Button>
-            </DockPanel>
+            </Grid>
             <TextBox x:Name="InputBox" Grid.Row="1" Style="{StaticResource NotchTextBox}" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="12" TextChanged="InputBox_TextChanged" />
             <Grid Grid.Row="2" Margin="0,8,0,8">
                 <Grid.ColumnDefinitions>

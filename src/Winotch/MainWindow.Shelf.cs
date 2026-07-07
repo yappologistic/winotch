@@ -102,7 +102,7 @@ public partial class MainWindow
 
     private void PositionShelf()
     {
-        if (_shelfFlyout is null)
+        if (_shelfFlyout is null || _shelfFlyout.HasManualPosition)
         {
             return;
         }

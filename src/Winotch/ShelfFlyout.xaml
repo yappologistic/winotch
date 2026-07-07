@@ -29,25 +29,29 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="36" />
+                <RowDefinition Height="34" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <DockPanel Margin="2,0,2,8">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+            <Grid Margin="2,0,2,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE8B7;" FontSize="15" Margin="0,0,8,0" />
                     <TextBlock Text="Shelf" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
-                    <Button Width="28" Height="28" Padding="0" Margin="0,0,8,0" ToolTip="Clear shelf" AutomationProperties.Name="Clear shelf" Click="ClearButton_Click">
-                        <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" FontSize="12" />
-                    </Button>
-                    <Button Style="{StaticResource MediaIconButton}" Width="28" Height="28" Margin="0" ToolTip="Close" AutomationProperties.Name="Close shelf" Click="CloseButton_Click">
-                        <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
-                    </Button>
-                </StackPanel>
+                <Button Grid.Column="1" Style="{StaticResource MediaIconButton}" Width="28" Height="28" Margin="0" ToolTip="Close" AutomationProperties.Name="Close shelf" Click="CloseButton_Click">
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
+                </Button>
+            </Grid>
+
+            <DockPanel Grid.Row="1" Margin="0,0,0,8">
+                <Button Content="Clear" Padding="11,5" HorizontalAlignment="Left" ToolTip="Clear shelf" AutomationProperties.Name="Clear shelf" Click="ClearButton_Click" />
             </DockPanel>
 
-            <Grid Grid.Row="1">
+            <Grid Grid.Row="2">
                 <TextBlock x:Name="EmptyText"
                            Text="Drop files, text, links, or images onto the notch"
                            FontSize="12"

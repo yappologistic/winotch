@@ -12,9 +12,8 @@ public partial class MainWindow
 
     private void InitializeLiveActivities()
     {
-        LiveStrip.PauseResumeRequested += LiveStrip_PauseResumeRequested;
-        LiveStrip.CancelRequested += LiveStrip_CancelRequested;
         LiveStrip.SetActivity(LiveActivity.None);
+        ApplyTransientLiveTimerUi(LiveActivity.None);
     }
 
     private void ApplyLiveActivityInputs(PriorityStatusSnapshot priorityStatus, MediaSnapshot media)
@@ -50,11 +49,14 @@ public partial class MainWindow
 
         var now = DateTimeOffset.UtcNow;
         _liveActivities.StartTimer(TimeSpan.FromMinutes(minutes), now);
-        SetExpanded(false);
         RefreshLiveActivity(now, forceShell: true);
     }
 
-    private void LiveStrip_PauseResumeRequested(object? sender, EventArgs e)
+    private void PauseResumeLiveTimer_Click(object sender, RoutedEventArgs e) => ToggleTransientLiveTimerPause();
+
+    private void CancelLiveTimer_Click(object sender, RoutedEventArgs e) => CancelTransientLiveTimer();
+
+    private void ToggleTransientLiveTimerPause()
     {
         var now = DateTimeOffset.UtcNow;
         if (_currentLiveActivity.TimerPaused)
@@ -69,7 +71,7 @@ public partial class MainWindow
         RefreshLiveActivity(now, forceShell: false);
     }
 
-    private void LiveStrip_CancelRequested(object? sender, EventArgs e)
+    private void CancelTransientLiveTimer()
     {
         _liveActivities.CancelTimer();
         RefreshLiveActivity(DateTimeOffset.UtcNow, forceShell: true);
@@ -89,10 +91,28 @@ public partial class MainWindow
         var previousMode = _currentLiveActivity.ShellMode;
         _currentLiveActivity = activity;
         LiveStrip.SetActivity(activity);
+        ApplyTransientLiveTimerUi(activity);
 
         if (forceShell || previousMode != activity.ShellMode)
         {
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
         }
+    }
+
+    private void ApplyTransientLiveTimerUi(LiveActivity activity)
+    {
+        var active = activity.Kind == LiveActivityKind.Timer;
+        LiveTimerPresetPanel.Visibility = active ? Visibility.Collapsed : Visibility.Visible;
+        LiveTimerRunningPanel.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+        if (!active)
+        {
+            LiveTimerProgressBar.Value = 0;
+            return;
+        }
+
+        LiveTimerRemainingText.Text = activity.TimeText;
+        LiveTimerStateText.Text = activity.TimerPaused ? "Paused" : "Running";
+        LiveTimerPauseResumeButton.Content = activity.TimerPaused ? "Resume" : "Pause";
+        LiveTimerProgressBar.Value = activity.Progress * 100;
     }
 }

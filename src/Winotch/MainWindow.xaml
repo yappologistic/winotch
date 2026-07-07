@@ -556,11 +556,22 @@
                                                 </StackPanel>
                                                 <StackPanel Margin="0,12,0,0">
                                                     <TextBlock Text="Live timer" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,7" />
-                                                    <UniformGrid Columns="3">
+                                                    <UniformGrid x:Name="LiveTimerPresetPanel" Columns="3">
                                                         <Button Content="5 min" Tag="5" FontSize="11" Padding="3,5" Margin="0,0,6,0" Click="StartTransientLiveTimer_Click" />
                                                         <Button Content="10 min" Tag="10" FontSize="11" Padding="3,5" Margin="0,0,6,0" Click="StartTransientLiveTimer_Click" />
                                                         <Button Content="15 min" Tag="15" FontSize="11" Padding="3,5" Click="StartTransientLiveTimer_Click" />
                                                     </UniformGrid>
+                                                    <StackPanel x:Name="LiveTimerRunningPanel" Visibility="Collapsed">
+                                                        <DockPanel LastChildFill="True">
+                                                            <TextBlock x:Name="LiveTimerStateText" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" />
+                                                            <TextBlock x:Name="LiveTimerRemainingText" DockPanel.Dock="Right" FontSize="20" FontWeight="SemiBold" TextAlignment="Right" Typography.NumeralAlignment="Tabular" />
+                                                        </DockPanel>
+                                                        <ProgressBar x:Name="LiveTimerProgressBar" Style="{StaticResource ModernProgressBar}" Height="4" Margin="0,6,0,8" Maximum="100" />
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Button x:Name="LiveTimerPauseResumeButton" Content="Pause" Padding="9,5" Margin="0,0,6,0" Click="PauseResumeLiveTimer_Click" />
+                                                            <Button Content="Cancel" Padding="9,5" Click="CancelLiveTimer_Click" />
+                                                        </StackPanel>
+                                                    </StackPanel>
                                                 </StackPanel>
                                                 <StackPanel x:Name="FocusRunningPanel" Visibility="Collapsed" Margin="0,7,0,0">
                                                     <DockPanel LastChildFill="True">

@@ -78,6 +78,16 @@ public sealed class CommandBarTests
     }
 
     [Fact]
+    public async Task AppLaunchProviderFindsWindowsCalculatorWhenShortcutIsMissing()
+    {
+        var provider = new AppLaunchProvider();
+
+        var results = await provider.QueryAsync("calc", CancellationToken.None);
+
+        Assert.Contains(results, result => result.Title == "Calculator");
+    }
+
+    [Fact]
     public void HotkeyParserParsesDefaultHotkey()
     {
         var parsed = CommandHotkeyParser.TryParse("Ctrl+Alt+Space", out var hotkey);

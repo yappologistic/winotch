@@ -23,9 +23,9 @@ public static class ShellMetrics
     public const double ExpandedWidth = 840;
     public const double ExpandedShellHeight = 520;
     public const double ExpandedWindowHeight = 580;
-    public const double CommandWidth = 640;
-    public const double CommandShellHeight = 236;
-    public const double CommandWindowHeight = 252;
+    public const double CommandWidth = 720;
+    public const double CommandShellHeight = 300;
+    public const double CommandWindowHeight = 316;
 
     public static double CenterLeft(double screenWidth, double width) =>
         Math.Max(0, (screenWidth - width) / 2);

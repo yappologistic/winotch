@@ -8,8 +8,6 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <StackPanel x:Name="DotsPanel"
@@ -71,49 +69,5 @@
                          Margin="0,5,0,0" />
         </Grid>
 
-        <Grid x:Name="TimerRing"
-              Grid.Column="3"
-              Width="28"
-              Height="28"
-              Margin="12,0,0,0"
-              VerticalAlignment="Center">
-            <Ellipse Stroke="{StaticResource NotchStroke}" StrokeThickness="3" />
-            <Path x:Name="TimerRingPath"
-                  Stroke="{StaticResource NotchText}"
-                  StrokeThickness="3"
-                  StrokeStartLineCap="Round"
-                  StrokeEndLineCap="Round" />
-        </Grid>
-
-        <StackPanel x:Name="TimerActions"
-                    Grid.Column="4"
-                    Orientation="Horizontal"
-                    VerticalAlignment="Center"
-                    Margin="10,0,0,0">
-            <Button x:Name="PauseResumeButton"
-                    Style="{StaticResource MediaIconButton}"
-                    Width="28"
-                    Height="28"
-                    Margin="0,0,6,0"
-                    Padding="0"
-                    ToolTip="Pause or resume timer"
-                    AutomationProperties.Name="Pause or resume live timer"
-                    Click="PauseResumeButton_Click">
-                <TextBlock x:Name="PauseResumeIcon"
-                           Style="{StaticResource IconText}"
-                           Text="&#xE769;"
-                           FontSize="12" />
-            </Button>
-            <Button Style="{StaticResource MediaIconButton}"
-                    Width="28"
-                    Height="28"
-                    Margin="0"
-                    Padding="0"
-                    ToolTip="Cancel timer"
-                    AutomationProperties.Name="Cancel live timer"
-                    Click="CancelButton_Click">
-                <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
-            </Button>
-        </StackPanel>
     </Grid>
 </UserControl>
