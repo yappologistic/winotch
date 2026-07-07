@@ -56,6 +56,7 @@ flowchart LR
     Expanded --> Agenda["Agenda"]
     Compact --> FocusLive["Focus Live Activity"]
     Compact --> CalendarLive["Meeting Countdown"]
+    Shell --> LiveStrip["Live Activity Strip"]
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
     Expanded --> Notifications["Notifications"]
@@ -89,10 +90,21 @@ Animation timings live in `ShellAnimationTiming`:
 ## Shell States
 
 - `Mini`: tiny centered pill used for every foreground app state today.
+- `Live`: a centered slim strip that auto-grows from Mini for one ongoing activity without opening the expanded panel.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
 
-`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. `MainWindow.LiveActivities` can lift that Mini result to `Live` while an activity is active, then falls back to the foreground mode when the activity ends. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+
+## Live Activities
+
+`LiveActivityService` is pure logic with no WPF types. It arbitrates one visible activity at a time in priority order: optional active call, transient quick timer, now-playing media, then privacy activity dots. Camera and microphone dots reuse the privacy-usage state already read by `PriorityStatusService`; screen-share is modeled for the strip and tests, but the current Windows status path does not yet expose a screen-share source.
+
+The transient quick timer is separate from the persisted focus timer. It stores only in-memory wall-clock timestamps, supports start/pause/resume/cancel, clamps progress to `0..1`, and disappears when expired or when Winotch exits. The expanded Timer panel has small 5/10/15 minute start buttons; active timer controls live on the strip.
+
+The now-playing strip reuses `MediaService` and `MediaSnapshot` artwork/title/playback state. If Windows exposes timeline data, the strip progress bar uses it as a scrubber; otherwise it stays at zero while still showing the playing track.
+
+Call detection is gated by `LiveActivitySettings.CallDetectionEnabled` and is off by default. `LiveCallDetector` reads local process names and window titles through an injectable seam so tests can pass fake windows; no titles are persisted, logged, or sent over the network.
 
 ## Multi-Monitor Targeting
 

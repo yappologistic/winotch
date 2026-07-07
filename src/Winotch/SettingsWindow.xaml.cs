@@ -54,6 +54,10 @@ public partial class SettingsWindow : Window
         ShowAppMixerToggle.IsChecked = settings.Features.ShowAppMixer;
         SystemStatsEnabledToggle.IsChecked = settings.Features.SystemStatsEnabled;
         FollowActiveMonitorToggle.IsChecked = settings.Features.FollowActiveMonitor;
+        ActivityDotsEnabledToggle.IsChecked = settings.LiveActivities.ActivityDotsEnabled;
+        NowPlayingStripEnabledToggle.IsChecked = settings.LiveActivities.NowPlayingStripEnabled;
+        TransientTimerEnabledToggle.IsChecked = settings.LiveActivities.TransientTimerEnabled;
+        CallDetectionEnabledToggle.IsChecked = settings.LiveActivities.CallDetectionEnabled;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
@@ -128,6 +132,25 @@ public partial class SettingsWindow : Window
         _settings.Update(settings => settings with
         {
             Calendar = settings.Calendar with { Enabled = CalendarEnabledToggle.IsChecked == true }
+        });
+    }
+
+    private void LiveActivitySettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            LiveActivities = settings.LiveActivities with
+            {
+                ActivityDotsEnabled = ActivityDotsEnabledToggle.IsChecked == true,
+                NowPlayingStripEnabled = NowPlayingStripEnabledToggle.IsChecked == true,
+                TransientTimerEnabled = TransientTimerEnabledToggle.IsChecked == true,
+                CallDetectionEnabled = CallDetectionEnabledToggle.IsChecked == true
+            }
         });
     }
 

@@ -11,6 +11,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 ## Features
 
 - Notch shell: centered Mini pill for foreground states, hover-expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
+- Live Activities: Mini auto-grows into a slim live strip for active calls, quick in-memory timers, playing media, or privacy activity dots, then returns to Mini when idle.
 - Media: current Windows media session metadata, artwork, playback controls, and media-change toasts.
 - Notifications: Windows notification list, compact notification toasts, live action buttons when Windows exposes them, and OS quiet-state suppression.
 - Priority alerts: low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, microphone/camera activity, and focus completion toasts.
@@ -80,6 +81,8 @@ Hover the notch to expand it. The control center changes the current output devi
 On multi-monitor setups, the notch follows the monitor containing the foreground app while the shell mode remains Mini until hover expansion or a compact toast. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed. Settings can disable active-monitor following and keep the notch on the primary monitor.
 
 The Calendar settings group accepts one or more `webcal://`, `https://`, or `http://` ICS URLs, refreshes them every five minutes, and adds the next three 24-hour agenda items plus Join buttons for Zoom, Teams, and Google Meet links.
+
+The Live Activities settings group controls four local-only signals: camera/microphone/screen-share dots, a now-playing strip, an in-memory quick timer, and optional call detection. Call detection is off by default and uses local process/window-title heuristics for Teams, Zoom, and Google Meet; it does not send titles anywhere. The quick timer is separate from the persisted focus timer and clears when Winotch exits.
 
 The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
 
@@ -154,6 +157,7 @@ Winotch respects the Windows notification state before showing its own compact n
 
 - Camera: Winotch opens the default Windows camera only while the live mirror flyout is visible. It does not record, persist frames, or offer a camera picker.
 - Clipboard: clipboard history is in-memory only and clears when Winotch exits.
+- Live Activities: quick live timers and activity arbitration are in-memory only. Call detection, when enabled, checks local process names and window titles without telemetry or network calls.
 - Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly to live-toast watching when those are unavailable.
 - Calendar: Winotch fetches only user-provided ICS URLs and caches conditional GET metadata locally.
 - Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`; Winotch does not add telemetry or background network calls beyond user-provided calendar URLs.

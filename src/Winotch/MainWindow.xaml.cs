@@ -76,6 +76,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeLiveActivities();
         _brightnessWriter = new DebouncedBrightnessWriter(TimeSpan.FromMilliseconds(150), _brightness.SetBrightnessAsync);
         _trayIcon = new TrayIconService(this, _settings, _startup, _notifications);
         _settings.Changed += Settings_Changed;
@@ -84,6 +85,7 @@ public partial class MainWindow : Window
             UpdateClock();
             RefreshFocusTimer();
             var now = DateTimeOffset.UtcNow;
+            RefreshLiveActivityTimer(now);
             ApplyCalendarUi(now);
             ShowCalendarToastIfDue(now);
         };
@@ -240,6 +242,7 @@ public partial class MainWindow : Window
         ApplyWifiStatus(wifi, networks);
 
         var priorityStatus = ReadPriorityStatus(battery, wifi);
+        ApplyLiveActivityInputs(priorityStatus, media);
         ApplyMicState(priorityStatus.MicrophoneActive, ReadCaptureMuted());
         if (_expanded)
         {
@@ -424,6 +427,7 @@ public partial class MainWindow : Window
         ApplyClipboardHistoryEnabled(settings.Features.ClipboardHistoryEnabled);
         ApplyAppMixerEnabled(settings.Features.ShowAppMixer);
         ApplySystemStatsEnabled(settings.Features.SystemStatsEnabled);
+        ApplyLiveActivitySettings(settings.LiveActivities);
     }
 
     private void ApplyClipboardHistoryEnabled(bool enabled)
@@ -701,6 +705,7 @@ public partial class MainWindow : Window
 
         ShellAnimator.Hide(DateText, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
+        ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         ClockGroup.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
         ApplyHeaderDensity(isFullBar: false);
         _appBar.Release();
@@ -914,6 +919,7 @@ public partial class MainWindow : Window
         SetMouseTransparent(false);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
+        ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         DetailPanel.Opacity = 0;
         HeaderRow.Height = new GridLength(28);
         NotchShell.Padding = new Thickness(10, 4, 10, 6);
@@ -1028,19 +1034,28 @@ public partial class MainWindow : Window
 
         _currentShellMode = mode;
         var isFullBar = mode == ShellMode.FullBar;
+        var isLive = mode == ShellMode.Live;
         var monitor = CurrentMonitor();
-        var geometry = ShellMetrics.PlaceOnMonitor(ShellMetrics.ForMode(isFullBar, monitor.WidthDip), monitor);
+        var geometry = ShellMetrics.PlaceOnMonitor(
+            isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip),
+            monitor);
 
         ShellAnimator.Hide(DateText, _animationFrameRate);
-        ClockGroup.Visibility = Visibility.Visible;
-        ClockGroup.Opacity = 1;
+        ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;
+        ClockGroup.Opacity = isLive ? 0 : 1;
         StatusGroup.Visibility = isFullBar ? Visibility.Visible : Visibility.Collapsed;
         StatusGroup.Opacity = isFullBar ? 1 : 0;
+        LiveStrip.Visibility = isLive ? Visibility.Visible : Visibility.Collapsed;
+        LiveStrip.Opacity = isLive ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
         ClockGroup.HorizontalAlignment = isFullBar ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Center;
-        HeaderRow.Height = new GridLength(isFullBar ? 28 : 28);
-        NotchShell.Padding = isFullBar ? new Thickness(10, 2, 10, 2) : new Thickness(10, 4, 10, 6);
-        NotchShell.CornerRadius = isFullBar ? new CornerRadius(0) : new CornerRadius(0, 0, 20, 20);
+        HeaderRow.Height = new GridLength(isLive ? 44 : 28);
+        NotchShell.Padding = isFullBar
+            ? new Thickness(10, 2, 10, 2)
+            : isLive
+                ? new Thickness(12, 7, 12, 7)
+                : new Thickness(10, 4, 10, 6);
+        NotchShell.CornerRadius = isFullBar ? new CornerRadius(0) : new CornerRadius(0, 0, isLive ? 28 : 20, isLive ? 28 : 20);
         if (isFullBar)
         {
             _appBar.ReserveTop(this, geometry.WindowHeight, monitor);
@@ -1054,6 +1069,15 @@ public partial class MainWindow : Window
         {
             ShellAnimator.Animate(DetailPanel, OpacityProperty, 0, _animationFrameRate);
             ShellAnimator.AnimateShell(this, NotchShell, geometry, _animationFrameRate);
+            if (isLive)
+            {
+                ShellAnimator.Show(LiveStrip, _animationFrameRate);
+            }
+            else
+            {
+                ShellAnimator.Hide(LiveStrip, _animationFrameRate);
+            }
+
             SetMouseTransparent(isFullBar && !_expanded);
             return;
         }
@@ -1105,7 +1129,8 @@ public partial class MainWindow : Window
                     LastMonitorDeviceName: null));
         var monitorChanged = _currentMonitor is null ||
             !string.Equals(_currentMonitor.Value.DeviceName, targetMonitor.DeviceName, StringComparison.OrdinalIgnoreCase);
-        if (!force && !monitorChanged && foreground.Mode == _currentShellMode)
+        var desiredMode = DesiredShellModeForLiveActivity(foreground.Mode);
+        if (!force && !monitorChanged && desiredMode == _currentShellMode)
         {
             return;
         }
@@ -1117,7 +1142,7 @@ public partial class MainWindow : Window
 
         _currentMonitor = targetMonitor;
         _animationFrameRate = DisplayRefreshRateService.GetRefreshRate(targetMonitor.DeviceName);
-        ApplyShellMode(foreground.Mode, animate);
+        ApplyShellMode(desiredMode, animate);
     }
 
     private MonitorSnapshot CurrentMonitor(bool preferCursor = false)

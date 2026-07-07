@@ -14,6 +14,9 @@ public static class ShellMetrics
     public const double MiniWindowHeight = 52;
     public const double FullBarShellHeight = 32;
     public const double FullBarWindowHeight = 34;
+    public const double LiveStripWidth = 520;
+    public const double LiveStripShellHeight = 58;
+    public const double LiveStripWindowHeight = 66;
     public const double MediaToastWidth = 520;
     public const double MediaToastShellHeight = 68;
     public const double MediaToastWindowHeight = 76;
@@ -47,6 +50,12 @@ public static class ShellMetrics
     {
         var width = FitWidth(MediaToastWidth, screenWidth);
         return new ShellGeometry(width, MediaToastShellHeight, MediaToastWindowHeight, CenterLeft(screenWidth, width));
+    }
+
+    public static ShellGeometry LiveStrip(double screenWidth)
+    {
+        var width = FitWidth(LiveStripWidth, screenWidth);
+        return new ShellGeometry(width, LiveStripShellHeight, LiveStripWindowHeight, CenterLeft(screenWidth, width));
     }
 
     public static ShellGeometry PlaceOnMonitor(ShellGeometry geometry, MonitorSnapshot monitor)
