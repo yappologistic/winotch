@@ -772,7 +772,8 @@ public partial class MainWindow : Window
 
     private void ApplySystemStats(SystemStatsSnapshot snapshot)
     {
-        SystemStatsSection.Visibility = snapshot.HasRows ? Visibility.Visible : Visibility.Collapsed;
+        // Keep Agenda and Clipboard available even when the optional stats sampler has no rows.
+        StatsRowsPanel.Visibility = snapshot.HasRows ? Visibility.Visible : Visibility.Collapsed;
         ApplyStatsRow(StatsCpuRow, StatsCpuValueText, snapshot.Cpu);
         ApplyStatsRow(StatsRamRow, StatsRamValueText, snapshot.Ram);
         ApplyStatsRow(StatsNetRow, StatsNetValueText, snapshot.Network);
