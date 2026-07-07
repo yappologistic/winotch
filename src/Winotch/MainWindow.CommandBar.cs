@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Winotch.CommandBar;
 
 namespace Winotch;
@@ -133,7 +134,14 @@ public partial class MainWindow
         var monitor = CurrentMonitor(preferCursor: true);
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.Command(monitor.WidthDip), monitor), _animationFrameRate);
         ShellAnimator.Show(CommandBarPanel, _animationFrameRate);
-        Dispatcher.BeginInvoke(CommandBarPanel.FocusInput);
+        Dispatcher.BeginInvoke(FocusCommandBarInput, DispatcherPriority.ApplicationIdle);
+    }
+
+    private void FocusCommandBarInput()
+    {
+        Activate();
+        CommandBarPanel.FocusInput();
+        Keyboard.Focus(CommandBarPanel.InputBox);
     }
 
     private void HideCommandBar(bool restoreShell)

@@ -72,13 +72,7 @@ public partial class ShelfFlyout : Window
 
     private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton != MouseButtonState.Pressed)
-        {
-            return;
-        }
-
-        HasManualPosition = true;
-        DragMove();
+        FlyoutDragHelper.DragFromHeader(this, e, () => HasManualPosition = true);
     }
 
     private void CopyButton_Click(object sender, RoutedEventArgs e)

@@ -345,12 +345,6 @@
                                                         <TextBlock Text="Color" FontSize="11" FontWeight="SemiBold" />
                                                     </StackPanel>
                                                 </Button>
-                                                <Button x:Name="QrStudioButton" Padding="8,6" Margin="0,0,0,5" HorizontalContentAlignment="Left" ToolTip="QR studio" AutomationProperties.Name="Open QR studio" Click="QrStudio_Click">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8B3;" FontSize="12" Margin="0,0,5,0" />
-                                                        <TextBlock Text="QR" FontSize="11" FontWeight="SemiBold" />
-                                                    </StackPanel>
-                                                </Button>
                                                 <Button x:Name="TextScrubberButton" Padding="8,6" HorizontalContentAlignment="Left" ToolTip="Text scrubber" AutomationProperties.Name="Open text scrubber" Click="TextScrubber_Click">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE8D2;" FontSize="12" Margin="0,0,5,0" />

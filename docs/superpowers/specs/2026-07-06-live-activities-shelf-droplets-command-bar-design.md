@@ -71,27 +71,21 @@ cap ~8 items. No disk persistence.
 ### Goal — Droplets v1 (three self-contained flyouts from the expanded panel)
 1. **Color picker** — screen-pixel loupe → copy hex/RGB to clipboard
    (`CopyFromScreen`, no package).
-2. **QR studio** — generate a QR from pasted text/link (tiny local encoder,
-   **no network/package** per `AGENTS.md`). Decode is a follow-up (would need
-   a package) and is out of scope for v1.
-3. **Text scrubber** — paste text → strip formatting / change case / remove
+2. **Text scrubber** — paste text → strip formatting / change case / remove
    line breaks / trim whitespace / count chars (pure string ops).
 
 ### Integration points
 - `ShelfService` + `ShelfModels` (in-memory, privacy) + `ShelfFlyout` window —
   NEW files mirroring the camera-mirror flyout lifecycle.
-- `Droplets/` area: `ColorPickerDroplet`, `QrStudioDroplet`,
-  `TextScrubberDroplet` — each a small service + flyout (NEW files).
+- `Droplets/` area: `ColorPickerDroplet` and `TextScrubberDroplet` — each a small service + flyout (NEW files).
 - `ShelfSettings` + `DropletSettings` records (pre-created in the prep commit;
   agent expands fields + `Normalize`).
 - Settings UI groups for Shelf and Droplets.
 - Tests: `ShelfTests.cs` (cap/dedupe/privacy/clear), `DropletTests.cs` (color
-  math, QR encode roundtrip, text transforms).
+  math and text transforms).
 
 ### Key decisions
 - Shelf as a flyout window (avoids the cramped-band removal).
-- QR encode-only in v1 (no package, honors "prefer built-in APIs before
-  packages" from `AGENTS.md`).
 - Shelf is in-memory only and clears on exit (matches clipboard history privacy
   posture). Document this plainly per the privacy rules.
 
@@ -155,8 +149,7 @@ parallel agents from clobbering each other:
 
 ## Privacy (per `AGENTS.md`)
 - Shelf: in-memory only, clears on exit. Document plainly.
-- Droplets: color picker and text scrubber are fully local. QR generation is
-  local with no network.
+- Droplets: color picker and text scrubber are fully local with no network.
 - Command Bar: app/window/calculator/units/quick-commands are all local. No
   web search or currency fetch without explicit approval.
 - No telemetry or background network calls are added by any of these features.

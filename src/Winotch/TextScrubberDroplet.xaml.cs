@@ -13,6 +13,7 @@ public partial class TextScrubberDroplet : Window
     private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
     private static readonly IEasingFunction Easing = new QuarticEase { EasingMode = EasingMode.EaseOut };
     private bool _closing;
+    private TextScrubCase _selectedCase = TextScrubCase.Preserve;
 
     public TextScrubberDroplet()
     {
@@ -58,6 +59,17 @@ public partial class TextScrubberDroplet : Window
 
     private void OptionChanged(object sender, RoutedEventArgs e) => RefreshOutput();
 
+    private void CaseButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.Button { Tag: string tag } && Enum.TryParse<TextScrubCase>(tag, out var scrubCase))
+        {
+            _selectedCase = scrubCase;
+            RefreshOutput();
+        }
+    }
+
+    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => FlyoutDragHelper.DragFromHeader(this, e);
+
     private void PasteButton_Click(object sender, RoutedEventArgs e)
     {
         if (WpfClipboard.ContainsText())
@@ -75,15 +87,12 @@ public partial class TextScrubberDroplet : Window
             return;
         }
 
-        var scrubCase = CaseComboBox?.SelectedItem is ComboBoxItem { Tag: TextScrubCase selected }
-            ? selected
-            : TextScrubCase.Preserve;
         var result = TextScrubberService.Scrub(
             InputBox.Text,
             new TextScrubOptions(
                 TrimWhitespace: TrimToggle.IsChecked == true,
                 RemoveLineBreaks: LineBreakToggle.IsChecked == true,
-                Case: scrubCase));
+                Case: _selectedCase));
         OutputBox.Text = result.Text;
         CountText.Text = $"{result.CharacterCount} chars";
     }

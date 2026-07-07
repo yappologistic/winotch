@@ -15,28 +15,6 @@ public class DropletTests
     }
 
     [Fact]
-    public void QrEncoderBuildsVersionOneMatrixForShortText()
-    {
-        var qr = QrCodeEncoder.EncodeText("Winotch");
-
-        Assert.Equal(1, qr.Version);
-        Assert.Equal(21, qr.Size);
-        Assert.Equal(17, qr.DataCapacityBytes);
-        Assert.Equal("Winotch"u8.ToArray(), qr.PayloadBytes);
-        Assert.True(qr.Modules[0, 0]);
-        Assert.True(qr.Modules[6, 6]);
-        Assert.True(qr.Modules[13, 8]);
-    }
-
-    [Fact]
-    public void QrEncoderRejectsTextBeyondVersionOneCapacity()
-    {
-        var text = new string('x', 18);
-
-        Assert.Throws<ArgumentException>(() => QrCodeEncoder.EncodeText(text));
-    }
-
-    [Fact]
     public void TextScrubberTransformsCaseLineBreaksTrimAndCount()
     {
         var result = TextScrubberService.Scrub(

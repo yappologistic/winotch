@@ -72,7 +72,9 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Grid Margin="2,0,2,8">
+            <Grid Margin="2,0,2,8"
+                  Background="Transparent"
+                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />

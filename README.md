@@ -19,7 +19,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - Focus timer: 25/5, 50/10, or custom focus sessions with pause/resume/skip/stop, auto-cycle, persistence, and compact live state.
 - Clipboard history: in-memory text/link/image/file capture with privacy-format exclusions, thumbnail-only image storage, copy/delete/clear, and no disk persistence.
 - Shelf: drag-and-drop staging flyout below the notch for files, text, links, and image thumbnails, with drag-out/copy/open/remove/clear.
-- Droplets: local color picker, short-text QR generator, and text scrubber flyouts launched from the expanded panel.
+- Droplets: local color picker and text scrubber flyouts launched from the expanded panel.
 - Settings and tray: live settings, Start with Windows, pause/resume, feature toggles, toast gates, duration scale, and JSON persistence.
 - Charging flourish: charger-connect priority toast with animated battery fill and percent readout.
 - System stats: expanded-only CPU, RAM, and network text values.
@@ -103,7 +103,7 @@ The camera button in the expanded control center opens a small live mirror flyou
 
 The shelf button opens a separate topmost flyout below the notch. Dropping files, text, links, or images onto the notch stages compact rows in memory; rows can be dragged back out, copied, opened, removed, or cleared. The shelf is capped by Settings, defaults to 8 items, uses the same clipboard privacy exclusion formats as clipboard history, stores only image thumbnails, and clears when Winotch exits.
 
-Droplets are small local flyouts from the expanded panel. Color picker samples a screen pixel with `CopyFromScreen` and copies hex/RGB text. QR studio generates encode-only version-1 QR codes for short pasted text or links with a local encoder; it does not decode and does not call the network. Text scrubber runs pure string operations for trimming, line-break removal, case changes, and character counts.
+Droplets are small local flyouts from the expanded panel. Color picker samples a clicked screen pixel with `CopyFromScreen` and copies hex/RGB text. Text scrubber runs pure string operations for trimming, line-break removal, case changes, and character counts.
 
 ## Test Coverage
 
@@ -135,7 +135,7 @@ Shelf state is memory-only and capped by Settings. Winotch does not write staged
 
 ## Droplets
 
-Color picker, QR studio, and text scrubber are fully local utilities. They add no packages, telemetry, or network calls. QR generation is encode-only for short text/link payloads in this v1.
+Color picker and text scrubber are fully local utilities. They add no packages, telemetry, or network calls.
 
 ## Optional Local Publish
 
@@ -180,7 +180,7 @@ Winotch respects the Windows notification state before showing its own compact n
 - Clipboard: clipboard history is in-memory only and clears when Winotch exits.
 - Live Activities: quick live timers and activity arbitration are in-memory only. Call detection, when enabled, checks local process names and window titles without telemetry or network calls.
 - Shelf: staged shelf items are in-memory only and clear when Winotch exits.
-- Droplets: color picking, QR generation, and text scrubbing are local-only; no network calls are added.
+- Droplets: color picking and text scrubbing are local-only; no network calls are added.
 - Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly to live-toast watching when those are unavailable.
 - Calendar: Winotch fetches only user-provided ICS URLs and caches conditional GET metadata locally.
 - Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`; Winotch does not add telemetry or background network calls beyond user-provided calendar URLs.

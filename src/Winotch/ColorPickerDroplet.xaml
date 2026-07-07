@@ -20,7 +20,9 @@
             <ScaleTransform x:Name="FlyoutScale" ScaleX="0.96" ScaleY="0.96" />
         </Border.RenderTransform>
         <StackPanel>
-            <Grid Margin="2,0,2,10">
+            <Grid Margin="2,0,2,10"
+                  Background="Transparent"
+                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -44,7 +46,7 @@
                     <TextBlock x:Name="HexText" Text="#000000" FontSize="14" FontWeight="SemiBold" />
                     <TextBlock x:Name="RgbText" Text="rgb(0, 0, 0)" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,2,0,0" />
                 </StackPanel>
-                <Button Grid.Column="2" Content="Pick" Padding="12,7" VerticalAlignment="Center" Click="PickButton_Click" />
+                <Button x:Name="PickButton" Grid.Column="2" Content="Pick" Padding="12,7" VerticalAlignment="Center" Click="PickButton_Click" />
             </Grid>
             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                 <Button Content="Copy hex" Padding="11,6" Margin="0,0,8,0" Click="CopyHexButton_Click" />

@@ -327,12 +327,6 @@
                               Style="{StaticResource ToggleSwitch}"
                               Checked="DropletSettingChanged"
                               Unchecked="DropletSettingChanged" />
-                    <CheckBox x:Name="QrStudioEnabledToggle"
-                              Content="QR studio"
-                              Style="{StaticResource ToggleSwitch}"
-                              Margin="0,12,0,0"
-                              Checked="DropletSettingChanged"
-                              Unchecked="DropletSettingChanged" />
                     <CheckBox x:Name="TextScrubberEnabledToggle"
                               Content="Text scrubber"
                               Style="{StaticResource ToggleSwitch}"

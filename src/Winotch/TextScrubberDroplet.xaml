@@ -28,7 +28,9 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="38" />
             </Grid.RowDefinitions>
-            <Grid Margin="2,0,2,8">
+            <Grid Margin="2,0,2,8"
+                  Background="Transparent"
+                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -50,13 +52,13 @@
                 </Grid.ColumnDefinitions>
                 <CheckBox x:Name="TrimToggle" Content="Trim" IsChecked="True" Checked="OptionChanged" Unchecked="OptionChanged" />
                 <CheckBox x:Name="LineBreakToggle" Grid.Column="1" Content="No breaks" Margin="14,0,14,0" Checked="OptionChanged" Unchecked="OptionChanged" />
-                <ComboBox x:Name="CaseComboBox" Grid.Column="2" SelectionChanged="OptionChanged">
-                    <ComboBoxItem Content="Case: Preserve" Tag="{x:Static local:TextScrubCase.Preserve}" IsSelected="True" />
-                    <ComboBoxItem Content="Case: Upper" Tag="{x:Static local:TextScrubCase.Upper}" />
-                    <ComboBoxItem Content="Case: Lower" Tag="{x:Static local:TextScrubCase.Lower}" />
-                    <ComboBoxItem Content="Case: Title" Tag="{x:Static local:TextScrubCase.Title}" />
-                    <ComboBoxItem Content="Case: Sentence" Tag="{x:Static local:TextScrubCase.Sentence}" />
-                </ComboBox>
+                <UniformGrid Grid.Column="2" Columns="5">
+                    <Button Content="Keep" Tag="Preserve" FontSize="11" Padding="6,5" Margin="0,0,5,0" Click="CaseButton_Click" />
+                    <Button Content="Upper" Tag="Upper" FontSize="11" Padding="6,5" Margin="0,0,5,0" Click="CaseButton_Click" />
+                    <Button Content="Lower" Tag="Lower" FontSize="11" Padding="6,5" Margin="0,0,5,0" Click="CaseButton_Click" />
+                    <Button Content="Title" Tag="Title" FontSize="11" Padding="6,5" Margin="0,0,5,0" Click="CaseButton_Click" />
+                    <Button Content="Sent." Tag="Sentence" FontSize="11" Padding="6,5" Click="CaseButton_Click" />
+                </UniformGrid>
             </Grid>
             <TextBox x:Name="OutputBox" Grid.Row="3" Style="{StaticResource NotchTextBox}" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" FontSize="12" />
             <DockPanel Grid.Row="4" Margin="0,10,0,0">

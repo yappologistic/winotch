@@ -168,7 +168,7 @@ Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skip
 
 Droplets are three one-purpose flyout windows launched from compact buttons in the expanded panel. They follow the `CameraMirrorWindow` lifecycle and close on X, Esc, outside click, notch collapse, pause, or suspend/resume. Settings can hide each droplet button independently without touching `SettingsService`.
 
-`ColorPickerService` samples a single screen pixel with `CopyFromScreen` and formats hex/RGB locally. `QrCodeEncoder` is a self-contained local version-1/low-correction encoder for short UTF-8 text or links; decode is intentionally out of scope. `TextScrubberService` is pure string logic for trim, line-break removal, case transforms, and character counts. Droplets add no packages, telemetry, or network calls.
+`ColorPickerService` samples a clicked screen pixel with `CopyFromScreen` and formats hex/RGB locally. `TextScrubberService` is pure string logic for trim, line-break removal, case transforms, and character counts. Droplets add no packages, telemetry, or network calls.
 
 ## Priority Status Alerts
 
@@ -214,7 +214,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
 - Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, and thumbnail-only image staging.
-- Droplet color formatting/parsing, short-text QR matrix generation, and text scrub transforms/counts.
+- Droplet color formatting/parsing and text scrub transforms/counts.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.

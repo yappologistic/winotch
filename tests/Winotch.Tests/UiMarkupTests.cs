@@ -35,7 +35,6 @@ public sealed class UiMarkupTests
     [Theory]
     [InlineData("ShelfFlyout.xaml")]
     [InlineData("ColorPickerDroplet.xaml")]
-    [InlineData("QrStudioDroplet.xaml")]
     [InlineData("TextScrubberDroplet.xaml")]
     [InlineData("CameraMirrorWindow.xaml")]
     public void FlyoutHeadersUseRightAlignedCloseColumn(string fileName)

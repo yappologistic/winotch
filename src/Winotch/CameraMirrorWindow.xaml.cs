@@ -70,6 +70,8 @@ public partial class CameraMirrorWindow : Window
         await CloseMirrorAsync();
     }
 
+    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => FlyoutDragHelper.DragFromHeader(this, e);
+
     private void MirrorToggleButton_Click(object sender, RoutedEventArgs e)
     {
         var mirrored = MirrorToggleButton.IsChecked == true;

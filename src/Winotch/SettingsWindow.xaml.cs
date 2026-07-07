@@ -61,7 +61,6 @@ public partial class SettingsWindow : Window
         ShelfEnabledToggle.IsChecked = settings.Shelf.Enabled;
         SelectShelfCap(settings.Shelf.Cap);
         ColorPickerEnabledToggle.IsChecked = settings.Droplets.ColorPickerEnabled;
-        QrStudioEnabledToggle.IsChecked = settings.Droplets.QrStudioEnabled;
         TextScrubberEnabledToggle.IsChecked = settings.Droplets.TextScrubberEnabled;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
         CommandBarEnabledToggle.IsChecked = settings.CommandBar.Enabled;
@@ -167,7 +166,6 @@ public partial class SettingsWindow : Window
             Droplets = settings.Droplets with
             {
                 ColorPickerEnabled = ColorPickerEnabledToggle.IsChecked == true,
-                QrStudioEnabled = QrStudioEnabledToggle.IsChecked == true,
                 TextScrubberEnabled = TextScrubberEnabledToggle.IsChecked == true
             }
         });

@@ -9,11 +9,6 @@ public partial class MainWindow
     private readonly ShelfService _shelf = new(new ShelfSettings());
     private ShelfFlyout? _shelfFlyout;
 
-    private void InitializeShelf()
-    {
-        _shelf.Changed += Shelf_Changed;
-    }
-
     private void ApplyShelfSettings(ShelfSettings settings)
     {
         _shelf.ApplySettings(settings);
@@ -89,14 +84,6 @@ public partial class MainWindow
         if (ReferenceEquals(_shelfFlyout, sender))
         {
             _shelfFlyout = null;
-        }
-    }
-
-    private void Shelf_Changed(object? sender, EventArgs e)
-    {
-        if (_shelf.Items.Count == 0)
-        {
-            _ = CloseShelfAsync();
         }
     }
 

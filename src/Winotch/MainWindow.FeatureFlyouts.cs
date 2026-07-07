@@ -6,7 +6,6 @@ public partial class MainWindow
 {
     private void InitializeFeatureFlyouts()
     {
-        InitializeShelf();
     }
 
     private void ApplyShelfAndDropletSettings(WinotchSettings settings)

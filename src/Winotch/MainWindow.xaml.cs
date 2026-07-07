@@ -1548,7 +1548,6 @@ public partial class MainWindow : Window
         _systemStats.Dispose();
         _trayIcon.Dispose();
         _settings.Changed -= Settings_Changed;
-        _shelf.Changed -= Shelf_Changed;
         _brightnessWriter.Dispose();
         _audio.Dispose();
         _cameraMirror.Dispose();

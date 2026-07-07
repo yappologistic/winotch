@@ -33,12 +33,14 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Grid Margin="2,0,2,8">
+            <Grid Margin="2,0,2,8"
+                  Background="Transparent"
+                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE8B7;" FontSize="15" Margin="0,0,8,0" />
                     <TextBlock Text="Shelf" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>

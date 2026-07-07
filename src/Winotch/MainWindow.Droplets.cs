@@ -6,22 +6,15 @@ public partial class MainWindow
 {
     private readonly ColorPickerService _colorPicker = new();
     private ColorPickerDroplet? _colorPickerDroplet;
-    private QrStudioDroplet? _qrStudioDroplet;
     private TextScrubberDroplet? _textScrubberDroplet;
 
     private void ApplyDropletSettings(DropletSettings settings)
     {
         ColorPickerButton.Visibility = settings.ColorPickerEnabled ? Visibility.Visible : Visibility.Collapsed;
-        QrStudioButton.Visibility = settings.QrStudioEnabled ? Visibility.Visible : Visibility.Collapsed;
         TextScrubberButton.Visibility = settings.TextScrubberEnabled ? Visibility.Visible : Visibility.Collapsed;
         if (!settings.ColorPickerEnabled)
         {
             _ = CloseColorPickerAsync();
-        }
-
-        if (!settings.QrStudioEnabled)
-        {
-            _ = CloseQrStudioAsync();
         }
 
         if (!settings.TextScrubberEnabled)
@@ -45,21 +38,6 @@ public partial class MainWindow
         _colorPickerDroplet.Activate();
     }
 
-    private async void QrStudio_Click(object sender, RoutedEventArgs e)
-    {
-        if (_qrStudioDroplet is not null)
-        {
-            await CloseQrStudioAsync();
-            return;
-        }
-
-        _qrStudioDroplet = new QrStudioDroplet { Owner = this };
-        _qrStudioDroplet.Closed += QrStudioDroplet_Closed;
-        PositionFlyoutBelowNotch(_qrStudioDroplet);
-        _qrStudioDroplet.Show();
-        _qrStudioDroplet.Activate();
-    }
-
     private async void TextScrubber_Click(object sender, RoutedEventArgs e)
     {
         if (_textScrubberDroplet is not null)
@@ -78,7 +56,6 @@ public partial class MainWindow
     private async Task CloseDropletsAsync()
     {
         await CloseColorPickerAsync();
-        await CloseQrStudioAsync();
         await CloseTextScrubberAsync();
     }
 
@@ -87,14 +64,6 @@ public partial class MainWindow
         if (_colorPickerDroplet is not null)
         {
             await _colorPickerDroplet.CloseDropletAsync();
-        }
-    }
-
-    private async Task CloseQrStudioAsync()
-    {
-        if (_qrStudioDroplet is not null)
-        {
-            await _qrStudioDroplet.CloseDropletAsync();
         }
     }
 
@@ -119,19 +88,6 @@ public partial class MainWindow
         }
     }
 
-    private void QrStudioDroplet_Closed(object? sender, EventArgs e)
-    {
-        if (sender is QrStudioDroplet window)
-        {
-            window.Closed -= QrStudioDroplet_Closed;
-        }
-
-        if (ReferenceEquals(_qrStudioDroplet, sender))
-        {
-            _qrStudioDroplet = null;
-        }
-    }
-
     private void TextScrubberDroplet_Closed(object? sender, EventArgs e)
     {
         if (sender is TextScrubberDroplet window)
@@ -150,11 +106,6 @@ public partial class MainWindow
         if (_colorPickerDroplet is not null)
         {
             PositionFlyoutBelowNotch(_colorPickerDroplet);
-        }
-
-        if (_qrStudioDroplet is not null)
-        {
-            PositionFlyoutBelowNotch(_qrStudioDroplet);
         }
 
         if (_textScrubberDroplet is not null)
