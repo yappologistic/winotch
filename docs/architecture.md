@@ -26,6 +26,8 @@ flowchart TD
     Window --> Focus["Focus Timer State + JSON Store"]
     Window --> MonitorTargeting["Active Monitor Targeting"]
     Window --> CameraMirror["Camera Mirror Service"]
+    Window --> Shelf["Shelf Service"]
+    Window --> Droplets["Droplet Services"]
     Status --> Brightness["WMI and DDC/CI Brightness"]
     Window --> Stats["Expanded-Only System Stats Sampler"]
     Battery --> Window
@@ -38,6 +40,8 @@ flowchart TD
     Focus --> Window
     Calendar --> Window
     CameraMirror --> Window
+    Shelf --> Window
+    Droplets --> Window
     Brightness --> Window
     Stats --> Window
 ```
@@ -63,6 +67,8 @@ flowchart LR
     Expanded --> Clipboard["Clipboard History"]
     Expanded --> Stats["CPU/RAM/Network Values"]
     Controls --> CameraMirror["Camera Mirror Flyout"]
+    Controls --> Droplets["Droplet Flyouts"]
+    Shell --> Shelf["Shelf Flyout"]
 ```
 
 ## Design Tokens
@@ -132,6 +138,18 @@ The expanded panel includes an in-memory clipboard history backed by `AddClipboa
 
 Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy` skips items carrying `ExcludeClipboardContentFromMonitorProcessing` and honors `CanIncludeInClipboardHistory = 0`; `ClipboardHistoryStore` owns cap, dedupe, delete, and clear behavior. Nothing is persisted to disk.
 
+## Shelf
+
+The shelf is a separate topmost rounded flyout below the notch, not an expanded-panel band. `ShelfService` owns memory-only staged rows, cap, dedupe, remove, clear, and settings normalization. The notch itself is the drop target, and the expanded panel only exposes a compact shelf button that opens the flyout.
+
+Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a WPF `DataObject`, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. Exit, pause, collapse, outside click, X, and Esc close the flyout; app exit clears the in-memory list.
+
+## Droplets
+
+Droplets are three one-purpose flyout windows launched from compact buttons in the expanded panel. They follow the `CameraMirrorWindow` lifecycle and close on X, Esc, outside click, notch collapse, pause, or suspend/resume. Settings can hide each droplet button independently without touching `SettingsService`.
+
+`ColorPickerService` samples a single screen pixel with `CopyFromScreen` and formats hex/RGB locally. `QrCodeEncoder` is a self-contained local version-1/low-correction encoder for short UTF-8 text or links; decode is intentionally out of scope. `TextScrubberService` is pure string logic for trim, line-break removal, case transforms, and character counts. Droplets add no packages, telemetry, or network calls.
+
 ## Priority Status Alerts
 
 Priority status alerts reuse the compact notification toast surface for system events that should be glanceable without opening the full capsule: low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activation. Battery and Wi-Fi reuse the existing status reads. Bluetooth uses the native Windows Bluetooth device enumeration API, while mic/camera activity comes from Windows privacy usage registry state. The tracker suppresses routine first-run connection state and repeated low-battery spam, but queues simultaneous critical alerts such as camera, microphone, and low battery.
@@ -175,6 +193,8 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
+- Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, and thumbnail-only image staging.
+- Droplet color formatting/parsing, short-text QR matrix generation, and text scrub transforms/counts.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.

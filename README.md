@@ -17,6 +17,8 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - Control center: output device switching, master volume, optional per-app mixer, microphone mute, brightness controls, and Wi-Fi profile connect.
 - Focus timer: 25/5, 50/10, or custom focus sessions with pause/resume/skip/stop, auto-cycle, persistence, and compact live state.
 - Clipboard history: in-memory text/link/image/file capture with privacy-format exclusions, thumbnail-only image storage, copy/delete/clear, and no disk persistence.
+- Shelf: drag-and-drop staging flyout below the notch for files, text, links, and image thumbnails, with drag-out/copy/open/remove/clear.
+- Droplets: local color picker, short-text QR generator, and text scrubber flyouts launched from the expanded panel.
 - Settings and tray: live settings, Start with Windows, pause/resume, feature toggles, toast gates, duration scale, and JSON persistence.
 - Charging flourish: charger-connect priority toast with animated battery fill and percent readout.
 - System stats: expanded-only CPU, RAM, and network text values.
@@ -89,6 +91,10 @@ The expanded System column shows compact CPU, RAM, and network text values. Samp
 
 The camera button in the expanded control center opens a small live mirror flyout below the notch. The preview is mirrored by default, has a one-click normal-view toggle, and closes on X, Esc, outside click, notch collapse, pause, or power transition. Winotch never records or saves camera frames; the camera device is opened only for the live preview and released on close. The mirror uses the default Windows camera only; a camera picker is intentionally out of scope.
 
+The shelf button opens a separate topmost flyout below the notch. Dropping files, text, links, or images onto the notch stages compact rows in memory; rows can be dragged back out, copied, opened, removed, or cleared. The shelf is capped by Settings, defaults to 8 items, uses the same clipboard privacy exclusion formats as clipboard history, stores only image thumbnails, and clears when Winotch exits.
+
+Droplets are small local flyouts from the expanded panel. Color picker samples a screen pixel with `CopyFromScreen` and copies hex/RGB text. QR studio generates encode-only version-1 QR codes for short pasted text or links with a local encoder; it does not decode and does not call the network. Text scrubber runs pure string operations for trimming, line-break removal, case changes, and character counts.
+
 ## Test Coverage
 
 Run the full regression suite before sharing a build:
@@ -112,6 +118,14 @@ Diagnostics export copies a local device and settings summary to the Windows cli
 ## Camera Mirror
 
 The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed frame reading and renders frames into WPF as an in-memory preview. If Windows reports no camera, access denial, or exclusive-use failure, the flyout shows a quiet inline message instead of retrying. Opening the mirror suppresses Winotch's own camera-in-use priority alert while the preview is active.
+
+## Shelf
+
+Shelf state is memory-only and capped by Settings. Winotch does not write staged shelf items to disk, settings, logs, or roaming storage. Closing Winotch clears the shelf. File rows keep file paths, text/link rows keep capped text, and image rows keep only a small thumbnail.
+
+## Droplets
+
+Color picker, QR studio, and text scrubber are fully local utilities. They add no packages, telemetry, or network calls. QR generation is encode-only for short text/link payloads in this v1.
 
 ## Optional Local Publish
 
@@ -154,6 +168,8 @@ Winotch respects the Windows notification state before showing its own compact n
 
 - Camera: Winotch opens the default Windows camera only while the live mirror flyout is visible. It does not record, persist frames, or offer a camera picker.
 - Clipboard: clipboard history is in-memory only and clears when Winotch exits.
+- Shelf: staged shelf items are in-memory only and clear when Winotch exits.
+- Droplets: color picking, QR generation, and text scrubbing are local-only; no network calls are added.
 - Notifications: full notification history depends on Windows permission and packaged-app capabilities; the source-run alpha degrades quietly to live-toast watching when those are unavailable.
 - Calendar: Winotch fetches only user-provided ICS URLs and caches conditional GET metadata locally.
 - Settings: local JSON state lives under `%LOCALAPPDATA%\Winotch`; Winotch does not add telemetry or background network calls beyond user-provided calendar URLs.

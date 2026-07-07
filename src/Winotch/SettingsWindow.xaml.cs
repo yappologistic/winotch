@@ -54,6 +54,11 @@ public partial class SettingsWindow : Window
         ShowAppMixerToggle.IsChecked = settings.Features.ShowAppMixer;
         SystemStatsEnabledToggle.IsChecked = settings.Features.SystemStatsEnabled;
         FollowActiveMonitorToggle.IsChecked = settings.Features.FollowActiveMonitor;
+        ShelfEnabledToggle.IsChecked = settings.Shelf.Enabled;
+        SelectShelfCap(settings.Shelf.Cap);
+        ColorPickerEnabledToggle.IsChecked = settings.Droplets.ColorPickerEnabled;
+        QrStudioEnabledToggle.IsChecked = settings.Droplets.QrStudioEnabled;
+        TextScrubberEnabledToggle.IsChecked = settings.Droplets.TextScrubberEnabled;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
@@ -114,6 +119,41 @@ public partial class SettingsWindow : Window
                 ShowAppMixer = ShowAppMixerToggle.IsChecked == true,
                 SystemStatsEnabled = SystemStatsEnabledToggle.IsChecked == true,
                 FollowActiveMonitor = FollowActiveMonitorToggle.IsChecked == true
+            }
+        });
+    }
+
+    private void ShelfSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Shelf = settings.Shelf with
+            {
+                Enabled = ShelfEnabledToggle.IsChecked == true,
+                Cap = SelectedShelfCap()
+            }
+        });
+    }
+
+    private void DropletSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Droplets = settings.Droplets with
+            {
+                ColorPickerEnabled = ColorPickerEnabledToggle.IsChecked == true,
+                QrStudioEnabled = QrStudioEnabledToggle.IsChecked == true,
+                TextScrubberEnabled = TextScrubberEnabledToggle.IsChecked == true
             }
         });
     }
@@ -249,8 +289,27 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void SelectShelfCap(int cap)
+    {
+        foreach (ComboBoxItem item in ShelfCapComboBox.Items)
+        {
+            if (item.Tag is string text && int.TryParse(text, out var itemCap) && itemCap == cap)
+            {
+                ShelfCapComboBox.SelectedItem = item;
+                return;
+            }
+        }
+
+        ShelfCapComboBox.SelectedIndex = 1;
+    }
+
     private ToastDurationScale SelectedDuration() =>
         ToastDurationComboBox.SelectedItem is ComboBoxItem { Tag: ToastDurationScale scale }
             ? scale
             : ToastDurationScale.Normal;
+
+    private int SelectedShelfCap() =>
+        ShelfCapComboBox.SelectedItem is ComboBoxItem { Tag: string text } && int.TryParse(text, out var cap)
+            ? cap
+            : 8;
 }

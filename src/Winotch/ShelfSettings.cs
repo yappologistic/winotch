@@ -9,5 +9,9 @@ public sealed record ShelfSettings
     // Maximum staged items kept in memory. Nothing is persisted to disk.
     public int Cap { get; init; } = 8;
 
-    public ShelfSettings Normalize() => Cap > 0 ? this : this with { Cap = 8 };
+    public ShelfSettings Normalize()
+    {
+        var cap = Math.Clamp(Cap, 1, 24);
+        return cap == Cap ? this : this with { Cap = cap };
+    }
 }

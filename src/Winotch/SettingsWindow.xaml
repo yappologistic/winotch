@@ -287,6 +287,68 @@
 
             <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
+                    <TextBlock Text="Shelf" Style="{StaticResource SettingsSectionHeader}" />
+                    <CheckBox x:Name="ShelfEnabledToggle"
+                              Content="Drop staging shelf"
+                              Style="{StaticResource ToggleSwitch}"
+                              Checked="ShelfSettingChanged"
+                              Unchecked="ShelfSettingChanged" />
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Memory cap"
+                                   VerticalAlignment="Center"
+                                   FontSize="14" />
+                        <ComboBox x:Name="ShelfCapComboBox"
+                                  Grid.Column="1"
+                                  AutomationProperties.Name="Shelf memory cap"
+                                  SelectionChanged="ShelfSettingChanged">
+                            <ComboBoxItem Content="4 items" Tag="4" />
+                            <ComboBoxItem Content="8 items" Tag="8" />
+                            <ComboBoxItem Content="12 items" Tag="12" />
+                            <ComboBoxItem Content="24 items" Tag="24" />
+                        </ComboBox>
+                    </Grid>
+                    <TextBlock Text="In-memory only; clears when Winotch exits."
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <TextBlock Text="Droplets" Style="{StaticResource SettingsSectionHeader}" />
+                    <CheckBox x:Name="ColorPickerEnabledToggle"
+                              Content="Color picker"
+                              Style="{StaticResource ToggleSwitch}"
+                              Checked="DropletSettingChanged"
+                              Unchecked="DropletSettingChanged" />
+                    <CheckBox x:Name="QrStudioEnabledToggle"
+                              Content="QR studio"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="DropletSettingChanged"
+                              Unchecked="DropletSettingChanged" />
+                    <CheckBox x:Name="TextScrubberEnabledToggle"
+                              Content="Text scrubber"
+                              Style="{StaticResource ToggleSwitch}"
+                              Margin="0,12,0,0"
+                              Checked="DropletSettingChanged"
+                              Unchecked="DropletSettingChanged" />
+                    <TextBlock Text="All droplet actions are local; no network calls or packages."
+                               Foreground="{StaticResource NotchMutedText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
                     <TextBlock Text="Toasts" Style="{StaticResource SettingsSectionHeader}" />
                     <CheckBox x:Name="MediaToastsToggle"
                               Content="Media toasts"

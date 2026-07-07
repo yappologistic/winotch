@@ -58,6 +58,9 @@
                 CornerRadius="0,0,20,20"
                 Padding="10,4,10,6"
                 SnapsToDevicePixels="True"
+                AllowDrop="True"
+                DragOver="Notch_DragOver"
+                Drop="Notch_Drop"
                 MouseEnter="Window_MouseEnter"
                 MouseLeave="Window_MouseLeave">
             <Border.Effect>
@@ -320,6 +323,38 @@
                                             <TextBlock Text="Default output and live levels" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
                                         </StackPanel>
                                     </Grid>
+
+                                    <Border Background="{StaticResource NotchPanel}" CornerRadius="8" Padding="8,7" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="Tools" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,7" />
+                                            <StackPanel>
+                                                <Button x:Name="ShelfButton" Padding="8,6" Margin="0,0,0,5" HorizontalContentAlignment="Left" ToolTip="Shelf" AutomationProperties.Name="Open shelf" Click="ShelfButton_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8B7;" FontSize="12" Margin="0,0,5,0" />
+                                                        <TextBlock Text="Shelf" FontSize="11" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="ColorPickerButton" Padding="8,6" Margin="0,0,0,5" HorizontalContentAlignment="Left" ToolTip="Color picker" AutomationProperties.Name="Open color picker" Click="ColorPicker_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE790;" FontSize="12" Margin="0,0,5,0" />
+                                                        <TextBlock Text="Color" FontSize="11" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="QrStudioButton" Padding="8,6" Margin="0,0,0,5" HorizontalContentAlignment="Left" ToolTip="QR studio" AutomationProperties.Name="Open QR studio" Click="QrStudio_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8B3;" FontSize="12" Margin="0,0,5,0" />
+                                                        <TextBlock Text="QR" FontSize="11" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button x:Name="TextScrubberButton" Padding="8,6" HorizontalContentAlignment="Left" ToolTip="Text scrubber" AutomationProperties.Name="Open text scrubber" Click="TextScrubber_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8D2;" FontSize="12" Margin="0,0,5,0" />
+                                                        <TextBlock Text="Text" FontSize="11" FontWeight="SemiBold" />
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
 
                                     <Border Background="{StaticResource NotchPanel}" CornerRadius="8" Padding="8,7" Margin="0,0,0,8">
                                         <Grid>
