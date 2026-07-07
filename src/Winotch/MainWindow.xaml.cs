@@ -711,8 +711,7 @@ public partial class MainWindow : Window
         if (!expanded)
         {
             StopSystemStats();
-            _ = CloseCameraMirrorAsync();
-            _ = CloseShelfAndDropletsAsync();
+            // Tool flyouts are independent windows; collapsing the notch back to Mini should not dismiss them.
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
             return;
         }

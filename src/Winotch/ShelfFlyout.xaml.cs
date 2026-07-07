@@ -49,7 +49,7 @@ public partial class ShelfFlyout : Window
 
     private async void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (!_closing)
+        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseShelfAsync();
         }

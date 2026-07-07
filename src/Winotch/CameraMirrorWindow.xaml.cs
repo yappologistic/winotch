@@ -48,7 +48,7 @@ public partial class CameraMirrorWindow : Window
 
     private async void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (!_closing)
+        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseMirrorAsync();
         }
