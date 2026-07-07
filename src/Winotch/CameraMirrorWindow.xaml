@@ -72,13 +72,19 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <DockPanel Margin="2,0,2,8">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+            <Grid Margin="2,0,2,8"
+                  Background="Transparent"
+                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE722;" FontSize="15" Margin="0,0,8,0" />
                     <TextBlock Text="Mirror" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                     <ToggleButton x:Name="MirrorToggleButton"
                                   Style="{StaticResource CameraMirrorToggleButton}"
                                   IsChecked="True"
@@ -98,7 +104,7 @@
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
                     </Button>
                 </StackPanel>
-            </DockPanel>
+            </Grid>
 
             <Border Grid.Row="1"
                     CornerRadius="18"

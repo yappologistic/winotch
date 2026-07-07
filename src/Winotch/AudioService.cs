@@ -22,6 +22,20 @@ public sealed class AudioService : IDisposable
         endpoint?.SetMasterVolumeLevelScalar(Math.Clamp(value / 100, 0, 1), Guid.Empty);
     }
 
+    public bool GetMuted()
+    {
+        var endpoint = _render.Get();
+        return endpoint is not null &&
+            CoreAudioInterop.Succeeded(endpoint.GetMute(out var isMuted)) &&
+            isMuted;
+    }
+
+    public void SetMuted(bool isMuted)
+    {
+        var endpoint = _render.Get();
+        endpoint?.SetMute(isMuted, Guid.Empty);
+    }
+
     public bool GetCaptureMuted()
     {
         var endpoint = _capture.Get();

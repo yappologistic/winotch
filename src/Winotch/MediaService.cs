@@ -37,6 +37,11 @@ public sealed record MediaSnapshot(
         !string.IsNullOrWhiteSpace(Artist) ||
         !string.IsNullOrWhiteSpace(Source);
     public bool IsPlaying => State == MediaState.Playing;
+    public TimeSpan? Position { get; init; }
+    public TimeSpan? Duration { get; init; }
+    public double TimelineProgress => Position is { } position && Duration is { TotalMilliseconds: > 0 } duration
+        ? Math.Clamp(position.TotalMilliseconds / duration.TotalMilliseconds, 0, 1)
+        : 0;
     public string DisplayTitle => string.IsNullOrWhiteSpace(Title) ? "Now playing" : Title.Trim();
     public string DisplayArtist => string.IsNullOrWhiteSpace(Artist) ? DisplaySource : Artist.Trim();
     public string DisplaySource => FormatSource(Source);
@@ -110,7 +115,7 @@ public sealed class MediaService
             var playback = session.GetPlaybackInfo();
             var controls = playback.Controls;
 
-            return new MediaSnapshot(
+            var snapshot = new MediaSnapshot(
                 properties.Title,
                 properties.Artist,
                 session.SourceAppUserModelId,
@@ -120,6 +125,12 @@ public sealed class MediaService
                 controls.IsPlayEnabled,
                 controls.IsPauseEnabled,
                 controls.IsNextEnabled);
+            var timeline = session.GetTimelineProperties();
+            return snapshot with
+            {
+                Position = timeline.Position,
+                Duration = timeline.EndTime > timeline.StartTime ? timeline.EndTime - timeline.StartTime : null
+            };
         }
         catch
         {

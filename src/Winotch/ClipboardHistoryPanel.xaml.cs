@@ -92,6 +92,15 @@ public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
         }
     }
 
+    private void ClipboardCopyButton_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is ClipboardHistoryEntry entry)
+        {
+            CopyRequested?.Invoke(this, entry);
+            e.Handled = true;
+        }
+    }
+
     private void DeleteClipboardItem_Click(object sender, RoutedEventArgs e)
     {
         if ((sender as FrameworkElement)?.Tag is ClipboardHistoryEntry entry)
@@ -116,6 +125,7 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
     public ClipboardHistoryRow(ClipboardHistoryEntry entry, DateTimeOffset now)
     {
         Entry = entry;
+        Icon = IconFor(entry);
         Thumbnail = ClipboardThumbnail.ToBitmapSource(entry.ThumbnailPng);
         _timeText = ClipboardHistoryFormatting.RelativeTime(entry.CapturedAt, now);
     }
@@ -132,7 +142,9 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
         _ => "\uE8D2"
     };
     public string Preview => Entry.Preview;
+    public ImageSource? Icon { get; }
     public ImageSource? Thumbnail { get; }
+    public bool HasIcon => Icon is not null;
     public bool HasThumbnail => Thumbnail is not null;
     public string ConfirmationGlyph => _copied ? "\uE8FB" : "";
 
@@ -167,4 +179,8 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private static ImageSource? IconFor(ClipboardHistoryEntry entry) => entry.Kind == ClipboardHistoryKind.Files
+        ? ShellIconService.LoadSmallIcon(entry.FilePaths.FirstOrDefault())
+        : null;
 }

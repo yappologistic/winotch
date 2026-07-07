@@ -54,7 +54,26 @@ public partial class SettingsWindow : Window
         ShowAppMixerToggle.IsChecked = settings.Features.ShowAppMixer;
         SystemStatsEnabledToggle.IsChecked = settings.Features.SystemStatsEnabled;
         FollowActiveMonitorToggle.IsChecked = settings.Features.FollowActiveMonitor;
+        ActivityDotsEnabledToggle.IsChecked = settings.LiveActivities.ActivityDotsEnabled;
+        NowPlayingStripEnabledToggle.IsChecked = settings.LiveActivities.NowPlayingStripEnabled;
+        TransientTimerEnabledToggle.IsChecked = settings.LiveActivities.TransientTimerEnabled;
+        CallDetectionEnabledToggle.IsChecked = settings.LiveActivities.CallDetectionEnabled;
+        ShelfEnabledToggle.IsChecked = settings.Shelf.Enabled;
+        SelectShelfCap(settings.Shelf.Cap);
+        ColorPickerEnabledToggle.IsChecked = settings.Droplets.ColorPickerEnabled;
+        TextScrubberEnabledToggle.IsChecked = settings.Droplets.TextScrubberEnabled;
         CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
+        CommandBarEnabledToggle.IsChecked = settings.CommandBar.Enabled;
+        if (!StringComparer.Ordinal.Equals(CommandBarHotkeyTextBox.Text, settings.CommandBar.Hotkey))
+        {
+            CommandBarHotkeyTextBox.Text = settings.CommandBar.Hotkey;
+        }
+
+        CommandBarAppsToggle.IsChecked = settings.CommandBar.AppLauncherEnabled;
+        CommandBarWindowsToggle.IsChecked = settings.CommandBar.WindowSwitcherEnabled;
+        CommandBarCalculatorToggle.IsChecked = settings.CommandBar.CalculatorEnabled;
+        CommandBarUnitsToggle.IsChecked = settings.CommandBar.UnitConverterEnabled;
+        CommandBarQuickCommandsToggle.IsChecked = settings.CommandBar.QuickCommandsEnabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
         {
@@ -118,6 +137,40 @@ public partial class SettingsWindow : Window
         });
     }
 
+    private void ShelfSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Shelf = settings.Shelf with
+            {
+                Enabled = ShelfEnabledToggle.IsChecked == true,
+                Cap = SelectedShelfCap()
+            }
+        });
+    }
+
+    private void DropletSettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            Droplets = settings.Droplets with
+            {
+                ColorPickerEnabled = ColorPickerEnabledToggle.IsChecked == true,
+                TextScrubberEnabled = TextScrubberEnabledToggle.IsChecked == true
+            }
+        });
+    }
+
     private void CalendarSettingChanged(object sender, RoutedEventArgs e)
     {
         if (_syncing)
@@ -128,6 +181,25 @@ public partial class SettingsWindow : Window
         _settings.Update(settings => settings with
         {
             Calendar = settings.Calendar with { Enabled = CalendarEnabledToggle.IsChecked == true }
+        });
+    }
+
+    private void LiveActivitySettingChanged(object sender, RoutedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        _settings.Update(settings => settings with
+        {
+            LiveActivities = settings.LiveActivities with
+            {
+                ActivityDotsEnabled = ActivityDotsEnabledToggle.IsChecked == true,
+                NowPlayingStripEnabled = NowPlayingStripEnabledToggle.IsChecked == true,
+                TransientTimerEnabled = TransientTimerEnabledToggle.IsChecked == true,
+                CallDetectionEnabled = CallDetectionEnabledToggle.IsChecked == true
+            }
         });
     }
 
@@ -249,8 +321,27 @@ public partial class SettingsWindow : Window
         }
     }
 
+    private void SelectShelfCap(int cap)
+    {
+        foreach (ComboBoxItem item in ShelfCapComboBox.Items)
+        {
+            if (item.Tag is string text && int.TryParse(text, out var itemCap) && itemCap == cap)
+            {
+                ShelfCapComboBox.SelectedItem = item;
+                return;
+            }
+        }
+
+        ShelfCapComboBox.SelectedIndex = 1;
+    }
+
     private ToastDurationScale SelectedDuration() =>
         ToastDurationComboBox.SelectedItem is ComboBoxItem { Tag: ToastDurationScale scale }
             ? scale
             : ToastDurationScale.Normal;
+
+    private int SelectedShelfCap() =>
+        ShelfCapComboBox.SelectedItem is ComboBoxItem { Tag: string text } && int.TryParse(text, out var cap)
+            ? cap
+            : 8;
 }

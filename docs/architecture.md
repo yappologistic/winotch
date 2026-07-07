@@ -26,6 +26,8 @@ flowchart TD
     Window --> Focus["Focus Timer State + JSON Store"]
     Window --> MonitorTargeting["Active Monitor Targeting"]
     Window --> CameraMirror["Camera Mirror Service"]
+    Window --> Shelf["Shelf Service"]
+    Window --> Droplets["Droplet Services"]
     Status --> Brightness["WMI and DDC/CI Brightness"]
     Window --> Stats["Expanded-Only System Stats Sampler"]
     Battery --> Window
@@ -38,6 +40,8 @@ flowchart TD
     Focus --> Window
     Calendar --> Window
     CameraMirror --> Window
+    Shelf --> Window
+    Droplets --> Window
     Brightness --> Window
     Stats --> Window
 ```
@@ -56,13 +60,17 @@ flowchart LR
     Expanded --> Agenda["Agenda"]
     Compact --> FocusLive["Focus Live Activity"]
     Compact --> CalendarLive["Meeting Countdown"]
+    Shell --> LiveStrip["Live Activity Strip"]
     Shell --> MediaToast["Compact Media Toast"]
     Shell --> NotificationToast["Compact Notification/Status Toast"]
+    Shell --> CommandBar["Command Bar"]
     Expanded --> Notifications["Notifications"]
     Expanded --> Controls["Control Center"]
     Expanded --> Clipboard["Clipboard History"]
     Expanded --> Stats["CPU/RAM/Network Values"]
     Controls --> CameraMirror["Camera Mirror Flyout"]
+    Controls --> Droplets["Droplet Flyouts"]
+    Shell --> Shelf["Shelf Flyout"]
 ```
 
 ## Design Tokens
@@ -89,10 +97,28 @@ Animation timings live in `ShellAnimationTiming`:
 ## Shell States
 
 - `Mini`: tiny centered pill used for every foreground app state today.
+- `Live`: a centered slim strip that auto-grows from Mini for one ongoing activity without opening the expanded panel.
 - `Expanded`: larger centered island on hover.
 - `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
+- `Command`: hotkey-driven centered command surface with one input row and a compact results list.
 
-`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+`ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. `MainWindow.LiveActivities` can lift that Mini result to `Live` while an activity is active, then falls back to the foreground mode when the activity ends. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
+
+## Live Activities
+
+`LiveActivityService` is pure logic with no WPF types. It arbitrates one visible activity at a time in priority order: optional active call, transient quick timer, now-playing media, then privacy activity dots. Camera and microphone dots reuse the privacy-usage state already read by `PriorityStatusService`; screen-share is modeled for the strip and tests, but the current Windows status path does not yet expose a screen-share source.
+
+The transient quick timer is separate from the persisted focus timer. It stores only in-memory wall-clock timestamps, supports start/pause/resume/cancel, clamps progress to `0..1`, and disappears when expired or when Winotch exits. The expanded Timer panel has small 5/10/15 minute start buttons; active timer controls live on the strip.
+
+The now-playing strip reuses `MediaService` and `MediaSnapshot` artwork/title/playback state. If Windows exposes timeline data, the strip progress bar uses it as a scrubber; otherwise it stays at zero while still showing the playing track.
+
+Call detection is gated by `LiveActivitySettings.CallDetectionEnabled` and is off by default. `LiveCallDetector` reads local process names and window titles through an injectable seam so tests can pass fake windows; no titles are persisted, logged, or sent over the network.
+
+## Command Bar
+
+The command bar is a shell mode, not a separate flyout window. `MainWindow.CommandBar` registers the configurable global hotkey on the notch HWND, opens `ShellMode.Command`, animates through `ShellMetrics.Command`, and blocks hover expansion, foreground polling, and compact toasts while the input owns focus. `Esc` collapses back to the normal foreground-driven shell mode.
+
+`CommandBarService` fans queries out to enabled providers and ranks their local results by fuzzy score plus provider priority. Providers live under `CommandBar/`: Start Menu shortcut launch through `.lnk` COM parsing and `ShellExecuteEx`, visible top-level window switching through Win32 enumeration and `SetForegroundWindow`, a custom tokenizer/shunting-yard calculator, local unit conversion, and quick commands backed by existing Winotch services/state. The feature adds no network calls; currency conversion is out of scope.
 
 ## Multi-Monitor Targeting
 
@@ -131,6 +157,18 @@ Winotch reads notification history through `UserNotificationListener` when Windo
 The expanded panel includes an in-memory clipboard history backed by `AddClipboardFormatListener` on the notch window HWND. `ClipboardHistoryMonitor` coalesces rapid `WM_CLIPBOARDUPDATE` messages, retries brief clipboard read failures, and ignores Winotch's own re-copy updates by clipboard sequence number. The Settings toggle unregisters the listener immediately when clipboard capture is disabled. The capture path stores Unicode text up to 4 KB, file-drop paths, and small image thumbnails only.
 
 Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy` skips items carrying `ExcludeClipboardContentFromMonitorProcessing` and honors `CanIncludeInClipboardHistory = 0`; `ClipboardHistoryStore` owns cap, dedupe, delete, and clear behavior. Nothing is persisted to disk.
+
+## Shelf
+
+The shelf is a separate topmost rounded flyout below the notch, not an expanded-panel band. `ShelfService` owns memory-only staged rows, cap, dedupe, remove, clear, and settings normalization. The notch itself is the drop target, and the expanded panel only exposes a compact shelf button that opens the flyout.
+
+Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a WPF `DataObject`, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. Exit, pause, collapse, outside click, X, and Esc close the flyout; app exit clears the in-memory list.
+
+## Droplets
+
+Droplets are three one-purpose flyout windows launched from compact buttons in the expanded panel. They follow the `CameraMirrorWindow` lifecycle and close on X, Esc, outside click, notch collapse, pause, or suspend/resume. Settings can hide each droplet button independently without touching `SettingsService`.
+
+`ColorPickerService` samples a clicked screen pixel with `CopyFromScreen` and formats hex/RGB locally. `TextScrubberService` is pure string logic for trim, line-break removal, case transforms, and character counts. Droplets add no packages, telemetry, or network calls.
 
 ## Priority Status Alerts
 
@@ -175,6 +213,8 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
+- Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, and thumbnail-only image staging.
+- Droplet color formatting/parsing and text scrub transforms/counts.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
 - Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.

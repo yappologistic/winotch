@@ -48,7 +48,7 @@ public partial class CameraMirrorWindow : Window
 
     private async void Window_Deactivated(object? sender, EventArgs e)
     {
-        if (!_closing)
+        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseMirrorAsync();
         }
@@ -69,6 +69,8 @@ public partial class CameraMirrorWindow : Window
     {
         await CloseMirrorAsync();
     }
+
+    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => FlyoutDragHelper.DragFromHeader(this, e);
 
     private void MirrorToggleButton_Click(object sender, RoutedEventArgs e)
     {
