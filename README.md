@@ -4,7 +4,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the s
 
 ## Alpha Status
 
-Winotch is alpha software for tinkerers and testers. Pre-built binaries (x64 and ARM64) are available under GitHub Releases for tagged releases (e.g. `v*`). You can also clone the repository and build it locally from source. Expect rough edges while the app is still changing.
+Winotch is alpha software for tinkerers and testers. Pre-built binaries (x64 and ARM64) will be available under GitHub Releases for tagged versions (for example, `v0.1.0`). You can also clone the repository and build it locally from source. Expect rough edges while the app is still changing.
 
 License: The Unlicense. Use, modify, copy, publish, or sell it with no restrictions.
 
