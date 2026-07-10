@@ -1,16 +1,17 @@
-using WpfControls = System.Windows.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Winotch.CommandBar;
 
-public partial class CommandBarPanel : WpfControls.UserControl
+public partial class CommandBarPanel : UserControl
 {
     public CommandBarPanel()
     {
         InitializeComponent();
     }
 
-    public WpfControls.TextBox InputBox => CommandInputBox;
-    public WpfControls.ListBox ResultsList => CommandResultsList;
+    public TextBox InputBox => CommandInputBox;
+    public ListView ResultsList => CommandResultsList;
 
     public CommandBarResult? SelectedResult => CommandResultsList.SelectedItem as CommandBarResult;
 
@@ -28,8 +29,9 @@ public partial class CommandBarPanel : WpfControls.UserControl
 
     public void FocusInput()
     {
-        CommandInputBox.Focus();
-        CommandInputBox.CaretIndex = CommandInputBox.Text.Length;
+        CommandInputBox.Focus(FocusState.Programmatic);
+        CommandInputBox.SelectionStart = CommandInputBox.Text.Length;
+        CommandInputBox.SelectionLength = 0;
     }
 
     public void SelectNext(int delta)

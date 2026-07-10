@@ -1,6 +1,6 @@
+using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using FormsScreen = System.Windows.Forms.Screen;
 
 namespace Winotch;
 
@@ -37,11 +37,44 @@ public readonly record struct MonitorTargetRequest(
 
 public static class MonitorTargeting
 {
-    private const uint MonitorDefaultToNearest = 2;
+    private const uint MonitorInfoPrimary = 1;
     private const int EffectiveDpi = 0;
 
-    public static IReadOnlyList<MonitorSnapshot> CaptureScreens() =>
-        FormsScreen.AllScreens.Select(FromScreen).ToArray();
+    public static IReadOnlyList<MonitorSnapshot> CaptureScreens()
+    {
+        var monitors = new List<MonitorSnapshot>();
+        var callbackError = 0;
+        MonitorEnumProc callback = (monitor, _, _, _) =>
+        {
+            var info = new MonitorInfoEx
+            {
+                Size = Marshal.SizeOf<MonitorInfoEx>()
+            };
+
+            if (!GetMonitorInfo(monitor, ref info))
+            {
+                callbackError = Marshal.GetLastWin32Error();
+                return false;
+            }
+
+            var dpiScale = GetDpiScale(monitor);
+            monitors.Add(new MonitorSnapshot(
+                info.DeviceName ?? string.Empty,
+                info.Bounds,
+                info.WorkingArea,
+                (info.Flags & MonitorInfoPrimary) != 0,
+                dpiScale.X,
+                dpiScale.Y));
+            return true;
+        };
+
+        if (!EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, callback, IntPtr.Zero))
+        {
+            throw new Win32Exception(callbackError != 0 ? callbackError : Marshal.GetLastWin32Error());
+        }
+
+        return monitors;
+    }
 
     public static Point GetCursorPosition()
     {
@@ -87,23 +120,6 @@ public static class MonitorTargeting
         }
 
         return FindByDeviceName(monitors, request.LastMonitorDeviceName) ?? PrimaryOrFirst(monitors);
-    }
-
-    public static MonitorSnapshot FromScreen(FormsScreen screen)
-    {
-        var monitor = MonitorFromPoint(
-            new NativePoint(
-                screen.Bounds.Left + screen.Bounds.Width / 2,
-                screen.Bounds.Top + screen.Bounds.Height / 2),
-            MonitorDefaultToNearest);
-        var dpiScale = GetDpiScale(monitor);
-        return new MonitorSnapshot(
-            screen.DeviceName,
-            ToNativeRect(screen.Bounds),
-            ToNativeRect(screen.WorkingArea),
-            screen.Primary,
-            dpiScale.X,
-            dpiScale.Y);
     }
 
     private static MonitorSnapshot? FirstContaining(IReadOnlyList<MonitorSnapshot> monitors, Point point)
@@ -183,9 +199,6 @@ public static class MonitorTargeting
         return (long)(right - left) * (bottom - top);
     }
 
-    private static NativeRect ToNativeRect(Rectangle rect) =>
-        new(rect.Left, rect.Top, rect.Right, rect.Bottom);
-
     private static (double X, double Y) GetDpiScale(IntPtr monitor)
     {
         if (monitor == IntPtr.Zero)
@@ -204,10 +217,20 @@ public static class MonitorTargeting
     }
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint point);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr MonitorFromPoint(NativePoint point, uint flags);
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumDisplayMonitors(
+        IntPtr deviceContext,
+        IntPtr clipRect,
+        MonitorEnumProc callback,
+        IntPtr data);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfoEx monitorInfo);
 
     [DllImport("shcore.dll")]
     private static extern int GetDpiForMonitor(
@@ -223,4 +246,24 @@ public static class MonitorTargeting
 
     [StructLayout(LayoutKind.Sequential)]
     private readonly record struct NativePoint(int X, int Y);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MonitorInfoEx
+    {
+        public int Size;
+        public NativeRect Bounds;
+        public NativeRect WorkingArea;
+        public uint Flags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string? DeviceName;
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private delegate bool MonitorEnumProc(
+        IntPtr monitor,
+        IntPtr deviceContext,
+        IntPtr monitorRect,
+        IntPtr data);
 }

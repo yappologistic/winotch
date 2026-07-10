@@ -1,9 +1,8 @@
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Microsoft.UI.Xaml.Media;
 
 namespace Winotch;
 
@@ -15,7 +14,7 @@ internal static class ShellIconService
     private const uint FileAttributeNormal = 0x00000080;
     private const uint FileAttributeDirectory = 0x00000010;
 
-    public static ImageSource? LoadSmallIcon(string? path)
+    public static async Task<ImageSource?> LoadSmallIconAsync(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
@@ -34,12 +33,15 @@ internal static class ShellIconService
 
         try
         {
-            var image = Imaging.CreateBitmapSourceFromHIcon(
-                info.hIcon,
-                Int32Rect.Empty,
-                BitmapSizeOptions.FromWidthAndHeight(22, 22));
-            image.Freeze();
-            return image;
+            // Clone before releasing the shell-owned HICON, then hand WinUI a detached PNG stream.
+            using var icon = (Icon)Icon.FromHandle(info.hIcon).Clone();
+            using var bitmap = icon.ToBitmap();
+            using var stream = new MemoryStream();
+            bitmap.Save(stream, ImageFormat.Png);
+            return await ClipboardThumbnail.ToBitmapSourceAsync(
+                stream.ToArray(),
+                decodePixelWidth: 22,
+                decodePixelHeight: 22);
         }
         catch
         {

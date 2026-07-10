@@ -1,11 +1,11 @@
-using System.Collections.Specialized;
-using System.Windows.Media.Imaging;
-using WpfDataFormats = System.Windows.DataFormats;
-using WpfIDataObject = System.Windows.IDataObject;
-using WpfTextDataFormat = System.Windows.TextDataFormat;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace Winotch;
 
+/// <summary>
+/// Owns the shelf's in-memory staging list and converts WinUI drag payloads into
+/// privacy-bounded shelf items. Images are reduced to thumbnails before staging.
+/// </summary>
 public sealed class ShelfService
 {
     private readonly List<ShelfItem> _items = [];
@@ -67,26 +67,33 @@ public sealed class ShelfService
 
     public ShelfItem? Find(Guid id) => _items.FirstOrDefault(item => item.Id == id);
 
-    public ShelfItem? ReadDrop(WpfIDataObject data, DateTimeOffset stagedAt)
+    /// <summary>
+    /// Reads an actual WinUI drag payload. The privacy markers are evaluated before
+    /// any content is requested, matching clipboard capture behavior.
+    /// </summary>
+    public async Task<ShelfItem?> ReadDropAsync(DataPackageView data, DateTimeOffset stagedAt)
     {
-        if (!ClipboardPrivacyPolicy.CanCapture(new ClipboardDataObjectFormatReader(data)))
+        ArgumentNullException.ThrowIfNull(data);
+
+        var formats = await ClipboardDataObjectFormatReader.CreateAsync(data);
+        if (!ClipboardPrivacyPolicy.CanCapture(formats))
         {
             return null;
         }
 
-        var files = ReadFiles(data);
+        var files = await ReadFilesAsync(data);
         if (files.Count > 0)
         {
             return ShelfItem.FromFiles(files, stagedAt);
         }
 
-        var thumbnail = ReadImageThumbnail(data);
+        var thumbnail = await ReadImageThumbnailAsync(data);
         if (thumbnail is not null)
         {
             return ShelfItem.FromImage(thumbnail, stagedAt);
         }
 
-        return ShelfItem.FromText(ReadText(data), stagedAt);
+        return ShelfItem.FromText(await ReadTextAsync(data), stagedAt);
     }
 
     private void TrimToCap()
@@ -98,39 +105,31 @@ public sealed class ShelfService
         }
     }
 
-    private static IReadOnlyList<string> ReadFiles(WpfIDataObject data)
+    private static async Task<IReadOnlyList<string>> ReadFilesAsync(DataPackageView data)
     {
-        if (!data.GetDataPresent(WpfDataFormats.FileDrop, autoConvert: false))
+        if (!data.Contains(StandardDataFormats.StorageItems))
         {
             return [];
         }
 
-        return data.GetData(WpfDataFormats.FileDrop, autoConvert: false) switch
-        {
-            string[] paths => paths,
-            StringCollection collection => collection.Cast<string>().ToArray(),
-            IEnumerable<string> paths => paths.ToArray(),
-            _ => []
-        };
+        var items = await data.GetStorageItemsAsync();
+        return items
+            .Select(item => item.Path)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray();
     }
 
-    private static byte[]? ReadImageThumbnail(WpfIDataObject data)
+    private static async Task<byte[]?> ReadImageThumbnailAsync(DataPackageView data)
     {
-        if (!data.GetDataPresent(WpfDataFormats.Bitmap, autoConvert: true))
+        if (!data.Contains(StandardDataFormats.Bitmap))
         {
             return null;
         }
 
-        // Privacy boundary: only the downscaled thumbnail survives staging.
-        return data.GetData(WpfDataFormats.Bitmap, autoConvert: true) is BitmapSource image
-            ? ClipboardThumbnail.FromBitmapSource(image)
-            : null;
+        // ClipboardThumbnail enforces the 64 px privacy boundary while decoding.
+        return await ClipboardThumbnail.FromStreamReferenceAsync(await data.GetBitmapAsync());
     }
 
-    private static string? ReadText(WpfIDataObject data) =>
-        data.GetDataPresent(WpfDataFormats.UnicodeText, autoConvert: true)
-            ? data.GetData(WpfDataFormats.UnicodeText, autoConvert: true) as string
-            : data.GetDataPresent(WpfTextDataFormat.Text.ToString(), autoConvert: true)
-                ? data.GetData(WpfTextDataFormat.Text.ToString(), autoConvert: true) as string
-                : null;
+    private static async Task<string?> ReadTextAsync(DataPackageView data) =>
+        data.Contains(StandardDataFormats.Text) ? await data.GetTextAsync() : null;
 }

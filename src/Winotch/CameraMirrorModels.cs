@@ -1,5 +1,5 @@
-using WpfRect = System.Windows.Rect;
-using WpfSize = System.Windows.Size;
+using WinRect = Windows.Foundation.Rect;
+using WinSize = Windows.Foundation.Size;
 
 namespace Winotch;
 
@@ -55,17 +55,17 @@ public static class CameraMirrorLifecycle
 
 public static class CameraMirrorLayout
 {
-    public static WpfRect Cover(WpfSize source, WpfSize bounds)
+    public static WinRect Cover(WinSize source, WinSize bounds)
     {
         if (source.Width <= 0 || source.Height <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
         {
-            return WpfRect.Empty;
+            return default;
         }
 
         var scale = Math.Max(bounds.Width / source.Width, bounds.Height / source.Height);
         var width = source.Width * scale;
         var height = source.Height * scale;
-        return new WpfRect(
+        return new WinRect(
             (bounds.Width - width) / 2,
             (bounds.Height - height) / 2,
             width,

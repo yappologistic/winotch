@@ -1,43 +1,41 @@
 using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Threading;
-using WpfScrollBar = System.Windows.Controls.Primitives.ScrollBar;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
-public partial class App : System.Windows.Application
+/// <summary>
+/// WinUI 3 application lifetime. Winotch remains a single-process, local-only
+/// desktop utility; closing through the tray releases the named mutex.
+/// </summary>
+public partial class App : Application
 {
     private const string SingleInstanceMutexName = @"Local\Winotch.SingleInstance";
-    private static readonly TimeSpan ScrollBarVisibleDuration = TimeSpan.FromMilliseconds(900);
-    private static readonly DependencyProperty ScrollBarHideTimerProperty =
-        DependencyProperty.RegisterAttached(
-            "ScrollBarHideTimer",
-            typeof(DispatcherTimer),
-            typeof(App),
-            new PropertyMetadata(null));
     private Mutex? _singleInstanceMutex;
+    private MainWindow? _mainWindow;
 
-    protected override void OnStartup(StartupEventArgs e)
+    public App()
+    {
+        InitializeComponent();
+    }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         if (!TryAcquireSingleInstance(SingleInstanceMutexName, out _singleInstanceMutex))
         {
-            Shutdown(0);
+            Exit();
             return;
         }
 
-        base.OnStartup(e);
-        var window = new MainWindow();
-        MainWindow = window;
-        window.Show();
+        _mainWindow = new MainWindow();
+        _mainWindow.Closed += (_, _) => ReleaseSingleInstance();
+        _mainWindow.ShowWithoutActivation();
     }
 
-    protected override void OnExit(ExitEventArgs e)
+    internal void RequestExit()
     {
-        _singleInstanceMutex?.ReleaseMutex();
-        _singleInstanceMutex?.Dispose();
-        base.OnExit(e);
+        _mainWindow?.Close();
+        ReleaseSingleInstance();
+        Exit();
     }
 
     public static bool TryAcquireSingleInstance(string mutexName, out Mutex? mutex)
@@ -53,49 +51,23 @@ public partial class App : System.Windows.Application
         return false;
     }
 
-    private void AutoHideScrollViewer_Loaded(object sender, RoutedEventArgs e)
+    private void ReleaseSingleInstance()
     {
-        if (sender is ScrollViewer viewer)
-        {
-            SetScrollBarsOpacity(viewer, 0);
-        }
-    }
-
-    private void AutoHideScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
-    {
-        if (sender is not ScrollViewer viewer || (e.VerticalChange == 0 && e.HorizontalChange == 0))
+        if (_singleInstanceMutex is null)
         {
             return;
         }
 
-        SetScrollBarsOpacity(viewer, 1);
-        var timer = (DispatcherTimer?)viewer.GetValue(ScrollBarHideTimerProperty);
-        if (timer is null)
+        try
         {
-            timer = new DispatcherTimer { Interval = ScrollBarVisibleDuration };
-            timer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                SetScrollBarsOpacity(viewer, 0);
-            };
-            viewer.SetValue(ScrollBarHideTimerProperty, timer);
+            _singleInstanceMutex.ReleaseMutex();
+        }
+        catch (ApplicationException)
+        {
+            // The mutex may already have been released by an explicit tray exit.
         }
 
-        timer.Stop();
-        timer.Start();
-    }
-
-    private static void SetScrollBarsOpacity(DependencyObject root, double opacity)
-    {
-        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
-        {
-            var child = VisualTreeHelper.GetChild(root, i);
-            if (child is WpfScrollBar scrollBar)
-            {
-                scrollBar.Opacity = opacity;
-            }
-
-            SetScrollBarsOpacity(child, opacity);
-        }
+        _singleInstanceMutex.Dispose();
+        _singleInstanceMutex = null;
     }
 }

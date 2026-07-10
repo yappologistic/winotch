@@ -1,9 +1,5 @@
 using System.Diagnostics;
-using System.IO;
-using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Microsoft.UI.Xaml.Media;
 
 namespace Winotch;
 
@@ -16,9 +12,9 @@ public sealed record AudioSessionRow(
 
 public sealed class AudioSessionService
 {
-    public IReadOnlyList<AudioSessionRow> GetSessions()
+    public async Task<IReadOnlyList<AudioSessionRow>> GetSessionsAsync()
     {
-        var rows = new List<AudioSessionRow>();
+        var rows = new List<AudioSessionRowData>();
         WithSessionEnumerator((enumerator, count) =>
         {
             for (var index = 0; index < count; index++)
@@ -31,7 +27,7 @@ public sealed class AudioSessionService
                         continue;
                     }
 
-                    var row = TryReadRow(session);
+                    var row = TryReadRowData(session);
                     if (row is not null)
                     {
                         rows.Add(row);
@@ -44,11 +40,24 @@ public sealed class AudioSessionService
             }
         });
 
-        return rows
+        var sessions = rows
             .GroupBy(row => row.Id, StringComparer.Ordinal)
             .Select(group => group.First())
             .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        var result = new List<AudioSessionRow>(sessions.Count);
+        foreach (var session in sessions)
+        {
+            result.Add(new AudioSessionRow(
+                session.Id,
+                session.Name,
+                await ShellIconService.LoadSmallIconAsync(session.ModulePath),
+                session.Volume,
+                session.IsMuted));
+        }
+
+        return result;
     }
 
     public void SetSessionVolume(string sessionId, float percent) =>
@@ -57,7 +66,7 @@ public sealed class AudioSessionService
     public void SetSessionMuted(string sessionId, bool isMuted) =>
         WithSessionVolume(sessionId, volume => volume.SetMute(isMuted, Guid.Empty));
 
-    private static AudioSessionRow? TryReadRow(AudioSessionControlInterface session)
+    private static AudioSessionRowData? TryReadRowData(AudioSessionControlInterface session)
     {
         try
         {
@@ -84,12 +93,12 @@ public sealed class AudioSessionService
                 process.ProcessName,
                 session2.IsSystemSoundsSession() == 0);
 
-            return new AudioSessionRow(
+            return new AudioSessionRowData(
                 id,
                 name,
-                LoadIcon(process.ModulePath),
                 Math.Clamp(level * 100, 0, 100),
-                isMuted);
+                isMuted,
+                process.ModulePath);
         }
         catch
         {
@@ -139,34 +148,6 @@ public sealed class AudioSessionService
         catch
         {
             return SessionProcessInfo.Empty;
-        }
-    }
-
-    private static ImageSource? LoadIcon(string? path)
-    {
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-        {
-            return null;
-        }
-
-        try
-        {
-            using var icon = System.Drawing.Icon.ExtractAssociatedIcon(path);
-            if (icon is null)
-            {
-                return null;
-            }
-
-            var image = Imaging.CreateBitmapSourceFromHIcon(
-                icon.Handle,
-                Int32Rect.Empty,
-                BitmapSizeOptions.FromWidthAndHeight(22, 22));
-            image.Freeze();
-            return image;
-        }
-        catch
-        {
-            return null;
         }
     }
 
@@ -244,4 +225,11 @@ public sealed class AudioSessionService
     {
         public static readonly SessionProcessInfo Empty = new(null, null, null, null);
     }
+
+    private sealed record AudioSessionRowData(
+        string Id,
+        string Name,
+        float Volume,
+        bool IsMuted,
+        string? ModulePath);
 }

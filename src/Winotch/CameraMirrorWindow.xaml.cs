@@ -1,22 +1,22 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using WpfSize = System.Windows.Size;
+using System.Numerics;
+using System.Runtime.InteropServices.WindowsRuntime;
+using Microsoft.UI.Composition;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media.Imaging;
+using WinSize = Windows.Foundation.Size;
 
 namespace Winotch;
 
-public partial class CameraMirrorWindow : Window
+public sealed partial class CameraMirrorWindow : FluentWindow
 {
-    private const double PreviewCornerRadius = 18;
-    private static readonly Duration FadeDuration = new(ShellAnimationTiming.FadeDuration);
-    private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
-    private static readonly IEasingFunction Easing = new QuarticEase { EasingMode = EasingMode.EaseOut };
+    private const float PreviewCornerRadius = 18;
     private readonly CameraMirrorService _cameraMirror;
+    private CompositionRoundedRectangleGeometry? _previewClipGeometry;
     private WriteableBitmap? _previewBitmap;
-    private WpfSize _frameSize;
+    private WinSize _frameSize;
     private bool _closing;
 
     public CameraMirrorWindow(CameraMirrorService cameraMirror)
@@ -41,53 +41,52 @@ public partial class CameraMirrorWindow : Window
         Close();
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
-    {
-        AnimateIn();
-    }
+    private void Window_Loaded(object sender, RoutedEventArgs e) => AnimateIn();
 
-    private async void Window_Deactivated(object? sender, EventArgs e)
+    private async void Window_Activated(object sender, WindowActivatedEventArgs e)
     {
-        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
+        if (e.WindowActivationState != WindowActivationState.Deactivated || _closing)
+        {
+            return;
+        }
+
+        if (await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseMirrorAsync();
         }
     }
 
-    private async void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private async void EscapeKeyboardAccelerator_Invoked(
+        KeyboardAccelerator sender,
+        KeyboardAcceleratorInvokedEventArgs args)
     {
-        if (e.Key != Key.Escape)
-        {
-            return;
-        }
-
-        e.Handled = true;
+        args.Handled = true;
         await CloseMirrorAsync();
     }
 
-    private async void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        await CloseMirrorAsync();
-    }
+    private async void CloseButton_Click(object sender, RoutedEventArgs e) => await CloseMirrorAsync();
 
-    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => FlyoutDragHelper.DragFromHeader(this, e);
+    private void HeaderDragArea_PointerPressed(object sender, PointerRoutedEventArgs e) =>
+        FlyoutDragHelper.DragFromHeader(this, e);
 
     private void MirrorToggleButton_Click(object sender, RoutedEventArgs e)
     {
         var mirrored = MirrorToggleButton.IsChecked == true;
         PreviewMirrorTransform.ScaleX = mirrored ? -1 : 1;
         MirrorToggleText.Text = mirrored ? "Mirror" : "Normal";
-        MirrorToggleButton.ToolTip = mirrored ? "Show unmirrored preview" : "Show mirrored preview";
+        ToolTipService.SetToolTip(
+            MirrorToggleButton,
+            mirrored ? "Show unmirrored preview" : "Show mirrored preview");
     }
 
     private void CameraMirror_StateChanged(CameraMirrorState state)
     {
-        _ = Dispatcher.InvokeAsync(() => ApplyState(state));
+        _ = DispatcherQueue.TryEnqueue(() => ApplyState(state));
     }
 
     private void CameraMirror_FrameReady(CameraMirrorFrame frame)
     {
-        _ = Dispatcher.InvokeAsync(() => ApplyFrame(frame));
+        _ = DispatcherQueue.TryEnqueue(() => ApplyFrame(frame));
     }
 
     private void ApplyState(CameraMirrorState state)
@@ -121,31 +120,32 @@ public partial class CameraMirrorWindow : Window
             _previewBitmap.PixelWidth != frame.PixelWidth ||
             _previewBitmap.PixelHeight != frame.PixelHeight)
         {
-            _previewBitmap = new WriteableBitmap(
-                frame.PixelWidth,
-                frame.PixelHeight,
-                96,
-                96,
-                System.Windows.Media.PixelFormats.Bgra32,
-                null);
+            _previewBitmap = new WriteableBitmap(frame.PixelWidth, frame.PixelHeight);
             PreviewImage.Source = _previewBitmap;
         }
 
-        _previewBitmap.WritePixels(
-            new Int32Rect(0, 0, frame.PixelWidth, frame.PixelHeight),
-            frame.BgraPixels,
-            frame.Stride,
-            0);
-        _frameSize = new WpfSize(frame.PixelWidth, frame.PixelHeight);
+        // CameraMirrorService already normalizes frames to premultiplied BGRA8.
+        // Copying directly into the WinUI pixel buffer avoids a second conversion.
+        using (var pixelStream = _previewBitmap.PixelBuffer.AsStream())
+        {
+            pixelStream.Position = 0;
+            pixelStream.Write(frame.BgraPixels, 0, frame.BgraPixels.Length);
+        }
+
+        _previewBitmap.Invalidate();
+        _frameSize = new WinSize(frame.PixelWidth, frame.PixelHeight);
         ApplyPreviewLayout();
     }
 
     private void PreviewViewport_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        PreviewViewport.Clip = new RectangleGeometry(
-            new Rect(0, 0, PreviewViewport.ActualWidth, PreviewViewport.ActualHeight),
-            PreviewCornerRadius,
-            PreviewCornerRadius);
+        var previewVisual = ElementCompositionPreview.GetElementVisual(PreviewViewport);
+        _previewClipGeometry ??= previewVisual.Compositor.CreateRoundedRectangleGeometry();
+        _previewClipGeometry.Size = new Vector2(
+            (float)PreviewViewport.ActualWidth,
+            (float)PreviewViewport.ActualHeight);
+        _previewClipGeometry.CornerRadius = new Vector2(PreviewCornerRadius);
+        previewVisual.Clip ??= previewVisual.Compositor.CreateGeometricClip(_previewClipGeometry);
         ApplyPreviewLayout();
     }
 
@@ -153,7 +153,7 @@ public partial class CameraMirrorWindow : Window
     {
         var placement = CameraMirrorLayout.Cover(
             _frameSize,
-            new WpfSize(PreviewViewport.ActualWidth, PreviewViewport.ActualHeight));
+            new WinSize(PreviewViewport.ActualWidth, PreviewViewport.ActualHeight));
         if (placement.IsEmpty)
         {
             PreviewImage.Width = 0;
@@ -171,29 +171,65 @@ public partial class CameraMirrorWindow : Window
 
     private void AnimateIn()
     {
-        Opacity = 0;
-        BeginAnimation(OpacityProperty, new DoubleAnimation(1, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
+        var visual = PrepareFlyoutVisual();
+        visual.Opacity = 0;
+        visual.Scale = new Vector3(0.96f, 0.96f, 1);
+
+        var compositor = visual.Compositor;
+        var easing = CreateEaseOut(compositor);
+        var opacity = compositor.CreateScalarKeyFrameAnimation();
+        opacity.Duration = ShellAnimationTiming.FadeDuration;
+        opacity.InsertKeyFrame(1, 1, easing);
+
+        var scale = compositor.CreateVector3KeyFrameAnimation();
+        scale.Duration = ShellAnimationTiming.MotionDuration;
+        scale.InsertKeyFrame(1, Vector3.One, easing);
+
+        visual.StartAnimation(nameof(Visual.Opacity), opacity);
+        visual.StartAnimation(nameof(Visual.Scale), scale);
     }
 
     private async Task AnimateOutAsync()
     {
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
+        var visual = PrepareFlyoutVisual();
+        var compositor = visual.Compositor;
+        var easing = CreateEaseOut(compositor);
+        var opacity = compositor.CreateScalarKeyFrameAnimation();
+        opacity.Duration = ShellAnimationTiming.FadeDuration;
+        opacity.InsertKeyFrame(1, 0, easing);
+
+        var scale = compositor.CreateVector3KeyFrameAnimation();
+        scale.Duration = ShellAnimationTiming.FadeDuration;
+        scale.InsertKeyFrame(1, new Vector3(0.96f, 0.96f, 1), easing);
+
+        visual.StartAnimation(nameof(Visual.Opacity), opacity);
+        visual.StartAnimation(nameof(Visual.Scale), scale);
         await Task.Delay(ShellAnimationTiming.FadeDuration);
     }
 
-    protected override async void OnClosed(EventArgs e)
+    private Visual PrepareFlyoutVisual()
+    {
+        var visual = ElementCompositionPreview.GetElementVisual(FlyoutChrome);
+        visual.CenterPoint = new Vector3(
+            (float)(FlyoutChrome.ActualWidth / 2),
+            (float)(FlyoutChrome.ActualHeight / 2),
+            0);
+        return visual;
+    }
+
+    private static CompositionEasingFunction CreateEaseOut(Compositor compositor) =>
+        compositor.CreateCubicBezierEasingFunction(
+            new Vector2(0.16f, 1),
+            new Vector2(0.3f, 1));
+
+    private async void Window_Closed(object sender, WindowEventArgs e)
     {
         _cameraMirror.StateChanged -= CameraMirror_StateChanged;
         _cameraMirror.FrameReady -= CameraMirror_FrameReady;
         if (!_closing)
         {
+            _closing = true;
             await _cameraMirror.CloseAsync();
         }
-
-        base.OnClosed(e);
     }
 }

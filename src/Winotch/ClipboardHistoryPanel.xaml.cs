@@ -1,13 +1,13 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Winotch;
 
-public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
+public partial class ClipboardHistoryPanel : UserControl
 {
     private static readonly TimeSpan CopiedStateDuration = TimeSpan.FromMilliseconds(900);
     private readonly ObservableCollection<ClipboardHistoryRow> _rows = [];
@@ -24,13 +24,19 @@ public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
     public event EventHandler<Guid>? DeleteRequested;
     public event EventHandler? ClearRequested;
 
+    /// <summary>
+    /// Replaces the visible history while the WinUI image services populate each row's
+    /// shell icon or privacy-capped thumbnail through their asynchronous stream APIs.
+    /// </summary>
     public void SetItems(IReadOnlyList<ClipboardHistoryEntry> items)
     {
         _rows.Clear();
         var now = DateTimeOffset.Now;
         foreach (var item in items)
         {
-            _rows.Add(new ClipboardHistoryRow(item, now));
+            var row = new ClipboardHistoryRow(item, now);
+            _rows.Add(row);
+            _ = row.LoadVisualsAsync();
         }
 
         RefreshEmptyState();
@@ -83,12 +89,11 @@ public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
         ClearClipboardButton.Visibility = hasRows ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void ClipboardItem_Click(object sender, MouseButtonEventArgs e)
+    private void ClipboardItem_Click(object sender, ItemClickEventArgs e)
     {
-        if ((sender as FrameworkElement)?.Tag is ClipboardHistoryEntry entry)
+        if (e.ClickedItem is ClipboardHistoryRow row)
         {
-            CopyRequested?.Invoke(this, entry);
-            e.Handled = true;
+            CopyRequested?.Invoke(this, row.Entry);
         }
     }
 
@@ -97,7 +102,6 @@ public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
         if ((sender as FrameworkElement)?.Tag is ClipboardHistoryEntry entry)
         {
             CopyRequested?.Invoke(this, entry);
-            e.Handled = true;
         }
     }
 
@@ -106,33 +110,32 @@ public partial class ClipboardHistoryPanel : System.Windows.Controls.UserControl
         if ((sender as FrameworkElement)?.Tag is ClipboardHistoryEntry entry)
         {
             DeleteRequested?.Invoke(this, entry.Id);
-            e.Handled = true;
         }
     }
 
     private void ClearClipboard_Click(object sender, RoutedEventArgs e)
     {
         ClearRequested?.Invoke(this, EventArgs.Empty);
-        e.Handled = true;
     }
 }
 
 public sealed class ClipboardHistoryRow : INotifyPropertyChanged
 {
+    private ImageSource? _icon;
+    private ImageSource? _thumbnail;
     private string _timeText;
     private bool _copied;
 
     public ClipboardHistoryRow(ClipboardHistoryEntry entry, DateTimeOffset now)
     {
         Entry = entry;
-        Icon = IconFor(entry);
-        Thumbnail = ClipboardThumbnail.ToBitmapSource(entry.ThumbnailPng);
         _timeText = ClipboardHistoryFormatting.RelativeTime(entry.CapturedAt, now);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ClipboardHistoryEntry Entry { get; }
+
     public string Glyph => Entry.Kind switch
     {
         ClipboardHistoryKind.Text => "\uE8D2",
@@ -141,11 +144,14 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
         ClipboardHistoryKind.Files => "\uE8A5",
         _ => "\uE8D2"
     };
+
     public string Preview => Entry.Preview;
-    public ImageSource? Icon { get; }
-    public ImageSource? Thumbnail { get; }
-    public bool HasIcon => Icon is not null;
-    public bool HasThumbnail => Thumbnail is not null;
+    public ImageSource? Icon => _icon;
+    public ImageSource? Thumbnail => _thumbnail;
+    public Visibility IconVisibility => _icon is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility GlyphVisibility => _icon is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ThumbnailVisibility => _thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility PreviewVisibility => _thumbnail is null ? Visibility.Visible : Visibility.Collapsed;
     public string ConfirmationGlyph => _copied ? "\uE8FB" : "";
 
     public string TimeText
@@ -160,6 +166,25 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
 
             _timeText = value;
             OnPropertyChanged();
+        }
+    }
+
+    public async Task LoadVisualsAsync()
+    {
+        if (Entry.Kind == ClipboardHistoryKind.Files)
+        {
+            _icon = await ShellIconService.LoadSmallIconAsync(Entry.FilePaths.FirstOrDefault());
+            OnPropertyChanged(nameof(Icon));
+            OnPropertyChanged(nameof(IconVisibility));
+            OnPropertyChanged(nameof(GlyphVisibility));
+        }
+
+        if (Entry.ThumbnailPng is { Length: > 0 })
+        {
+            _thumbnail = await ClipboardThumbnail.ToBitmapSourceAsync(Entry.ThumbnailPng);
+            OnPropertyChanged(nameof(Thumbnail));
+            OnPropertyChanged(nameof(ThumbnailVisibility));
+            OnPropertyChanged(nameof(PreviewVisibility));
         }
     }
 
@@ -179,8 +204,4 @@ public sealed class ClipboardHistoryRow : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    private static ImageSource? IconFor(ClipboardHistoryEntry entry) => entry.Kind == ClipboardHistoryKind.Files
-        ? ShellIconService.LoadSmallIcon(entry.FilePaths.FirstOrDefault())
-        : null;
 }

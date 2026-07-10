@@ -1,24 +1,32 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using WpfClipboard = System.Windows.Clipboard;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Input;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.System;
 
 namespace Winotch;
 
-public partial class TextScrubberDroplet : Window
+/// <summary>
+/// Native WinUI text utility. Text remains local: clipboard access only occurs
+/// for the explicit initial load, Paste, and Copy actions.
+/// </summary>
+public sealed partial class TextScrubberDroplet : FluentWindow
 {
-    private static readonly Duration FadeDuration = new(ShellAnimationTiming.FadeDuration);
-    private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
-    private static readonly IEasingFunction Easing = new QuarticEase { EasingMode = EasingMode.EaseOut };
     private bool _closing;
+    private bool _loadedClipboard;
     private TextScrubCase _selectedCase = TextScrubCase.Preserve;
 
     public TextScrubberDroplet()
     {
         InitializeComponent();
-        InputBox.Text = WpfClipboard.ContainsText() ? WpfClipboard.GetText() : string.Empty;
+        Loaded += Window_Loaded;
+        Activated += Window_Activated;
+        Closed += Window_Closed;
+        RefreshCaseSelection();
         RefreshOutput();
     }
 
@@ -34,23 +42,41 @@ public partial class TextScrubberDroplet : Window
         Close();
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e) => AnimateIn();
-
-    private async void Window_Deactivated(object? sender, EventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
+        AnimateIn();
+        if (!_loadedClipboard)
+        {
+            _loadedClipboard = true;
+            await PasteClipboardTextAsync();
+        }
+
+        InputBox.Focus(FocusState.Programmatic);
+        InputBox.SelectionStart = InputBox.Text.Length;
+    }
+
+    private async void Window_Activated(object sender, WindowActivatedEventArgs e)
+    {
+        if (e.WindowActivationState != WindowActivationState.Deactivated || _closing)
+        {
+            return;
+        }
+
+        if (await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseDropletAsync();
         }
     }
 
-    private async void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private async void FlyoutChrome_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key != VirtualKey.Escape)
         {
-            e.Handled = true;
-            await CloseDropletAsync();
+            return;
         }
+
+        e.Handled = true;
+        await CloseDropletAsync();
     }
 
     private async void CloseButton_Click(object sender, RoutedEventArgs e) => await CloseDropletAsync();
@@ -61,28 +87,54 @@ public partial class TextScrubberDroplet : Window
 
     private void CaseButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.Button { Tag: string tag } && Enum.TryParse<TextScrubCase>(tag, out var scrubCase))
+        if (sender is Button { Tag: string tag } &&
+            Enum.TryParse<TextScrubCase>(tag, out var scrubCase))
         {
             _selectedCase = scrubCase;
+            RefreshCaseSelection();
             RefreshOutput();
         }
     }
 
-    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => FlyoutDragHelper.DragFromHeader(this, e);
+    private void HeaderDragArea_PointerPressed(object sender, PointerRoutedEventArgs e) =>
+        FlyoutDragHelper.DragFromHeader(this, e);
 
-    private void PasteButton_Click(object sender, RoutedEventArgs e)
+    private async void PasteButton_Click(object sender, RoutedEventArgs e) => await PasteClipboardTextAsync();
+
+    private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
-        if (WpfClipboard.ContainsText())
+        var package = new DataPackage
         {
-            InputBox.Text = WpfClipboard.GetText();
+            RequestedOperation = DataPackageOperation.Copy
+        };
+        package.SetText(OutputBox.Text);
+        Clipboard.SetContent(package);
+        Clipboard.Flush();
+    }
+
+    private async Task PasteClipboardTextAsync()
+    {
+        try
+        {
+            var content = Clipboard.GetContent();
+            if (!content.Contains(StandardDataFormats.Text))
+            {
+                return;
+            }
+
+            InputBox.Text = await content.GetTextAsync();
+        }
+        catch (Exception exception) when (exception is COMException or UnauthorizedAccessException)
+        {
+            // Clipboard ownership can change between GetContent and GetTextAsync.
+            // Keeping the current input is the least surprising response.
         }
     }
 
-    private void CopyButton_Click(object sender, RoutedEventArgs e) => WpfClipboard.SetText(OutputBox.Text);
-
     private void RefreshOutput()
     {
-        if (OutputBox is null)
+        if (OutputBox is null || InputBox is null || TrimToggle is null ||
+            LineBreakToggle is null || CountText is null)
         {
             return;
         }
@@ -97,19 +149,76 @@ public partial class TextScrubberDroplet : Window
         CountText.Text = $"{result.CharacterCount} chars";
     }
 
+    private void RefreshCaseSelection()
+    {
+        if (PreserveCaseButton is null)
+        {
+            return;
+        }
+
+        SetCaseButtonState(PreserveCaseButton, TextScrubCase.Preserve);
+        SetCaseButtonState(UpperCaseButton, TextScrubCase.Upper);
+        SetCaseButtonState(LowerCaseButton, TextScrubCase.Lower);
+        SetCaseButtonState(TitleCaseButton, TextScrubCase.Title);
+        SetCaseButtonState(SentenceCaseButton, TextScrubCase.Sentence);
+    }
+
+    private void SetCaseButtonState(Button button, TextScrubCase scrubCase)
+    {
+        var selected = _selectedCase == scrubCase;
+        button.Background = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[
+            selected ? "NotchPanelPressed" : "NotchPanel"];
+        button.BorderBrush = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources[
+            selected ? "NotchAccent" : "NotchStroke"];
+        AutomationProperties.SetName(button, $"{button.Content} case{(selected ? ", selected" : string.Empty)}");
+    }
+
     private void AnimateIn()
     {
-        Opacity = 0;
-        BeginAnimation(OpacityProperty, new DoubleAnimation(1, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
+        var visual = ElementCompositionPreview.GetElementVisual(FlyoutChrome);
+        visual.CenterPoint = new Vector3(
+            (float)(FlyoutChrome.ActualWidth / 2),
+            0,
+            0);
+        visual.Opacity = 0;
+        visual.Scale = new Vector3(0.96f, 0.96f, 1);
+
+        var compositor = visual.Compositor;
+        var easing = compositor.CreateCubicBezierEasingFunction(
+            new Vector2(0.16f, 1),
+            new Vector2(0.3f, 1));
+        var fade = compositor.CreateScalarKeyFrameAnimation();
+        fade.Duration = ShellAnimationTiming.FadeDuration;
+        fade.InsertKeyFrame(1, 1, easing);
+        var scale = compositor.CreateVector3KeyFrameAnimation();
+        scale.Duration = ShellAnimationTiming.MotionDuration;
+        scale.InsertKeyFrame(1, Vector3.One, easing);
+        visual.StartAnimation(nameof(visual.Opacity), fade);
+        visual.StartAnimation(nameof(visual.Scale), scale);
     }
 
     private async Task AnimateOutAsync()
     {
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
+        var visual = ElementCompositionPreview.GetElementVisual(FlyoutChrome);
+        var compositor = visual.Compositor;
+        var easing = compositor.CreateCubicBezierEasingFunction(
+            new Vector2(0.7f, 0),
+            new Vector2(0.84f, 0));
+        var fade = compositor.CreateScalarKeyFrameAnimation();
+        fade.Duration = ShellAnimationTiming.FadeDuration;
+        fade.InsertKeyFrame(1, 0, easing);
+        var scale = compositor.CreateVector3KeyFrameAnimation();
+        scale.Duration = ShellAnimationTiming.FadeDuration;
+        scale.InsertKeyFrame(1, new Vector3(0.96f, 0.96f, 1), easing);
+        visual.StartAnimation(nameof(visual.Opacity), fade);
+        visual.StartAnimation(nameof(visual.Scale), scale);
         await Task.Delay(ShellAnimationTiming.FadeDuration);
+    }
+
+    private void Window_Closed(object sender, WindowEventArgs e)
+    {
+        Loaded -= Window_Loaded;
+        Activated -= Window_Activated;
+        Closed -= Window_Closed;
     }
 }

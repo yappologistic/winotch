@@ -1,8 +1,10 @@
-using System.Windows.Media;
+using WinUIBrush = Microsoft.UI.Xaml.Media.Brush;
+using WinUIColor = Windows.UI.Color;
+using WinUISolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
 
 namespace Winotch;
 
-public sealed record BatteryVisual(double FillWidth, System.Windows.Media.Brush Brush)
+public sealed record BatteryVisual(double FillWidth, WinUIBrush Brush)
 {
     public const double IconFillWidth = 16;
 
@@ -10,14 +12,14 @@ public sealed record BatteryVisual(double FillWidth, System.Windows.Media.Brush 
     {
         var clamped = Math.Clamp(percent, 0, 100);
         var color = isCharging
-            ? System.Windows.Media.Color.FromRgb(50, 215, 75)
+            ? WinUIColor.FromArgb(255, 50, 215, 75)
             : clamped < 20
-            ? System.Windows.Media.Color.FromRgb(255, 69, 58)
+            ? WinUIColor.FromArgb(255, 255, 69, 58)
             : clamped < 50
-                ? System.Windows.Media.Color.FromRgb(255, 204, 0)
-                : System.Windows.Media.Color.FromRgb(246, 246, 244);
+                ? WinUIColor.FromArgb(255, 255, 204, 0)
+                : WinUIColor.FromArgb(255, 246, 246, 244);
 
-        return new BatteryVisual(FillWidthForPercent(clamped), new SolidColorBrush(color));
+        return new BatteryVisual(FillWidthForPercent(clamped), new WinUISolidColorBrush(color));
     }
 
     public static double FillWidthForPercent(int percent, double maxFillWidth = IconFillWidth)

@@ -24,11 +24,7 @@ public sealed class UnitConverterProvider : ICommandProvider
                 Name,
                 94,
                 Priority,
-                _ =>
-                {
-                    System.Windows.Clipboard.SetText(conversion.ResultText);
-                    return Task.CompletedTask;
-                },
+                _ => ClipboardWriter.WriteTextAsync(conversion.ResultText),
                 null,
                 "\uE9D2")
         ]);

@@ -1,6 +1,5 @@
-using System.Windows;
-using System.Windows.Input;
-using WpfDragDropEffects = System.Windows.DragDropEffects;
+using Microsoft.UI.Xaml;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace Winotch;
 
@@ -20,20 +19,23 @@ public partial class MainWindow
         }
     }
 
-    private void Notch_DragOver(object sender, System.Windows.DragEventArgs e)
+    private void Notch_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = _settings.Current.Shelf.Enabled ? WpfDragDropEffects.Copy : WpfDragDropEffects.None;
+        e.AcceptedOperation = _settings.Current.Shelf.Enabled
+            ? DataPackageOperation.Copy
+            : DataPackageOperation.None;
         e.Handled = true;
     }
 
-    private void Notch_Drop(object sender, System.Windows.DragEventArgs e)
+    private async void Notch_Drop(object sender, DragEventArgs e)
     {
         if (!_settings.Current.Shelf.Enabled)
         {
             return;
         }
 
-        if (_shelf.Stage(_shelf.ReadDrop(e.Data, DateTimeOffset.Now)))
+        var item = await _shelf.ReadDropAsync(e.DataView, DateTimeOffset.Now);
+        if (_shelf.Stage(item))
         {
             ShowShelfFlyout();
         }
@@ -74,7 +76,7 @@ public partial class MainWindow
         }
     }
 
-    private void ShelfFlyout_Closed(object? sender, EventArgs e)
+    private void ShelfFlyout_Closed(object sender, WindowEventArgs e)
     {
         if (sender is ShelfFlyout window)
         {

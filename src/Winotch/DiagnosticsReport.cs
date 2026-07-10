@@ -4,13 +4,17 @@ using System.Text;
 using Windows.Devices.Enumeration;
 using Windows.Foundation.Metadata;
 using Windows.UI.Notifications.Management;
-using Forms = System.Windows.Forms;
 
 namespace Winotch;
 
 public static class DiagnosticsReport
 {
     private const string NotificationListenerType = "Windows.UI.Notifications.Management.UserNotificationListener";
+    private const byte AcLineOffline = 0;
+    private const byte AcLineOnline = 1;
+    private const byte BatteryFlagCharging = 0x08;
+    private const byte BatteryFlagNoSystemBattery = 0x80;
+    private const byte UnknownStatus = byte.MaxValue;
 
     public static async Task<string> CaptureAsync(WinotchSettings settings, StartupService startup)
     {
@@ -158,19 +162,23 @@ public static class DiagnosticsReport
     {
         try
         {
-            var power = Forms.SystemInformation.PowerStatus;
-            if (power.BatteryChargeStatus.HasFlag(Forms.BatteryChargeStatus.NoSystemBattery))
+            if (!GetSystemPowerStatus(out var power))
+            {
+                return "Unavailable";
+            }
+
+            if ((power.BatteryFlag & BatteryFlagNoSystemBattery) != 0)
             {
                 return "No system battery";
             }
 
-            var percent = power.BatteryLifePercent >= 0
-                ? $"{Math.Round(power.BatteryLifePercent * 100):0}%"
+            var percent = power.BatteryLifePercent != UnknownStatus
+                ? $"{power.BatteryLifePercent}%"
                 : "unknown percent";
-            var charging = power.BatteryChargeStatus.HasFlag(Forms.BatteryChargeStatus.Charging)
+            var charging = (power.BatteryFlag & BatteryFlagCharging) != 0
                 ? "charging"
                 : "discharging";
-            return $"{percent}, {charging}, {power.PowerLineStatus}";
+            return $"{percent}, {charging}, {PowerLineStatus(power.AcLineStatus)}";
         }
         catch
         {
@@ -202,6 +210,28 @@ public static class DiagnosticsReport
             return null;
         }
     }
+
+    private static string PowerLineStatus(byte status) => status switch
+    {
+        AcLineOffline => "Offline",
+        AcLineOnline => "Online",
+        _ => "Unknown"
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SystemPowerStatus
+    {
+        public byte AcLineStatus;
+        public byte BatteryFlag;
+        public byte BatteryLifePercent;
+        public byte SystemStatusFlag;
+        public uint BatteryLifeTime;
+        public uint BatteryFullLifeTime;
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetSystemPowerStatus(out SystemPowerStatus systemPowerStatus);
 }
 
 public sealed record DiagnosticsSnapshot

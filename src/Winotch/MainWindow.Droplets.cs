@@ -1,4 +1,4 @@
-using System.Windows;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
@@ -75,7 +75,7 @@ public partial class MainWindow
         }
     }
 
-    private void ColorPickerDroplet_Closed(object? sender, EventArgs e)
+    private void ColorPickerDroplet_Closed(object sender, WindowEventArgs e)
     {
         if (sender is ColorPickerDroplet window)
         {
@@ -88,7 +88,7 @@ public partial class MainWindow
         }
     }
 
-    private void TextScrubberDroplet_Closed(object? sender, EventArgs e)
+    private void TextScrubberDroplet_Closed(object sender, WindowEventArgs e)
     {
         if (sender is TextScrubberDroplet window)
         {

@@ -1,4 +1,4 @@
-using System.Windows.Media;
+using Microsoft.UI.Xaml.Media;
 
 namespace Winotch.CommandBar;
 

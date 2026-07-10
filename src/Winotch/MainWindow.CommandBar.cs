@@ -1,9 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Threading;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Input;
+using Windows.System;
 using Winotch.CommandBar;
 
 namespace Winotch;
@@ -14,7 +13,8 @@ public partial class MainWindow
     private const int WmHotkey = 0x0312;
     private CommandBarService? _commandBar;
     private CancellationTokenSource? _commandBarQuery;
-    private HwndSource? _commandBarSource;
+    private WindowMessageSink? _commandBarMessageSink;
+    private IntPtr _commandBarHwnd;
     private CommandHotkey? _registeredCommandHotkey;
     private bool _commandBarVisible;
 
@@ -30,7 +30,7 @@ public partial class MainWindow
             ],
             () => _settings.Current.CommandBar);
         CommandBarPanel.InputBox.TextChanged += async (_, _) => await RefreshCommandBarResultsAsync();
-        CommandBarPanel.InputBox.PreviewKeyDown += CommandBarInput_PreviewKeyDown;
+        CommandBarPanel.InputBox.KeyDown += CommandBarInput_PreviewKeyDown;
     }
 
     private IReadOnlyList<QuickCommandAction> CreateQuickCommands() =>
@@ -50,16 +50,22 @@ public partial class MainWindow
 
     private void RegisterCommandBarHotkey()
     {
-        if (!IsLoaded || PresentationSource.FromVisual(this) is not HwndSource source)
+        if (!IsLoaded)
         {
             return;
         }
 
-        if (!ReferenceEquals(_commandBarSource, source))
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (hwnd == IntPtr.Zero)
         {
-            _commandBarSource?.RemoveHook(CommandBarWndProc);
-            _commandBarSource = source;
-            _commandBarSource.AddHook(CommandBarWndProc);
+            return;
+        }
+
+        if (_commandBarHwnd != hwnd)
+        {
+            _commandBarMessageSink?.Dispose();
+            _commandBarHwnd = hwnd;
+            _commandBarMessageSink = new WindowMessageSink(hwnd, CommandBarWndProc);
         }
 
         ApplyCommandBarSettings(_settings.Current);
@@ -69,14 +75,13 @@ public partial class MainWindow
     {
         UnregisterCommandBarHotkey();
         if (!settings.CommandBar.Enabled ||
-            _commandBarSource is null ||
+            _commandBarMessageSink is null ||
             !CommandHotkeyParser.TryParse(settings.CommandBar.Hotkey, out var hotkey))
         {
             return;
         }
 
-        var hwnd = _commandBarSource.Handle;
-        if (RegisterHotKey(hwnd, CommandHotkeyId, hotkey.RegisterModifiers, hotkey.VirtualKey))
+        if (RegisterHotKey(_commandBarHwnd, CommandHotkeyId, hotkey.RegisterModifiers, hotkey.VirtualKey))
         {
             _registeredCommandHotkey = hotkey;
         }
@@ -84,22 +89,28 @@ public partial class MainWindow
 
     private void UnregisterCommandBarHotkey()
     {
-        if (_commandBarSource is not null && _registeredCommandHotkey is not null)
+        if (_commandBarMessageSink is not null && _registeredCommandHotkey is not null)
         {
-            UnregisterHotKey(_commandBarSource.Handle, CommandHotkeyId);
+            UnregisterHotKey(_commandBarHwnd, CommandHotkeyId);
             _registeredCommandHotkey = null;
         }
     }
 
-    private IntPtr CommandBarWndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private bool CommandBarWndProc(
+        IntPtr hwnd,
+        uint message,
+        UIntPtr wParam,
+        IntPtr lParam,
+        out IntPtr result)
     {
-        if (message == WmHotkey && wParam.ToInt32() == CommandHotkeyId)
+        result = IntPtr.Zero;
+        if (message == WmHotkey && unchecked((int)wParam.ToUInt64()) == CommandHotkeyId)
         {
-            ShowCommandBar();
-            handled = true;
+            _ = DispatcherQueue.TryEnqueue(ShowCommandBar);
+            return true;
         }
 
-        return IntPtr.Zero;
+        return false;
     }
 
     private void ShowCommandBar()
@@ -130,27 +141,28 @@ public partial class MainWindow
         CommandBarPanel.Clear();
         CommandBarPanel.Opacity = 0;
         CommandBarPanel.Visibility = Visibility.Visible;
-        HeaderRow.Height = new GridLength(28);
-        NotchShell.Padding = new Thickness(12, 8, 12, 12);
-        NotchShell.CornerRadius = new CornerRadius(0, 0, 24, 24);
+        HeaderRow.Height = new GridLength(44);
+        NotchShell.Padding = new Thickness(16, 12, 16, 20);
+        NotchShell.CornerRadius = new CornerRadius(0, 0, 34, 34);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         var monitor = CurrentMonitor(preferCursor: true);
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.Command(monitor.WidthDip), monitor), _animationFrameRate);
         ShellAnimator.Show(CommandBarPanel, _animationFrameRate);
         _ = RefreshCommandBarResultsAsync();
-        Dispatcher.BeginInvoke(FocusCommandBarInput, DispatcherPriority.ApplicationIdle);
+        _ = DispatcherQueue.TryEnqueue(
+            Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            FocusCommandBarInput);
     }
 
     private void FocusCommandBarInput()
     {
         Activate();
         CommandBarPanel.FocusInput();
-        Keyboard.Focus(CommandBarPanel.InputBox);
     }
 
-    private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private void Window_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (_commandBarVisible && e.Key == Key.Escape)
+        if (_commandBarVisible && e.Key == VirtualKey.Escape)
         {
             HideCommandBar(restoreShell: true);
             e.Handled = true;
@@ -196,30 +208,30 @@ public partial class MainWindow
         }
     }
 
-    private async void CommandBarInput_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private async void CommandBarInput_PreviewKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key == VirtualKey.Escape)
         {
             HideCommandBar(restoreShell: true);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Down)
+        if (e.Key == VirtualKey.Down)
         {
             CommandBarPanel.SelectNext(1);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Up)
+        if (e.Key == VirtualKey.Up)
         {
             CommandBarPanel.SelectNext(-1);
             e.Handled = true;
             return;
         }
 
-        if (e.Key == Key.Enter && CommandBarPanel.SelectedResult is { } result)
+        if (e.Key == VirtualKey.Enter && CommandBarPanel.SelectedResult is { } result)
         {
             e.Handled = true;
             await result.ExecuteAsync(CancellationToken.None);
@@ -258,8 +270,9 @@ public partial class MainWindow
     private void DisposeCommandBar()
     {
         UnregisterCommandBarHotkey();
-        _commandBarSource?.RemoveHook(CommandBarWndProc);
-        _commandBarSource = null;
+        _commandBarMessageSink?.Dispose();
+        _commandBarMessageSink = null;
+        _commandBarHwnd = IntPtr.Zero;
         _commandBarQuery?.Cancel();
         _commandBarQuery?.Dispose();
         _commandBarQuery = null;

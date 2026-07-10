@@ -1,23 +1,22 @@
-using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
-using DrawingIcon = System.Drawing.Icon;
-using Forms = System.Windows.Forms;
+using Microsoft.UI.Dispatching;
 
 namespace Winotch;
 
+/// <summary>
+/// Connects Winotch's UI services to the native notification-area window.
+/// Keeping Win32 ownership in <see cref="NativeTrayWindow"/> avoids taking a
+/// dependency on Windows Forms in the unpackaged WinUI 3 application.
+/// </summary>
 public sealed class TrayIconService : IDisposable
 {
-    private static readonly uint TaskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     private readonly MainWindow _mainWindow;
     private readonly SettingsService _settings;
     private readonly StartupService _startup;
     private readonly NotificationService _notifications;
-    private readonly Forms.NotifyIcon _notifyIcon;
-    private readonly Forms.ToolStripMenuItem _pauseItem;
-    private readonly Forms.ToolStripMenuItem _startupItem;
+    private readonly DispatcherQueue _dispatcherQueue;
+    private readonly NativeTrayWindow _trayWindow;
     private SettingsWindow? _settingsWindow;
-    private HwndSource? _source;
+    private bool _disposed;
 
     public TrayIconService(MainWindow mainWindow, SettingsService settings, StartupService startup, NotificationService notifications)
     {
@@ -25,56 +24,37 @@ public sealed class TrayIconService : IDisposable
         _settings = settings;
         _startup = startup;
         _notifications = notifications;
-        _pauseItem = new Forms.ToolStripMenuItem();
-        _startupItem = new Forms.ToolStripMenuItem("Start with Windows") { CheckOnClick = false };
-        _notifyIcon = new Forms.NotifyIcon
-        {
-            ContextMenuStrip = CreateContextMenu(),
-            Icon = LoadTrayIcon(),
-            Text = "Winotch",
-            Visible = true
-        };
-        _notifyIcon.DoubleClick += (_, _) => Dispatch(OpenSettings);
-        _mainWindow.SourceInitialized += MainWindow_SourceInitialized;
+        _dispatcherQueue = DispatcherQueue.GetForCurrentThread()
+            ?? throw new InvalidOperationException("The tray icon must be created on the WinUI thread.");
+
+        _trayWindow = new NativeTrayWindow(
+            GetMenuState,
+            () => Dispatch(OpenSettings),
+            () => Dispatch(() => _mainWindow.SetNotchPaused(!_mainWindow.IsNotchPaused)),
+            () => Dispatch(ToggleStartup),
+            () => Dispatch(_mainWindow.ExitFromTray));
     }
 
     public void Dispose()
     {
-        _mainWindow.SourceInitialized -= MainWindow_SourceInitialized;
-        if (_source is not null)
+        if (_disposed)
         {
-            _source.RemoveHook(WndProc);
-            _source = null;
+            return;
         }
 
+        _disposed = true;
+        _trayWindow.Dispose();
         _settingsWindow?.Close();
-        var icon = _notifyIcon.Icon;
-        _notifyIcon.Visible = false;
-        _notifyIcon.Dispose();
-        icon?.Dispose();
-    }
-
-    private Forms.ContextMenuStrip CreateContextMenu()
-    {
-        var menu = new Forms.ContextMenuStrip();
-        var settingsItem = new Forms.ToolStripMenuItem("Open Settings");
-        var exitItem = new Forms.ToolStripMenuItem("Exit");
-        settingsItem.Click += (_, _) => Dispatch(OpenSettings);
-        _pauseItem.Click += (_, _) => Dispatch(() => _mainWindow.SetNotchPaused(!_mainWindow.IsNotchPaused));
-        _startupItem.Click += (_, _) => ToggleStartup();
-        exitItem.Click += (_, _) => Dispatch(_mainWindow.ExitFromTray);
-        menu.Opening += (_, _) => RefreshMenuState();
-        menu.Items.Add(settingsItem);
-        menu.Items.Add(_pauseItem);
-        menu.Items.Add(_startupItem);
-        menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(exitItem);
-        RefreshMenuState();
-        return menu;
+        _settingsWindow = null;
     }
 
     public void OpenSettings()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(_settings, _startup, _notifications);
@@ -85,9 +65,23 @@ public sealed class TrayIconService : IDisposable
         _settingsWindow.Activate();
     }
 
+    private NativeTrayMenuState GetMenuState()
+    {
+        var startup = _startup.GetState(StartupService.CurrentExecutablePath());
+        return new NativeTrayMenuState(
+            _mainWindow.IsNotchPaused,
+            startup.IsEnabled,
+            startup.CanAccess);
+    }
+
     private void ToggleStartup()
     {
         var current = _startup.GetState(StartupService.CurrentExecutablePath());
+        if (!current.CanAccess)
+        {
+            return;
+        }
+
         var updated = _startup.SetEnabled(!current.IsEnabled, StartupService.CurrentExecutablePath());
         if (updated.CanAccess)
         {
@@ -96,64 +90,27 @@ public sealed class TrayIconService : IDisposable
                 General = settings.General with { StartWithWindows = updated.IsEnabled }
             });
         }
-
-        RefreshMenuState();
-    }
-
-    private void RefreshMenuState()
-    {
-        _pauseItem.Text = _mainWindow.IsNotchPaused ? "Resume notch" : "Pause notch";
-        var startup = _startup.GetState(StartupService.CurrentExecutablePath());
-        _startupItem.Checked = startup.IsEnabled;
-        _startupItem.Enabled = startup.CanAccess;
-        _startupItem.ToolTipText = startup.CanAccess ? "" : startup.ErrorMessage ?? "Startup setting unavailable.";
-    }
-
-    private void MainWindow_SourceInitialized(object? sender, EventArgs e)
-    {
-        if (PresentationSource.FromVisual(_mainWindow) is HwndSource source)
-        {
-            _source = source;
-            _source.AddHook(WndProc);
-        }
-    }
-
-    private IntPtr WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
-    {
-        if ((uint)message == TaskbarCreatedMessage)
-        {
-            _notifyIcon.Visible = false;
-            _notifyIcon.Visible = true;
-        }
-
-        return IntPtr.Zero;
     }
 
     private void Dispatch(Action action)
     {
-        if (_mainWindow.Dispatcher.CheckAccess())
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (_dispatcherQueue.HasThreadAccess)
         {
             action();
+            return;
         }
-        else
+
+        _ = _dispatcherQueue.TryEnqueue(() =>
         {
-            _mainWindow.Dispatcher.Invoke(action);
-        }
+            if (!_disposed)
+            {
+                action();
+            }
+        });
     }
-
-    private static DrawingIcon LoadTrayIcon()
-    {
-        var resource = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/Winotch;component/Resources/WinotchTray.ico"));
-        if (resource?.Stream is null)
-        {
-            return (DrawingIcon)System.Drawing.SystemIcons.Application.Clone();
-        }
-
-        using var stream = resource.Stream;
-        using var icon = new DrawingIcon(stream);
-        return (DrawingIcon)icon.Clone();
-    }
-
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern uint RegisterWindowMessage(string message);
 }

@@ -1,57 +1,98 @@
-<Window x:Class="Winotch.ColorPickerDroplet"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Color picker"
-        Width="320"
-        Height="172"
-        WindowStyle="None"
-        ResizeMode="NoResize"
-        AllowsTransparency="True"
-        Background="Transparent"
-        Topmost="True"
-        ShowInTaskbar="False"
-        UseLayoutRounding="True"
-        SnapsToDevicePixels="True"
-        Loaded="Window_Loaded"
-        Deactivated="Window_Deactivated"
-        KeyDown="Window_KeyDown">
-    <Border x:Name="FlyoutChrome" Padding="10" CornerRadius="24" Background="{StaticResource NotchBlack}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" RenderTransformOrigin="0.5,0">
-        <Border.RenderTransform>
-            <ScaleTransform x:Name="FlyoutScale" ScaleX="0.96" ScaleY="0.96" />
-        </Border.RenderTransform>
+<local:FluentWindow
+    x:Class="Winotch.ColorPickerDroplet"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Winotch"
+    Title="Color picker"
+    Width="320"
+    Height="172"
+    ShowInTaskbar="False"
+    Topmost="True"
+    AttachToTopEdge="False"
+    BottomCornerRadius="24">
+    <local:FluentWindow.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </local:FluentWindow.SystemBackdrop>
+
+    <Border x:Name="FlyoutChrome"
+            Padding="12"
+            Background="{StaticResource NotchPanel}"
+            BorderBrush="{StaticResource NotchStroke}"
+            BorderThickness="1"
+            CornerRadius="24"
+            KeyDown="FlyoutChrome_KeyDown">
         <StackPanel>
-            <Grid Margin="2,0,2,10"
+            <Grid Height="32"
+                  Margin="2,0,2,10"
                   Background="Transparent"
-                  MouseLeftButtonDown="HeaderDragArea_MouseLeftButtonDown">
+                  PointerPressed="HeaderDragArea_PointerPressed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Style="{StaticResource IconText}" Text="&#xE790;" FontSize="15" Margin="0,0,8,0" />
-                    <TextBlock Text="Color" FontSize="13" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource IconText}"
+                               Text="&#xE790;"
+                               FontSize="15"
+                               Margin="0,0,8,0" />
+                    <TextBlock Text="Color"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
                 </StackPanel>
-                <Button Grid.Column="1" Style="{StaticResource MediaIconButton}" Width="28" Height="28" Margin="0" ToolTip="Close" AutomationProperties.Name="Close color picker" Click="CloseButton_Click">
+                <Button Grid.Column="1"
+                        Style="{StaticResource MediaIconButton}"
+                        Width="28"
+                        Height="28"
+                        Margin="0"
+                        ToolTipService.ToolTip="Close"
+                        AutomationProperties.Name="Close color picker"
+                        Click="CloseButton_Click">
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" FontSize="10" />
                 </Button>
             </Grid>
+
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="54" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border x:Name="ColorSwatch" Width="42" Height="42" CornerRadius="8" Background="{StaticResource NotchPanelRaised}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" />
+                <Border x:Name="ColorSwatch"
+                        Width="42"
+                        Height="42"
+                        HorizontalAlignment="Left"
+                        CornerRadius="10"
+                        Background="{StaticResource NotchPanelRaised}"
+                        BorderBrush="{StaticResource NotchStroke}"
+                        BorderThickness="1" />
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock x:Name="HexText" Text="#000000" FontSize="14" FontWeight="SemiBold" />
-                    <TextBlock x:Name="RgbText" Text="rgb(0, 0, 0)" FontSize="12" Foreground="{StaticResource NotchMutedText}" Margin="0,2,0,0" />
+                    <TextBlock x:Name="HexText"
+                               Text="#000000"
+                               FontSize="14"
+                               FontWeight="SemiBold" />
+                    <TextBlock x:Name="RgbText"
+                               Text="rgb(0, 0, 0)"
+                               Style="{StaticResource WinotchCaptionText}"
+                               Margin="0,2,0,0" />
                 </StackPanel>
-                <Button x:Name="PickButton" Grid.Column="2" Content="Pick" Padding="12,7" VerticalAlignment="Center" Click="PickButton_Click" />
+                <Button x:Name="PickButton"
+                        Grid.Column="2"
+                        Content="Pick"
+                        Padding="14,7"
+                        VerticalAlignment="Center"
+                        Click="PickButton_Click" />
             </Grid>
+
             <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                <Button Content="Copy hex" Padding="11,6" Margin="0,0,8,0" Click="CopyHexButton_Click" />
-                <Button Content="Copy RGB" Padding="11,6" Click="CopyRgbButton_Click" />
+                <Button Content="Copy hex"
+                        Padding="12,6"
+                        Margin="0,0,8,0"
+                        Click="CopyHexButton_Click" />
+                <Button Content="Copy RGB"
+                        Padding="12,6"
+                        Click="CopyRgbButton_Click" />
             </StackPanel>
         </StackPanel>
     </Border>
-</Window>
+</local:FluentWindow>

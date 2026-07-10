@@ -1,6 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Input;
 
 namespace Winotch;
 
@@ -8,12 +6,12 @@ internal static class FlyoutClosePolicy
 {
     private static readonly TimeSpan DeactivationSettleDelay = TimeSpan.FromMilliseconds(200);
 
-    public static async Task<bool> ShouldCloseAfterDeactivationAsync(Window flyout)
+    public static async Task<bool> ShouldCloseAfterDeactivationAsync(FluentWindow flyout)
     {
-        var deactivatedByMouseClick = IsAnyMouseButtonPressed();
-        if (!deactivatedByMouseClick)
+        if (!IsAnyMouseButtonPressed())
         {
-            // Notch collapse and owner geometry changes can deactivate owned flyouts without an outside click.
+            // A notch morph or owner geometry update can briefly deactivate an
+            // owned surface without the user dismissing it.
             return false;
         }
 
@@ -30,20 +28,21 @@ internal static class FlyoutClosePolicy
             return true;
         }
 
-        GetWindowThreadProcessId(foreground, out var processId);
+        _ = GetWindowThreadProcessId(foreground, out var processId);
         return processId != Environment.ProcessId;
     }
 
     private static bool IsAnyMouseButtonPressed() =>
-        Mouse.LeftButton == MouseButtonState.Pressed ||
-        Mouse.RightButton == MouseButtonState.Pressed ||
-        Mouse.MiddleButton == MouseButtonState.Pressed ||
-        Mouse.XButton1 == MouseButtonState.Pressed ||
-        Mouse.XButton2 == MouseButtonState.Pressed;
+        IsPressed(0x01) || IsPressed(0x02) || IsPressed(0x04) || IsPressed(0x05) || IsPressed(0x06);
+
+    private static bool IsPressed(int virtualKey) => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int virtualKey);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out int processId);
 }

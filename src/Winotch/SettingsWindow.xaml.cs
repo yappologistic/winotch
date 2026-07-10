@@ -1,26 +1,41 @@
-using System.Windows;
-using System.Windows.Controls;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.UI.Notifications.Management;
 
 namespace Winotch;
 
-public partial class SettingsWindow : Window
+public partial class SettingsWindow : FluentWindow
 {
     private readonly SettingsService _settings;
     private readonly StartupService _startup;
     private readonly NotificationService _notifications;
     private bool _syncing;
+    private bool _centered;
 
     public SettingsWindow(SettingsService settings, StartupService startup, NotificationService notifications)
     {
         _settings = settings;
         _startup = startup;
         _notifications = notifications;
+        _syncing = true;
         InitializeComponent();
-        SourceInitialized += (_, _) => WindowChromeInterop.UseDarkCaption(this);
+        _syncing = false;
         Loaded += SettingsWindow_Loaded;
         Closed += SettingsWindow_Closed;
         _settings.Changed += Settings_Changed;
+    }
+
+    /// <summary>
+    /// FluentWindow defaults to overlay chrome. Settings is a long-lived app
+    /// surface, so restore the native resizable presenter after showing it.
+    /// </summary>
+    public new void Show()
+    {
+        base.Show();
+        ConfigureSettingsPresenter();
+        CenterOnFirstShow();
     }
 
     private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
@@ -30,50 +45,50 @@ public partial class SettingsWindow : Window
         RefreshStartupState(persist: true);
     }
 
-    private void SettingsWindow_Closed(object? sender, EventArgs e)
+    private void SettingsWindow_Closed(object sender, WindowEventArgs e)
     {
         _settings.Changed -= Settings_Changed;
     }
 
     private void Settings_Changed(object? sender, WinotchSettings settings)
     {
-        Dispatcher.Invoke(() => SyncFromSettings(settings));
+        _ = DispatcherQueue.TryEnqueue(() => SyncFromSettings(settings));
     }
 
     private void SyncFromSettings(WinotchSettings settings)
     {
         _syncing = true;
-        Use24HourClockToggle.IsChecked = settings.General.Use24HourClock;
-        ShowDateToggle.IsChecked = settings.General.ShowDate;
-        StartWithWindowsToggle.IsChecked = settings.General.StartWithWindows;
-        MediaToastsToggle.IsChecked = settings.Toasts.MediaToastsEnabled;
-        NotificationToastsToggle.IsChecked = settings.Toasts.NotificationToastsEnabled;
-        PriorityAlertsToggle.IsChecked = settings.Toasts.PriorityAlertsEnabled;
+        Use24HourClockToggle.IsOn = settings.General.Use24HourClock;
+        ShowDateToggle.IsOn = settings.General.ShowDate;
+        StartWithWindowsToggle.IsOn = settings.General.StartWithWindows;
+        MediaToastsToggle.IsOn = settings.Toasts.MediaToastsEnabled;
+        NotificationToastsToggle.IsOn = settings.Toasts.NotificationToastsEnabled;
+        PriorityAlertsToggle.IsOn = settings.Toasts.PriorityAlertsEnabled;
         SelectDuration(settings.Toasts.DurationScale);
-        ClipboardHistoryEnabledToggle.IsChecked = settings.Features.ClipboardHistoryEnabled;
-        ShowAppMixerToggle.IsChecked = settings.Features.ShowAppMixer;
-        SystemStatsEnabledToggle.IsChecked = settings.Features.SystemStatsEnabled;
-        FollowActiveMonitorToggle.IsChecked = settings.Features.FollowActiveMonitor;
-        ActivityDotsEnabledToggle.IsChecked = settings.LiveActivities.ActivityDotsEnabled;
-        NowPlayingStripEnabledToggle.IsChecked = settings.LiveActivities.NowPlayingStripEnabled;
-        TransientTimerEnabledToggle.IsChecked = settings.LiveActivities.TransientTimerEnabled;
-        CallDetectionEnabledToggle.IsChecked = settings.LiveActivities.CallDetectionEnabled;
-        ShelfEnabledToggle.IsChecked = settings.Shelf.Enabled;
+        ClipboardHistoryEnabledToggle.IsOn = settings.Features.ClipboardHistoryEnabled;
+        ShowAppMixerToggle.IsOn = settings.Features.ShowAppMixer;
+        SystemStatsEnabledToggle.IsOn = settings.Features.SystemStatsEnabled;
+        FollowActiveMonitorToggle.IsOn = settings.Features.FollowActiveMonitor;
+        ActivityDotsEnabledToggle.IsOn = settings.LiveActivities.ActivityDotsEnabled;
+        NowPlayingStripEnabledToggle.IsOn = settings.LiveActivities.NowPlayingStripEnabled;
+        TransientTimerEnabledToggle.IsOn = settings.LiveActivities.TransientTimerEnabled;
+        CallDetectionEnabledToggle.IsOn = settings.LiveActivities.CallDetectionEnabled;
+        ShelfEnabledToggle.IsOn = settings.Shelf.Enabled;
         SelectShelfCap(settings.Shelf.Cap);
-        ColorPickerEnabledToggle.IsChecked = settings.Droplets.ColorPickerEnabled;
-        TextScrubberEnabledToggle.IsChecked = settings.Droplets.TextScrubberEnabled;
-        CalendarEnabledToggle.IsChecked = settings.Calendar.Enabled;
-        CommandBarEnabledToggle.IsChecked = settings.CommandBar.Enabled;
+        ColorPickerEnabledToggle.IsOn = settings.Droplets.ColorPickerEnabled;
+        TextScrubberEnabledToggle.IsOn = settings.Droplets.TextScrubberEnabled;
+        CalendarEnabledToggle.IsOn = settings.Calendar.Enabled;
+        CommandBarEnabledToggle.IsOn = settings.CommandBar.Enabled;
         if (!StringComparer.Ordinal.Equals(CommandBarHotkeyTextBox.Text, settings.CommandBar.Hotkey))
         {
             CommandBarHotkeyTextBox.Text = settings.CommandBar.Hotkey;
         }
 
-        CommandBarAppsToggle.IsChecked = settings.CommandBar.AppLauncherEnabled;
-        CommandBarWindowsToggle.IsChecked = settings.CommandBar.WindowSwitcherEnabled;
-        CommandBarCalculatorToggle.IsChecked = settings.CommandBar.CalculatorEnabled;
-        CommandBarUnitsToggle.IsChecked = settings.CommandBar.UnitConverterEnabled;
-        CommandBarQuickCommandsToggle.IsChecked = settings.CommandBar.QuickCommandsEnabled;
+        CommandBarAppsToggle.IsOn = settings.CommandBar.AppLauncherEnabled;
+        CommandBarWindowsToggle.IsOn = settings.CommandBar.WindowSwitcherEnabled;
+        CommandBarCalculatorToggle.IsOn = settings.CommandBar.CalculatorEnabled;
+        CommandBarUnitsToggle.IsOn = settings.CommandBar.UnitConverterEnabled;
+        CommandBarQuickCommandsToggle.IsOn = settings.CommandBar.QuickCommandsEnabled;
         var calendarUrls = string.Join(Environment.NewLine, settings.Calendar.SubscriptionUrls);
         if (!StringComparer.Ordinal.Equals(CalendarUrlsTextBox.Text, calendarUrls))
         {
@@ -94,8 +109,8 @@ public partial class SettingsWindow : Window
         {
             General = settings.General with
             {
-                Use24HourClock = Use24HourClockToggle.IsChecked == true,
-                ShowDate = ShowDateToggle.IsChecked == true
+                Use24HourClock = Use24HourClockToggle.IsOn,
+                ShowDate = ShowDateToggle.IsOn
             }
         });
     }
@@ -111,9 +126,9 @@ public partial class SettingsWindow : Window
         {
             Toasts = settings.Toasts with
             {
-                MediaToastsEnabled = MediaToastsToggle.IsChecked == true,
-                NotificationToastsEnabled = NotificationToastsToggle.IsChecked == true,
-                PriorityAlertsEnabled = PriorityAlertsToggle.IsChecked == true
+                MediaToastsEnabled = MediaToastsToggle.IsOn,
+                NotificationToastsEnabled = NotificationToastsToggle.IsOn,
+                PriorityAlertsEnabled = PriorityAlertsToggle.IsOn
             }
         });
     }
@@ -129,10 +144,10 @@ public partial class SettingsWindow : Window
         {
             Features = settings.Features with
             {
-                ClipboardHistoryEnabled = ClipboardHistoryEnabledToggle.IsChecked == true,
-                ShowAppMixer = ShowAppMixerToggle.IsChecked == true,
-                SystemStatsEnabled = SystemStatsEnabledToggle.IsChecked == true,
-                FollowActiveMonitor = FollowActiveMonitorToggle.IsChecked == true
+                ClipboardHistoryEnabled = ClipboardHistoryEnabledToggle.IsOn,
+                ShowAppMixer = ShowAppMixerToggle.IsOn,
+                SystemStatsEnabled = SystemStatsEnabledToggle.IsOn,
+                FollowActiveMonitor = FollowActiveMonitorToggle.IsOn
             }
         });
     }
@@ -148,7 +163,7 @@ public partial class SettingsWindow : Window
         {
             Shelf = settings.Shelf with
             {
-                Enabled = ShelfEnabledToggle.IsChecked == true,
+                Enabled = ShelfEnabledToggle.IsOn,
                 Cap = SelectedShelfCap()
             }
         });
@@ -165,8 +180,8 @@ public partial class SettingsWindow : Window
         {
             Droplets = settings.Droplets with
             {
-                ColorPickerEnabled = ColorPickerEnabledToggle.IsChecked == true,
-                TextScrubberEnabled = TextScrubberEnabledToggle.IsChecked == true
+                ColorPickerEnabled = ColorPickerEnabledToggle.IsOn,
+                TextScrubberEnabled = TextScrubberEnabledToggle.IsOn
             }
         });
     }
@@ -180,7 +195,7 @@ public partial class SettingsWindow : Window
 
         _settings.Update(settings => settings with
         {
-            Calendar = settings.Calendar with { Enabled = CalendarEnabledToggle.IsChecked == true }
+            Calendar = settings.Calendar with { Enabled = CalendarEnabledToggle.IsOn }
         });
     }
 
@@ -195,10 +210,10 @@ public partial class SettingsWindow : Window
         {
             LiveActivities = settings.LiveActivities with
             {
-                ActivityDotsEnabled = ActivityDotsEnabledToggle.IsChecked == true,
-                NowPlayingStripEnabled = NowPlayingStripEnabledToggle.IsChecked == true,
-                TransientTimerEnabled = TransientTimerEnabledToggle.IsChecked == true,
-                CallDetectionEnabled = CallDetectionEnabledToggle.IsChecked == true
+                ActivityDotsEnabled = ActivityDotsEnabledToggle.IsOn,
+                NowPlayingStripEnabled = NowPlayingStripEnabledToggle.IsOn,
+                TransientTimerEnabled = TransientTimerEnabledToggle.IsOn,
+                CallDetectionEnabled = CallDetectionEnabledToggle.IsOn
             }
         });
     }
@@ -258,7 +273,10 @@ public partial class SettingsWindow : Window
         DiagnosticsStatusText.Visibility = Visibility.Visible;
         try
         {
-            System.Windows.Clipboard.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+            var package = new DataPackage();
+            package.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+            Clipboard.SetContent(package);
+            Clipboard.Flush();
             DiagnosticsStatusText.Text = "Diagnostics copied. Review before sharing.";
         }
         catch
@@ -278,7 +296,7 @@ public partial class SettingsWindow : Window
             return;
         }
 
-        var state = _startup.SetEnabled(StartWithWindowsToggle.IsChecked == true, StartupService.CurrentExecutablePath());
+        var state = _startup.SetEnabled(StartWithWindowsToggle.IsOn, StartupService.CurrentExecutablePath());
         if (state.CanAccess)
         {
             _settings.Update(settings => settings with
@@ -303,7 +321,7 @@ public partial class SettingsWindow : Window
 
         _syncing = true;
         StartWithWindowsToggle.IsEnabled = state.CanAccess;
-        StartWithWindowsToggle.IsChecked = state.IsEnabled;
+        StartWithWindowsToggle.IsOn = state.IsEnabled;
         StartupStatusText.Text = state.CanAccess ? "" : $"Startup setting unavailable: {state.ErrorMessage}";
         StartupStatusText.Visibility = state.CanAccess ? Visibility.Collapsed : Visibility.Visible;
         _syncing = false;
@@ -311,9 +329,12 @@ public partial class SettingsWindow : Window
 
     private void SelectDuration(ToastDurationScale scale)
     {
-        foreach (ComboBoxItem item in ToastDurationComboBox.Items)
+        foreach (var candidate in ToastDurationComboBox.Items)
         {
-            if (item.Tag is ToastDurationScale itemScale && itemScale == scale)
+            if (candidate is ComboBoxItem item &&
+                item.Tag is string text &&
+                Enum.TryParse<ToastDurationScale>(text, out var itemScale) &&
+                itemScale == scale)
             {
                 ToastDurationComboBox.SelectedItem = item;
                 return;
@@ -323,9 +344,12 @@ public partial class SettingsWindow : Window
 
     private void SelectShelfCap(int cap)
     {
-        foreach (ComboBoxItem item in ShelfCapComboBox.Items)
+        foreach (var candidate in ShelfCapComboBox.Items)
         {
-            if (item.Tag is string text && int.TryParse(text, out var itemCap) && itemCap == cap)
+            if (candidate is ComboBoxItem item &&
+                item.Tag is string text &&
+                int.TryParse(text, out var itemCap) &&
+                itemCap == cap)
             {
                 ShelfCapComboBox.SelectedItem = item;
                 return;
@@ -336,7 +360,8 @@ public partial class SettingsWindow : Window
     }
 
     private ToastDurationScale SelectedDuration() =>
-        ToastDurationComboBox.SelectedItem is ComboBoxItem { Tag: ToastDurationScale scale }
+        ToastDurationComboBox.SelectedItem is ComboBoxItem { Tag: string text } &&
+        Enum.TryParse<ToastDurationScale>(text, out var scale)
             ? scale
             : ToastDurationScale.Normal;
 
@@ -344,4 +369,41 @@ public partial class SettingsWindow : Window
         ShelfCapComboBox.SelectedItem is ComboBoxItem { Tag: string text } && int.TryParse(text, out var cap)
             ? cap
             : 8;
+
+    private void ConfigureSettingsPresenter()
+    {
+        AppWindow.Title = Title;
+        AppWindow.IsShownInSwitchers = true;
+        if (AppWindow.Presenter is not OverlappedPresenter presenter)
+        {
+            return;
+        }
+
+        presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: true);
+        presenter.IsResizable = true;
+        presenter.IsMaximizable = true;
+        presenter.IsMinimizable = true;
+        presenter.IsAlwaysOnTop = false;
+    }
+
+    private void CenterOnFirstShow()
+    {
+        if (_centered)
+        {
+            return;
+        }
+
+        _centered = true;
+        var displayArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
+        if (displayArea is null)
+        {
+            return;
+        }
+
+        var workArea = displayArea.WorkArea;
+        var size = AppWindow.Size;
+        AppWindow.Move(new Windows.Graphics.PointInt32(
+            workArea.X + Math.Max(0, (workArea.Width - size.Width) / 2),
+            workArea.Y + Math.Max(0, (workArea.Height - size.Height) / 2)));
+    }
 }

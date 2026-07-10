@@ -1,4 +1,4 @@
-using System.Windows;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
@@ -26,7 +26,7 @@ public partial class MainWindow
         PositionDroplets();
     }
 
-    private void PositionFlyoutBelowNotch(Window flyout)
+    private void PositionFlyoutBelowNotch(FluentWindow flyout)
     {
         var left = Left + (Width - flyout.Width) / 2;
         var shellHeight = NotchShell.ActualHeight > 0 ? NotchShell.ActualHeight : NotchShell.Height;

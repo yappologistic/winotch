@@ -1,18 +1,18 @@
 ﻿using System.Text;
 using System.ComponentModel;
 using System.Globalization;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Windows.UI;
 using Winotch.CommandBar;
 using Microsoft.Win32;
 
 namespace Winotch;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private enum ExpandedPanelMode
     {
@@ -21,14 +21,13 @@ public partial class MainWindow : Window
         Activity
     }
 
-    private const double FocusLiveProgressWidth = 26;
+    private const double FocusLiveProgressWidth = 184;
     private const double ChargingToastFillWidth = 24;
     private const double ChargingToastSweepWidth = 12;
-    private static readonly System.Windows.Media.FontFamily ToastTextFont = new("Segoe UI Variable Text, Segoe UI");
-    private static readonly System.Windows.Media.FontFamily ToastIconFont = new("Segoe MDL2 Assets");
-    private static readonly System.Windows.Media.Brush MicLiveBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 159, 10));
-    private static readonly System.Windows.Media.Brush MicMutedBrush = FrozenBrush(System.Windows.Media.Color.FromRgb(255, 69, 58));
-    private static readonly IEasingFunction ChargingFlourishEasing = new QuarticEase { EasingMode = EasingMode.EaseOut };
+    private static readonly FontFamily ToastTextFont = new("Segoe UI Variable Text, Segoe UI");
+    private static readonly FontFamily ToastIconFont = new("Segoe MDL2 Assets");
+    private static readonly Brush MicLiveBrush = FrozenBrush(Color.FromArgb(255, 255, 159, 10));
+    private static readonly Brush MicMutedBrush = FrozenBrush(Color.FromArgb(255, 255, 69, 58));
     private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer _shellTimer = new() { Interval = ShellAnimationTiming.ForegroundPollInterval };
@@ -96,8 +95,10 @@ public partial class MainWindow : Window
         _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _statsTimer.Tick += (_, _) => RefreshSystemStats();
         _calendarTimer.Tick += async (_, _) => await RefreshCalendarAsync();
-        _notifications.NotificationsChanged += (_, _) => Dispatcher.Invoke(async () => await RefreshStatusAsync());
-        _media.MediaChanged += (_, _) => Dispatcher.Invoke(async () => await RefreshStatusAsync());
+        _notifications.NotificationsChanged += (_, _) =>
+            _ = DispatcherQueue.TryEnqueue(async () => await RefreshStatusAsync());
+        _media.MediaChanged += (_, _) =>
+            _ = DispatcherQueue.TryEnqueue(async () => await RefreshStatusAsync());
         _clipboardHistory.HistoryChanged += OnClipboardHistoryChanged;
         ClipboardPanel.CopyRequested += ClipboardPanel_CopyRequested;
         ClipboardPanel.DeleteRequested += ClipboardPanel_DeleteRequested;
@@ -128,13 +129,13 @@ public partial class MainWindow : Window
 
     private async Task ApplyAccountPictureAsync()
     {
-        var image = MediaArtwork.FromBytes(await _accountPicture.ReadAsync());
+        var image = await MediaArtwork.FromBytesAsync(await _accountPicture.ReadAsync());
         if (image is null)
         {
             return;
         }
 
-        LogoAccountPicture.Fill = new ImageBrush(image) { Stretch = Stretch.UniformToFill };
+        LogoAccountPicture.Fill = new ImageBrush { ImageSource = image, Stretch = Stretch.UniformToFill };
         LogoAccountPicture.Visibility = Visibility.Visible;
         LogoFallbackText.Visibility = Visibility.Collapsed;
     }
@@ -235,7 +236,7 @@ public partial class MainWindow : Window
         ApplyVolumeStatus(ReadVolumeLevel());
 
         var media = await ReadMediaStatusAsync();
-        ApplyMedia(media);
+        await ApplyMediaAsync(media);
         if (_mediaChanges.ShouldPop(media) && settings.Toasts.MediaToastsEnabled)
         {
             ShowMediaToast();
@@ -520,7 +521,7 @@ public partial class MainWindow : Window
     {
         _exitRequested = true;
         Close();
-        System.Windows.Application.Current.Shutdown();
+        (Application.Current as App)?.RequestExit();
     }
 
     private async Task RefreshControlCenterAsync(PriorityStatusSnapshot? priorityStatus = null)
@@ -538,7 +539,7 @@ public partial class MainWindow : Window
             ApplyAppMixerEnabled(showAppMixer);
             if (showAppMixer)
             {
-                var sessions = _audioSessions.GetSessions();
+                var sessions = await _audioSessions.GetSessionsAsync();
                 AudioSessionList.ItemsSource = sessions;
                 AudioSessionList.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
                 AudioSessionScroll.Visibility = sessions.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -582,7 +583,7 @@ public partial class MainWindow : Window
         {
             MicPillKind.Live => MicLiveBrush,
             MicPillKind.Muted => MicMutedBrush,
-            _ => (System.Windows.Media.Brush)FindResource("NotchText")
+            _ => ResourceBrush("NotchText")
         };
 
         MicPillGlyph.Text = state.Glyph;
@@ -600,10 +601,10 @@ public partial class MainWindow : Window
             _ => "Microphone idle"
         };
         MicMuteButtonText.Text = isMuted ? "Unmute" : "Mute";
-        MicMuteButton.Background = isMuted ? MicMutedBrush : (System.Windows.Media.Brush)FindResource("NotchPanel");
+        MicMuteButton.Background = isMuted ? MicMutedBrush : ResourceBrush("NotchPanel");
     }
 
-    private void ApplyMedia(MediaSnapshot media)
+    private async Task ApplyMediaAsync(MediaSnapshot media)
     {
         MediaPanel.Visibility = media.HasMedia ? Visibility.Visible : Visibility.Collapsed;
         NoMediaText.Visibility = media.HasMedia ? Visibility.Collapsed : Visibility.Visible;
@@ -632,7 +633,7 @@ public partial class MainWindow : Window
         MediaToastNextButton.IsEnabled = media.CanNext;
         MediaToastPlayPauseIcon.Text = media.IsPlaying ? "\uE769" : "\uE768";
 
-        var artwork = MediaArtwork.FromBytes(media.Thumbnail);
+        var artwork = await MediaArtwork.FromBytesAsync(media.Thumbnail);
         MediaArtworkImage.Source = artwork;
         MediaArtworkImage.Visibility = artwork is null ? Visibility.Collapsed : Visibility.Visible;
         MediaArtworkFallback.Visibility = artwork is null ? Visibility.Visible : Visibility.Collapsed;
@@ -660,7 +661,7 @@ public partial class MainWindow : Window
         await RefreshStatusAsync();
     }
 
-    private void Window_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+    private void Window_MouseEnter(object sender, PointerRoutedEventArgs e)
     {
         if (_commandBarVisible || _compactToastVisible || DateTime.UtcNow < _ignoreHoverUntilUtc)
         {
@@ -671,7 +672,7 @@ public partial class MainWindow : Window
         SetExpanded(true);
     }
 
-    private void Window_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+    private void Window_MouseLeave(object sender, PointerRoutedEventArgs e)
     {
         if (_commandBarVisible)
         {
@@ -718,7 +719,7 @@ public partial class MainWindow : Window
         ShellAnimator.Hide(DateText, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
-        ClockGroup.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+        ClockGroup.HorizontalAlignment = HorizontalAlignment.Center;
         ApplyHeaderDensity(isFullBar: false);
         _appBar.Release();
         SetMouseTransparent(false);
@@ -787,12 +788,12 @@ public partial class MainWindow : Window
         if (snapshot is null)
         {
             valueText.Text = "";
-            valueText.ToolTip = null;
+        ToolTipService.SetToolTip(valueText, null);
             return;
         }
 
         valueText.Text = snapshot.ValueText;
-        valueText.ToolTip = snapshot.ValueText;
+        ToolTipService.SetToolTip(valueText, snapshot.ValueText);
     }
 
     private void ShowMediaToast()
@@ -801,7 +802,7 @@ public partial class MainWindow : Window
         ShowCompactToast(MediaToastPanel);
     }
 
-    private void ShowNotificationToast(NotificationItem notification)
+    private async void ShowNotificationToast(NotificationItem notification)
     {
         ResetChargingFlourishToast();
         NotificationToastTitleText.Text = notification.Title;
@@ -812,7 +813,7 @@ public partial class MainWindow : Window
         NotificationToastIconFallback.FontSize = 16;
         NotificationToastIconFallback.Text = notification.BadgeText;
 
-        var icon = MediaArtwork.FromBytes(notification.Icon);
+        var icon = await MediaArtwork.FromBytesAsync(notification.Icon);
         NotificationToastIconImage.Source = icon;
         NotificationToastIconImage.Visibility = icon is null ? Visibility.Collapsed : Visibility.Visible;
         NotificationToastIconFallback.Visibility = icon is null ? Visibility.Visible : Visibility.Collapsed;
@@ -871,33 +872,21 @@ public partial class MainWindow : Window
         ChargingToastSweepTransform.X = -ChargingToastSweepWidth;
         ChargingToastTintSweep.Opacity = 0.62;
 
-        var fillAnimation = CreateAnimation(animation.FromWidth, animation.ToWidth, animation.Duration);
-        var sweepAnimation = CreateAnimation(
-            -ChargingToastSweepWidth,
-            animation.ToWidth + ChargingToastSweepWidth,
-            animation.SweepDuration);
-        var sweepFade = CreateAnimation(0.62, 0, animation.SweepDuration);
-
-        ChargingToastBatteryFill.BeginAnimation(FrameworkElement.WidthProperty, fillAnimation, HandoffBehavior.SnapshotAndReplace);
-        ChargingToastSweepTransform.BeginAnimation(TranslateTransform.XProperty, sweepAnimation, HandoffBehavior.SnapshotAndReplace);
-        ChargingToastTintSweep.BeginAnimation(UIElement.OpacityProperty, sweepFade, HandoffBehavior.SnapshotAndReplace);
-
-        DoubleAnimation CreateAnimation(double from, double to, TimeSpan duration)
-        {
-            var chargingAnimation = new DoubleAnimation(from, to, new Duration(duration))
-            {
-                EasingFunction = ChargingFlourishEasing
-            };
-            Timeline.SetDesiredFrameRate(chargingAnimation, _animationFrameRate);
-            return chargingAnimation;
-        }
+        ShellAnimator.Animate(
+            ChargingToastBatteryFill,
+            FrameworkElement.WidthProperty,
+            animation.ToWidth,
+            _animationFrameRate);
+        ChargingToastSweepTransform.X = animation.ToWidth + ChargingToastSweepWidth;
+        ShellAnimator.Animate(
+            ChargingToastTintSweep,
+            UIElement.OpacityProperty,
+            0,
+            _animationFrameRate);
     }
 
     private void ResetChargingFlourishToast()
     {
-        ChargingToastBatteryFill.BeginAnimation(FrameworkElement.WidthProperty, null);
-        ChargingToastSweepTransform.BeginAnimation(TranslateTransform.XProperty, null);
-        ChargingToastTintSweep.BeginAnimation(UIElement.OpacityProperty, null);
         ChargingToastBatteryFill.Width = 0;
         ChargingToastSweepTransform.X = -ChargingToastSweepWidth;
         ChargingToastTintSweep.Opacity = 0;
@@ -1007,7 +996,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        ShellAnimator.Animate(DetailPanel, OpacityProperty, 1, _animationFrameRate);
+        ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 1, _animationFrameRate);
         try
         {
             await Task.Delay(ShellAnimationTiming.DetailRevealCompletionDelay, cancellationToken);
@@ -1023,7 +1012,7 @@ public partial class MainWindow : Window
         }
 
         SetMouseTransparent(false);
-        ClockGroup.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+        ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
         HeaderRow.Height = new GridLength(48);
         NotchShell.Padding = new Thickness(18, 8, 18, 12);
         if (_settings.Current.General.ShowDate)
@@ -1061,7 +1050,7 @@ public partial class MainWindow : Window
         LiveStrip.Visibility = isLive ? Visibility.Visible : Visibility.Collapsed;
         LiveStrip.Opacity = isLive ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
-        ClockGroup.HorizontalAlignment = isFullBar ? System.Windows.HorizontalAlignment.Left : System.Windows.HorizontalAlignment.Center;
+        ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center;
         HeaderRow.Height = new GridLength(isLive ? 44 : 28);
         NotchShell.Padding = isFullBar
             ? new Thickness(10, 2, 10, 2)
@@ -1080,7 +1069,7 @@ public partial class MainWindow : Window
 
         if (animate)
         {
-            ShellAnimator.Animate(DetailPanel, OpacityProperty, 0, _animationFrameRate);
+            ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 0, _animationFrameRate);
             ShellAnimator.AnimateShell(this, NotchShell, geometry, _animationFrameRate);
             if (isLive)
             {
@@ -1111,7 +1100,7 @@ public partial class MainWindow : Window
         LogoBadge.CornerRadius = new CornerRadius(isFullBar ? 12 : 14);
         TimeText.FontSize = isFullBar ? 15 : 17;
 
-        foreach (var chip in StatusGroup.Children.OfType<System.Windows.Controls.Border>())
+        foreach (var chip in StatusGroup.Children.OfType<Border>())
         {
             chip.Padding = isFullBar ? new Thickness(9, 4, 9, 4) : new Thickness(11, 7, 11, 7);
             chip.CornerRadius = new CornerRadius(isFullBar ? 13 : 17);
@@ -1182,7 +1171,7 @@ public partial class MainWindow : Window
         return selected;
     }
 
-    private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void VolumeSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_updatingVolume || !IsLoaded)
         {
@@ -1201,7 +1190,7 @@ public partial class MainWindow : Window
     private void ViewNotifications_Click(object sender, RoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Activity);
-        NotificationList.Focus();
+        NotificationList.Focus(FocusState.Programmatic);
     }
 
     private void TimerModeTab_Click(object sender, RoutedEventArgs e)
@@ -1209,7 +1198,7 @@ public partial class MainWindow : Window
         SelectExpandedPanelMode(ExpandedPanelMode.Timer);
     }
 
-    private void TimerModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void TimerModeTab_PreviewMouseLeftButtonDown(object sender, PointerRoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Timer);
     }
@@ -1219,7 +1208,7 @@ public partial class MainWindow : Window
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
     }
 
-    private void ControlsModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void ControlsModeTab_PreviewMouseLeftButtonDown(object sender, PointerRoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
     }
@@ -1227,13 +1216,13 @@ public partial class MainWindow : Window
     private void ActivityModeTab_Click(object sender, RoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Activity);
-        NotificationList.Focus();
+        NotificationList.Focus(FocusState.Programmatic);
     }
 
-    private void ActivityModeTab_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void ActivityModeTab_PreviewMouseLeftButtonDown(object sender, PointerRoutedEventArgs e)
     {
         SelectExpandedPanelMode(ExpandedPanelMode.Activity);
-        NotificationList.Focus();
+        NotificationList.Focus(FocusState.Programmatic);
     }
 
     private void AudioMoreToggle_Click(object sender, RoutedEventArgs e)
@@ -1265,17 +1254,24 @@ public partial class MainWindow : Window
         ApplyExpandedTabState(NowModeTab, NowModeIcon, NowModeText, timerActive);
     }
 
-    private void ApplyExpandedTabState(System.Windows.Controls.Button tab, TextBlock icon, TextBlock text, bool active)
+    private void ApplyExpandedTabState(Button tab, TextBlock icon, TextBlock text, bool active)
     {
-        tab.Background = active ? (System.Windows.Media.Brush)FindResource("NotchPanel") : (System.Windows.Media.Brush)FindResource("NotchHitTestFill");
-        tab.BorderBrush = active ? (System.Windows.Media.Brush)FindResource("NotchStroke") : System.Windows.Media.Brushes.Transparent;
-        icon.Foreground = active ? (System.Windows.Media.Brush)FindResource("NotchText") : (System.Windows.Media.Brush)FindResource("NotchMutedText");
-        text.Foreground = active ? (System.Windows.Media.Brush)FindResource("NotchText") : (System.Windows.Media.Brush)FindResource("NotchMutedText");
+        tab.Background = active ? ResourceBrush("NotchPanel") : ResourceBrush("NotchHitTestFill");
+        tab.BorderBrush = active ? ResourceBrush("NotchStroke") : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        icon.Foreground = active ? ResourceBrush("NotchText") : ResourceBrush("NotchMutedText");
+        text.Foreground = active ? ResourceBrush("NotchText") : ResourceBrush("NotchMutedText");
     }
 
     private async void CopyDiagnostics_Click(object sender, RoutedEventArgs e)
     {
-        System.Windows.Clipboard.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage
+        {
+            RequestedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
+        };
+        package.SetText(await DiagnosticsReport.CaptureAsync(_settings.Current, _startup));
+        package.Properties.Add("ExcludeClipboardContentFromMonitorProcessing", true);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        Windows.ApplicationModel.DataTransfer.Clipboard.Flush();
     }
 
     private void FocusShortPreset_Click(object sender, RoutedEventArgs e)
@@ -1350,7 +1346,7 @@ public partial class MainWindow : Window
         await RefreshStatusAsync();
     }
 
-    private void AudioSessionVolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void AudioSessionVolumeSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_updatingControlCenter || !IsLoaded ||
             sender is not Slider { DataContext: AudioSessionRow session })
@@ -1397,7 +1393,7 @@ public partial class MainWindow : Window
         await _cameraMirror.OpenAsync();
     }
 
-    private void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void BrightnessSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
         if (_updatingControlCenter || !IsLoaded ||
             sender is not Slider { DataContext: BrightnessDisplay display })
@@ -1446,7 +1442,7 @@ public partial class MainWindow : Window
 
     private void OnClipboardHistoryChanged(object? sender, EventArgs e)
     {
-        Dispatcher.Invoke(RefreshClipboardPanel);
+        _ = DispatcherQueue.TryEnqueue(RefreshClipboardPanel);
     }
 
     private void RefreshClipboardPanel()
@@ -1454,9 +1450,9 @@ public partial class MainWindow : Window
         ClipboardPanel.SetItems(_clipboardHistory.Items);
     }
 
-    private void ClipboardPanel_CopyRequested(object? sender, ClipboardHistoryEntry entry)
+    private async void ClipboardPanel_CopyRequested(object? sender, ClipboardHistoryEntry entry)
     {
-        if (_clipboardHistory.CopyToClipboard(entry.Id))
+        if (await _clipboardHistory.CopyToClipboardAsync(entry.Id))
         {
             ClipboardPanel.ShowCopied(entry.Id);
         }
@@ -1492,7 +1488,7 @@ public partial class MainWindow : Window
 
     private void Settings_Changed(object? sender, WinotchSettings settings)
     {
-        Dispatcher.Invoke(() =>
+        _ = DispatcherQueue.TryEnqueue(() =>
         {
             UpdateClock();
             ApplyCalendarSettings(settings);
@@ -1566,12 +1562,13 @@ public partial class MainWindow : Window
         WindowChromeInterop.SetMouseTransparent(this, enabled && !_expanded && DetailPanel.Opacity <= 0);
     }
 
-    private static System.Windows.Media.Brush FrozenBrush(System.Windows.Media.Color color)
+    private static Brush FrozenBrush(Color color)
     {
-        var brush = new SolidColorBrush(color);
-        brush.Freeze();
-        return brush;
+        return new SolidColorBrush(color);
     }
+
+    private static Brush ResourceBrush(string key) =>
+        (Brush)Application.Current.Resources[key];
 
     private bool ShouldSuppressCameraAlert =>
         CameraMirrorLifecycle.SuppressesCameraAlerts(_cameraMirror.State);
@@ -1588,7 +1585,7 @@ public partial class MainWindow : Window
         await window.CloseMirrorAsync();
     }
 
-    private void CameraMirrorWindow_Closed(object? sender, EventArgs e)
+    private void CameraMirrorWindow_Closed(object sender, WindowEventArgs e)
     {
         if (sender is CameraMirrorWindow window)
         {

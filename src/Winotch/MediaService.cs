@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using Microsoft.UI.Xaml.Media;
 using Windows.Media.Control;
 using Windows.Storage.Streams;
 
@@ -270,28 +269,9 @@ public sealed class MediaService
 
 public static class MediaArtwork
 {
-    public static ImageSource? FromBytes(byte[]? bytes)
-    {
-        if (bytes is null || bytes.Length == 0)
-        {
-            return null;
-        }
-
-        try
-        {
-            using var stream = new MemoryStream(bytes);
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.DecodePixelWidth = 96;
-            image.StreamSource = stream;
-            image.EndInit();
-            image.Freeze();
-            return image;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+    public static async Task<ImageSource?> FromBytesAsync(byte[]? bytes) =>
+        await ClipboardThumbnail.ToBitmapSourceAsync(
+            bytes,
+            decodePixelWidth: 96,
+            decodePixelHeight: 0);
 }

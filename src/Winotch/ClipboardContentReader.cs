@@ -1,122 +1,217 @@
-using System.Collections.Specialized;
-using System.Windows.Media.Imaging;
-using WpfClipboard = System.Windows.Clipboard;
-using WpfDataFormats = System.Windows.DataFormats;
-using WpfDataObject = System.Windows.DataObject;
-using WpfIDataObject = System.Windows.IDataObject;
-using WpfTextDataFormat = System.Windows.TextDataFormat;
+using System.IO;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Security.Cryptography;
+using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace Winotch;
 
 public sealed class WindowsClipboardContentReader
 {
-    public ClipboardHistoryEntry? Read(DateTimeOffset capturedAt)
+    public async Task<ClipboardHistoryEntry?> ReadAsync(DateTimeOffset capturedAt)
     {
-        var data = WpfClipboard.GetDataObject();
-        if (data is null || !ClipboardPrivacyPolicy.CanCapture(new ClipboardDataObjectFormatReader(data)))
+        var data = Clipboard.GetContent();
+        var formats = await ClipboardDataObjectFormatReader.CreateAsync(data);
+        if (!ClipboardPrivacyPolicy.CanCapture(formats))
         {
             return null;
         }
 
-        var files = ReadFiles(data);
+        var files = await ReadFilesAsync(data);
         if (files.Count > 0)
         {
             return ClipboardHistoryEntry.FromFiles(files, capturedAt);
         }
 
-        var thumbnail = ReadImageThumbnail(data);
+        var thumbnail = await ReadImageThumbnailAsync(data);
         if (thumbnail is not null)
         {
             return ClipboardHistoryEntry.FromImage(thumbnail, capturedAt);
         }
 
-        return ClipboardHistoryEntry.FromText(ReadText(data), capturedAt);
+        return ClipboardHistoryEntry.FromText(await ReadTextAsync(data), capturedAt);
     }
 
-    public void Write(ClipboardHistoryEntry entry)
+    public async Task WriteAsync(ClipboardHistoryEntry entry)
     {
-        var data = new WpfDataObject();
-        // Self-copied entries should not be re-added by Winotch or Windows clipboard history.
-        MarkAsPrivateSelfCopy(data);
+        ArgumentNullException.ThrowIfNull(entry);
 
-        switch (entry.Kind)
+        var data = new DataPackage
         {
-            case ClipboardHistoryKind.Text:
-            case ClipboardHistoryKind.Link:
-                data.SetText(entry.Text ?? entry.Preview, WpfTextDataFormat.UnicodeText);
-                break;
-            case ClipboardHistoryKind.Files:
-                var files = new StringCollection();
-                files.AddRange(entry.FilePaths.ToArray());
-                data.SetFileDropList(files);
-                break;
-            case ClipboardHistoryKind.Image:
-                var image = ClipboardThumbnail.ToBitmapSource(entry.ThumbnailPng)
-                    ?? throw new InvalidOperationException("Clipboard image thumbnail could not be decoded.");
-                data.SetImage(image);
-                break;
-            default:
-                throw new InvalidOperationException("Unsupported clipboard history entry.");
-        }
+            RequestedOperation = DataPackageOperation.Copy
+        };
+        // This marker protects the in-process monitor. The native options below also
+        // keep self-copies out of Windows clipboard history and cross-device roaming.
+        data.SetData(ClipboardPrivacyPolicy.ExcludeClipboardContentFromMonitorProcessing, true);
 
-        WpfClipboard.SetDataObject(data, copy: true);
+        InMemoryRandomAccessStream? imageStream = null;
+        try
+        {
+            switch (entry.Kind)
+            {
+                case ClipboardHistoryKind.Text:
+                case ClipboardHistoryKind.Link:
+                    data.SetText(entry.Text ?? entry.Preview);
+                    break;
+                case ClipboardHistoryKind.Files:
+                    data.SetStorageItems(await ResolveStorageItemsAsync(entry.FilePaths));
+                    break;
+                case ClipboardHistoryKind.Image:
+                    imageStream = await ClipboardThumbnail.ToRandomAccessStreamAsync(
+                        entry.ThumbnailPng
+                        ?? throw new InvalidOperationException("Clipboard image thumbnail is missing."));
+                    data.SetBitmap(RandomAccessStreamReference.CreateFromStream(imageStream));
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported clipboard history entry.");
+            }
+
+            var options = new ClipboardContentOptions
+            {
+                IsAllowedInHistory = false,
+                IsRoamable = false
+            };
+            if (!Clipboard.SetContentWithOptions(data, options))
+            {
+                throw new InvalidOperationException("The clipboard is currently unavailable.");
+            }
+
+            // Flush makes the data independent of this DataPackage and its image stream.
+            Clipboard.Flush();
+        }
+        finally
+        {
+            imageStream?.Dispose();
+        }
     }
 
-    private static IReadOnlyList<string> ReadFiles(WpfIDataObject data)
+    private static async Task<IReadOnlyList<string>> ReadFilesAsync(DataPackageView data)
     {
-        if (!data.GetDataPresent(WpfDataFormats.FileDrop, autoConvert: false))
+        if (!data.Contains(StandardDataFormats.StorageItems))
         {
             return [];
         }
 
-        return data.GetData(WpfDataFormats.FileDrop, autoConvert: false) switch
-        {
-            string[] paths => paths,
-            StringCollection collection => collection.Cast<string>().ToArray(),
-            IEnumerable<string> paths => paths.ToArray(),
-            _ => []
-        };
+        var items = await data.GetStorageItemsAsync();
+        return items
+            .Select(item => item.Path)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToArray();
     }
 
-    private static byte[]? ReadImageThumbnail(WpfIDataObject data)
+    private static async Task<byte[]?> ReadImageThumbnailAsync(DataPackageView data)
     {
-        if (!data.GetDataPresent(WpfDataFormats.Bitmap, autoConvert: true))
+        if (!data.Contains(StandardDataFormats.Bitmap))
         {
             return null;
         }
 
         // Only the downscaled thumbnail is kept after this read; the full bitmap is never stored.
-        return data.GetData(WpfDataFormats.Bitmap, autoConvert: true) is BitmapSource image
-            ? ClipboardThumbnail.FromBitmapSource(image)
-            : null;
+        return await ClipboardThumbnail.FromStreamReferenceAsync(await data.GetBitmapAsync());
     }
 
-    private static string? ReadText(WpfIDataObject data) =>
-        data.GetDataPresent(WpfDataFormats.UnicodeText, autoConvert: true)
-            ? data.GetData(WpfDataFormats.UnicodeText, autoConvert: true) as string
-            : null;
+    private static async Task<string?> ReadTextAsync(DataPackageView data) =>
+        data.Contains(StandardDataFormats.Text) ? await data.GetTextAsync() : null;
 
-    private static void MarkAsPrivateSelfCopy(WpfDataObject data)
+    private static async Task<IReadOnlyList<IStorageItem>> ResolveStorageItemsAsync(
+        IReadOnlyList<string> paths)
     {
-        data.SetData(ClipboardPrivacyPolicy.ExcludeClipboardContentFromMonitorProcessing, true);
-        data.SetData(ClipboardPrivacyPolicy.CanIncludeInClipboardHistory, BitConverter.GetBytes(0));
+        var items = new List<IStorageItem>(paths.Count);
+        foreach (var path in paths)
+        {
+            if (File.Exists(path))
+            {
+                items.Add(await StorageFile.GetFileFromPathAsync(path));
+            }
+            else if (Directory.Exists(path))
+            {
+                items.Add(await StorageFolder.GetFolderFromPathAsync(path));
+            }
+            else
+            {
+                throw new FileNotFoundException("A clipboard item no longer exists.", path);
+            }
+        }
+
+        if (items.Count == 0)
+        {
+            throw new InvalidOperationException("Clipboard file entries must contain at least one item.");
+        }
+
+        return items;
     }
 }
 
-public sealed class ClipboardDataObjectFormatReader(WpfIDataObject data) : IClipboardFormatReader
+public sealed class ClipboardDataObjectFormatReader : IClipboardFormatReader
 {
-    public bool HasFormat(string formatName) =>
-        data.GetDataPresent(formatName, autoConvert: false);
+    private readonly DataPackageView _data;
+    private readonly IReadOnlyDictionary<string, object?> _values;
 
-    public bool TryGetData(string formatName, out object? value)
+    private ClipboardDataObjectFormatReader(
+        DataPackageView data,
+        IReadOnlyDictionary<string, object?> values)
     {
-        if (!HasFormat(formatName))
+        _data = data;
+        _values = values;
+    }
+
+    public static async Task<ClipboardDataObjectFormatReader> CreateAsync(DataPackageView data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+
+        var values = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var format = ClipboardPrivacyPolicy.CanIncludeInClipboardHistory;
+        if (data.Contains(format))
         {
-            value = null;
-            return false;
+            try
+            {
+                values[format] = await NormalizeDataAsync(await data.GetDataAsync(format));
+            }
+            catch
+            {
+                // A present but unreadable privacy marker is deliberately treated as private.
+                values[format] = null;
+            }
         }
 
-        value = data.GetData(formatName, autoConvert: false);
-        return true;
+        return new ClipboardDataObjectFormatReader(data, values);
+    }
+
+    public bool HasFormat(string formatName) => _data.Contains(formatName);
+
+    public bool TryGetData(string formatName, out object? value) =>
+        _values.TryGetValue(formatName, out value);
+
+    private static async Task<object?> NormalizeDataAsync(object? value)
+    {
+        switch (value)
+        {
+            case IBuffer buffer:
+                CryptographicBuffer.CopyToByteArray(buffer, out var bytes);
+                return bytes;
+            case IRandomAccessStream stream:
+                using (stream)
+                {
+                    return await ReadPrefixAsync(stream);
+                }
+            case IRandomAccessStreamReference reference:
+                using (var stream = await reference.OpenReadAsync())
+                {
+                    return await ReadPrefixAsync(stream);
+                }
+            default:
+                return value;
+        }
+    }
+
+    private static async Task<byte[]> ReadPrefixAsync(IRandomAccessStream stream)
+    {
+        stream.Seek(0);
+        var size = (uint)Math.Min(stream.Size, sizeof(int));
+        using var reader = new DataReader(stream.GetInputStreamAt(0));
+        await reader.LoadAsync(size);
+        var bytes = new byte[size];
+        reader.ReadBytes(bytes);
+        return bytes;
     }
 }

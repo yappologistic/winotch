@@ -1,4 +1,4 @@
-using System.Windows;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
@@ -15,13 +15,13 @@ public partial class SettingsWindow
         {
             CommandBar = settings.CommandBar with
             {
-                Enabled = CommandBarEnabledToggle.IsChecked == true,
+                Enabled = CommandBarEnabledToggle.IsOn,
                 Hotkey = CommandBarHotkeyTextBox.Text,
-                AppLauncherEnabled = CommandBarAppsToggle.IsChecked == true,
-                WindowSwitcherEnabled = CommandBarWindowsToggle.IsChecked == true,
-                CalculatorEnabled = CommandBarCalculatorToggle.IsChecked == true,
-                UnitConverterEnabled = CommandBarUnitsToggle.IsChecked == true,
-                QuickCommandsEnabled = CommandBarQuickCommandsToggle.IsChecked == true
+                AppLauncherEnabled = CommandBarAppsToggle.IsOn,
+                WindowSwitcherEnabled = CommandBarWindowsToggle.IsOn,
+                CalculatorEnabled = CommandBarCalculatorToggle.IsOn,
+                UnitConverterEnabled = CommandBarUnitsToggle.IsOn,
+                QuickCommandsEnabled = CommandBarQuickCommandsToggle.IsOn
             }
         });
     }

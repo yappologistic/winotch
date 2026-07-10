@@ -1,38 +1,68 @@
-using System.Collections.Specialized;
 using System.Diagnostics;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using WpfButton = System.Windows.Controls.Button;
-using WpfClipboard = System.Windows.Clipboard;
-using WpfDragDropEffects = System.Windows.DragDropEffects;
+using System.IO;
+using System.Numerics;
+using Microsoft.UI.Composition;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.ApplicationModel.DataTransfer;
+using Windows.Security.Cryptography;
+using Windows.Storage;
+using Windows.Storage.Streams;
+using Windows.System;
 
 namespace Winotch;
 
-public sealed record ShelfRow(ShelfItem Item, string Glyph, string Preview, ImageSource? Icon, BitmapSource? Thumbnail)
+public sealed record ShelfRow(
+    ShelfItem Item,
+    string Glyph,
+    string Preview,
+    ImageSource? Icon,
+    BitmapImage? Thumbnail)
 {
-    public bool HasIcon => Icon is not null;
-    public bool HasThumbnail => Thumbnail is not null;
+    public bool CanOpen => Item.Kind is ShelfItemKind.Files or ShelfItemKind.Link;
+    public Visibility IconVisibility => Icon is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility GlyphVisibility => Icon is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility PreviewVisibility => Thumbnail is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ThumbnailVisibility => Thumbnail is null ? Visibility.Collapsed : Visibility.Visible;
 }
 
-public partial class ShelfFlyout : Window
+/// <summary>
+/// Native WinUI shelf surface. The window uses Desktop Acrylic while the content
+/// layers and controls consume the shared Winotch Fluent design tokens.
+/// </summary>
+public sealed partial class ShelfFlyout : FluentWindow
 {
-    private static readonly Duration FadeDuration = new(ShellAnimationTiming.FadeDuration);
-    private static readonly Duration MotionDuration = new(ShellAnimationTiming.MotionDuration);
-    private static readonly IEasingFunction Easing = new QuarticEase { EasingMode = EasingMode.EaseOut };
     private readonly ShelfService _shelf;
+    private InMemoryRandomAccessStream? _activeDragImageStream;
+    private int _refreshVersion;
     private bool _closing;
 
     public ShelfFlyout(ShelfService shelf)
     {
+        ArgumentNullException.ThrowIfNull(shelf);
+
         InitializeComponent();
         _shelf = shelf;
         _shelf.Changed += Shelf_Changed;
-        Refresh();
+
+        Width = 430;
+        Height = 310;
+        ShowInTaskbar = false;
+        Topmost = true;
+        BottomCornerRadius = 24;
+        SystemBackdrop = new DesktopAcrylicBackdrop();
+
+        Loaded += Window_Loaded;
+        Activated += Window_Activated;
+        Closed += Window_Closed;
+        _ = RefreshAsync();
     }
+
+    public bool HasManualPosition { get; private set; }
 
     public async Task CloseShelfAsync()
     {
@@ -46,21 +76,25 @@ public partial class ShelfFlyout : Window
         Close();
     }
 
-    public bool HasManualPosition { get; private set; }
-
-    private void Window_Loaded(object sender, RoutedEventArgs e) => AnimateIn();
-
-    private async void Window_Deactivated(object? sender, EventArgs e)
+    private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        if (!_closing && await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
+        FlyoutChrome.Focus(FocusState.Programmatic);
+        AnimateIn();
+    }
+
+    private async void Window_Activated(object sender, WindowActivatedEventArgs e)
+    {
+        if (e.WindowActivationState == WindowActivationState.Deactivated &&
+            !_closing &&
+            await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
         {
             await CloseShelfAsync();
         }
     }
 
-    private async void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    private async void FlyoutChrome_KeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key == Key.Escape)
+        if (e.Key == VirtualKey.Escape)
         {
             e.Handled = true;
             await CloseShelfAsync();
@@ -71,23 +105,22 @@ public partial class ShelfFlyout : Window
 
     private void ClearButton_Click(object sender, RoutedEventArgs e) => _shelf.Clear();
 
-    private void HeaderDragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
+    private void HeaderDragArea_PointerPressed(object sender, PointerRoutedEventArgs e) =>
         FlyoutDragHelper.DragFromHeader(this, e, () => HasManualPosition = true);
-    }
 
-    private void CopyButton_Click(object sender, RoutedEventArgs e)
+    private async void CopyButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is WpfButton { Tag: ShelfItem item })
+        if (sender is not Button { Tag: ShelfItem item })
         {
-            CopyToClipboard(item);
-            e.Handled = true;
+            return;
         }
+
+        await CopyToClipboardAsync(item);
     }
 
     private void OpenButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not WpfButton { Tag: ShelfItem item })
+        if (sender is not Button { Tag: ShelfItem item })
         {
             return;
         }
@@ -97,84 +130,185 @@ public partial class ShelfFlyout : Window
             Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
         }
 
-        e.Handled = true;
     }
 
     private void RemoveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is WpfButton { Tag: ShelfItem item })
+        if (sender is Button { Tag: ShelfItem item })
         {
             _shelf.Remove(item.Id);
-            e.Handled = true;
         }
     }
 
-    private void ShelfRow_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+    private async void ShelfRow_DragStarting(UIElement sender, DragStartingEventArgs args)
     {
-        if (e.LeftButton == MouseButtonState.Pressed &&
-            !IsInsideButton((DependencyObject)e.OriginalSource) &&
-            sender is FrameworkElement { DataContext: ShelfRow row })
+        if (sender is not FrameworkElement { DataContext: ShelfRow row })
         {
-            DragDrop.DoDragDrop(this, ToDataObject(row.Item), WpfDragDropEffects.Copy);
+            args.Cancel = true;
+            return;
         }
-    }
 
-    private static bool IsInsideButton(DependencyObject source)
-    {
-        for (var current = source; current is not null; current = VisualTreeHelper.GetParent(current))
+        var deferral = args.GetDeferral();
+        try
         {
-            if (current is WpfButton)
-            {
-                return true;
-            }
+            _activeDragImageStream?.Dispose();
+            _activeDragImageStream = null;
+            args.AllowedOperations = DataPackageOperation.Copy;
+            args.Data.RequestedOperation = DataPackageOperation.Copy;
+            _activeDragImageStream = await PopulateDataPackageAsync(args.Data, row.Item);
         }
-
-        return false;
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Debug.WriteLine($"Unable to begin shelf drag: {ex}");
+            args.Cancel = true;
+            _activeDragImageStream?.Dispose();
+            _activeDragImageStream = null;
+        }
+        finally
+        {
+            deferral.Complete();
+        }
     }
 
-    private void Shelf_Changed(object? sender, EventArgs e) => Dispatcher.Invoke(Refresh);
-
-    private void Refresh()
+    private void ShelfRow_DropCompleted(UIElement sender, DropCompletedEventArgs args)
     {
-        var rows = _shelf.Items.Select(item => new ShelfRow(
+        _activeDragImageStream?.Dispose();
+        _activeDragImageStream = null;
+    }
+
+    private void Shelf_Changed(object? sender, EventArgs e)
+    {
+        if (DispatcherQueue.HasThreadAccess)
+        {
+            _ = RefreshAsync();
+            return;
+        }
+
+        _ = DispatcherQueue.TryEnqueue(() => _ = RefreshAsync());
+    }
+
+    private async Task RefreshAsync()
+    {
+        var version = Interlocked.Increment(ref _refreshVersion);
+        var items = _shelf.Items;
+        var rows = await Task.WhenAll(items.Select(CreateRowAsync));
+        if (_closing || version != Volatile.Read(ref _refreshVersion))
+        {
+            return;
+        }
+
+        ShelfList.ItemsSource = rows;
+        var isEmpty = rows.Length == 0;
+        EmptyState.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+        ShelfList.Visibility = isEmpty ? Visibility.Collapsed : Visibility.Visible;
+        ClearButton.IsEnabled = !isEmpty;
+        ItemCountText.Text = isEmpty ? "No staged items" : $"{rows.Length} staged item{(rows.Length == 1 ? string.Empty : "s")}";
+    }
+
+    private static async Task<ShelfRow> CreateRowAsync(ShelfItem item)
+    {
+        var iconTask = item.Kind == ShelfItemKind.Files
+            ? ShellIconService.LoadSmallIconAsync(item.FilePaths.FirstOrDefault())
+            : Task.FromResult<ImageSource?>(null);
+        var thumbnailTask = ClipboardThumbnail.ToBitmapSourceAsync(item.ThumbnailPng);
+        await Task.WhenAll(iconTask, thumbnailTask);
+
+        return new ShelfRow(
             item,
             GlyphFor(item.Kind),
             item.Preview,
-            IconFor(item),
-            ClipboardThumbnail.ToBitmapSource(item.ThumbnailPng))).ToArray();
-        ShelfList.ItemsSource = rows;
-        EmptyText.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            await iconTask,
+            await thumbnailTask);
     }
 
-    private static void CopyToClipboard(ShelfItem item) => WpfClipboard.SetDataObject(ToDataObject(item), copy: true);
-
-    private static System.Windows.DataObject ToDataObject(ShelfItem item)
+    private static async Task CopyToClipboardAsync(ShelfItem item)
     {
-        var data = new System.Windows.DataObject();
+        var data = new DataPackage
+        {
+            RequestedOperation = DataPackageOperation.Copy
+        };
+
+        InMemoryRandomAccessStream? imageStream = null;
+        try
+        {
+            imageStream = await PopulateDataPackageAsync(data, item);
+            var options = new ClipboardContentOptions
+            {
+                IsAllowedInHistory = false,
+                IsRoamable = false
+            };
+
+            if (!Clipboard.SetContentWithOptions(data, options))
+            {
+                throw new InvalidOperationException("The clipboard is currently unavailable.");
+            }
+
+            // Flush detaches the clipboard payload before the temporary image stream is released.
+            Clipboard.Flush();
+        }
+        finally
+        {
+            imageStream?.Dispose();
+        }
+    }
+
+    private static async Task<InMemoryRandomAccessStream?> PopulateDataPackageAsync(
+        DataPackage data,
+        ShelfItem item)
+    {
+        // Both markers preserve the existing in-process exclusion and the standard
+        // Windows privacy intent for apps that inspect clipboard history eligibility.
         data.SetData(ClipboardPrivacyPolicy.ExcludeClipboardContentFromMonitorProcessing, true);
-        data.SetData(ClipboardPrivacyPolicy.CanIncludeInClipboardHistory, BitConverter.GetBytes(0));
+        data.SetData(
+            ClipboardPrivacyPolicy.CanIncludeInClipboardHistory,
+            CryptographicBuffer.CreateFromByteArray(BitConverter.GetBytes(0)));
+
         switch (item.Kind)
         {
             case ShelfItemKind.Text:
             case ShelfItemKind.Link:
                 data.SetText(item.Text ?? item.Preview);
-                break;
+                return null;
             case ShelfItemKind.Files:
-                var files = new StringCollection();
-                files.AddRange(item.FilePaths.ToArray());
-                data.SetFileDropList(files);
-                break;
+                data.SetStorageItems(await ResolveStorageItemsAsync(item.FilePaths));
+                return null;
             case ShelfItemKind.Image:
-                var image = ClipboardThumbnail.ToBitmapSource(item.ThumbnailPng);
-                if (image is not null)
-                {
-                    data.SetImage(image);
-                }
+                var stream = await ClipboardThumbnail.ToRandomAccessStreamAsync(
+                    item.ThumbnailPng
+                    ?? throw new InvalidOperationException("The staged image thumbnail is missing."));
+                data.SetBitmap(RandomAccessStreamReference.CreateFromStream(stream));
+                return stream;
+            default:
+                throw new InvalidOperationException("Unsupported shelf item.");
+        }
+    }
 
-                break;
+    private static async Task<IReadOnlyList<IStorageItem>> ResolveStorageItemsAsync(
+        IReadOnlyList<string> paths)
+    {
+        var items = new List<IStorageItem>(paths.Count);
+        foreach (var path in paths)
+        {
+            if (File.Exists(path))
+            {
+                items.Add(await StorageFile.GetFileFromPathAsync(path));
+            }
+            else if (Directory.Exists(path))
+            {
+                items.Add(await StorageFolder.GetFolderFromPathAsync(path));
+            }
+            else
+            {
+                throw new FileNotFoundException("A shelf item no longer exists.", path);
+            }
         }
 
-        return data;
+        if (items.Count == 0)
+        {
+            throw new InvalidOperationException("A file shelf item must contain at least one path.");
+        }
+
+        return items;
     }
 
     private static string GlyphFor(ShelfItemKind kind) => kind switch
@@ -185,29 +319,53 @@ public partial class ShelfFlyout : Window
         _ => "\uE8D2"
     };
 
-    private static ImageSource? IconFor(ShelfItem item) => item.Kind == ShelfItemKind.Files
-        ? ShellIconService.LoadSmallIcon(item.FilePaths.FirstOrDefault())
-        : null;
-
     private void AnimateIn()
     {
-        Opacity = 0;
-        BeginAnimation(OpacityProperty, new DoubleAnimation(1, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(1, MotionDuration) { EasingFunction = Easing });
+        var visual = ElementCompositionPreview.GetElementVisual(FlyoutChrome);
+        visual.CenterPoint = new Vector3(
+            (float)(FlyoutChrome.ActualWidth / 2),
+            (float)(FlyoutChrome.ActualHeight / 2),
+            0);
+        visual.Opacity = 0;
+        visual.Scale = new Vector3(0.96f, 0.96f, 1);
+
+        var easing = CreateFluentEasing(visual.Compositor);
+        var opacity = visual.Compositor.CreateScalarKeyFrameAnimation();
+        opacity.InsertKeyFrame(1, 1, easing);
+        opacity.Duration = ShellAnimationTiming.FadeDuration;
+
+        var scale = visual.Compositor.CreateVector3KeyFrameAnimation();
+        scale.InsertKeyFrame(1, Vector3.One, easing);
+        scale.Duration = ShellAnimationTiming.MotionDuration;
+        visual.StartAnimation(nameof(visual.Opacity), opacity);
+        visual.StartAnimation(nameof(visual.Scale), scale);
     }
 
     private async Task AnimateOutAsync()
     {
-        BeginAnimation(OpacityProperty, new DoubleAnimation(0, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
-        FlyoutScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, FadeDuration) { EasingFunction = Easing });
+        var visual = ElementCompositionPreview.GetElementVisual(FlyoutChrome);
+        var easing = CreateFluentEasing(visual.Compositor);
+        var opacity = visual.Compositor.CreateScalarKeyFrameAnimation();
+        opacity.InsertKeyFrame(1, 0, easing);
+        opacity.Duration = ShellAnimationTiming.FadeDuration;
+
+        var scale = visual.Compositor.CreateVector3KeyFrameAnimation();
+        scale.InsertKeyFrame(1, new Vector3(0.96f, 0.96f, 1), easing);
+        scale.Duration = ShellAnimationTiming.FadeDuration;
+        visual.StartAnimation(nameof(visual.Opacity), opacity);
+        visual.StartAnimation(nameof(visual.Scale), scale);
         await Task.Delay(ShellAnimationTiming.FadeDuration);
     }
 
-    protected override void OnClosed(EventArgs e)
+    private static CompositionEasingFunction CreateFluentEasing(Compositor compositor) =>
+        compositor.CreateCubicBezierEasingFunction(
+            new Vector2(0.1f, 0.9f),
+            new Vector2(0.2f, 1));
+
+    private void Window_Closed(object sender, WindowEventArgs args)
     {
         _shelf.Changed -= Shelf_Changed;
-        base.OnClosed(e);
+        _activeDragImageStream?.Dispose();
+        _activeDragImageStream = null;
     }
 }

@@ -1,5 +1,5 @@
-using System.Windows;
-using System.Windows.Controls;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Winotch;
 
@@ -41,7 +41,7 @@ public partial class MainWindow
     private void StartTransientLiveTimer_Click(object sender, RoutedEventArgs e)
     {
         if (!_settings.Current.LiveActivities.TransientTimerEnabled ||
-            sender is not System.Windows.Controls.Button { Tag: string minutesText } ||
+            sender is not Microsoft.UI.Xaml.Controls.Button { Tag: string minutesText } ||
             !int.TryParse(minutesText, out var minutes))
         {
             return;

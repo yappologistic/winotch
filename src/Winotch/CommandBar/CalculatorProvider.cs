@@ -22,11 +22,7 @@ public sealed class CalculatorProvider : ICommandProvider
                 Name,
                 96,
                 Priority,
-                _ =>
-                {
-                    System.Windows.Clipboard.SetText(formatted);
-                    return Task.CompletedTask;
-                },
+                _ => ClipboardWriter.WriteTextAsync(formatted),
                 null,
                 "\uE8EF")
         ]);

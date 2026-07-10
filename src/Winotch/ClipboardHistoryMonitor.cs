@@ -1,7 +1,5 @@
 using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
-using System.Windows.Threading;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
@@ -15,7 +13,7 @@ public sealed class ClipboardHistoryMonitor : IDisposable
     private readonly ClipboardUpdateQueue _updates = new();
     private readonly WindowsClipboardContentReader _reader = new();
     private readonly DispatcherTimer _coalesceTimer;
-    private HwndSource? _source;
+    private WindowMessageSink? _messageSink;
     private IntPtr _windowHandle;
     private bool _registered;
     private bool _reading;
@@ -31,49 +29,55 @@ public sealed class ClipboardHistoryMonitor : IDisposable
 
     public IReadOnlyList<ClipboardHistoryEntry> Items => _store.Items;
 
-    public void Start(Window window)
+    public void Start(FluentWindow window)
     {
         if (_registered)
         {
             return;
         }
 
-        _windowHandle = new WindowInteropHelper(window).Handle;
+        _windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(window);
         if (_windowHandle == IntPtr.Zero)
         {
             return;
         }
 
-        // The notch window owns the clipboard listener; WPF delivers WM_CLIPBOARDUPDATE through this hook.
-        _source = HwndSource.FromHwnd(_windowHandle) ?? PresentationSource.FromVisual(window) as HwndSource;
-        if (_source is null)
+        try
         {
-            return;
+            // WinUI does not expose arbitrary HWND messages, so the notch owns a
+            // scoped native subclass for the clipboard listener notification.
+            _messageSink = new WindowMessageSink(_windowHandle, HandleWindowMessage);
+            _registered = AddClipboardFormatListener(_windowHandle);
+            if (!_registered)
+            {
+                _messageSink.Dispose();
+                _messageSink = null;
+                _windowHandle = IntPtr.Zero;
+            }
         }
-
-        _source.AddHook(WndProc);
-        _registered = AddClipboardFormatListener(_windowHandle);
+        catch
+        {
+            _messageSink?.Dispose();
+            _messageSink = null;
+            _windowHandle = IntPtr.Zero;
+        }
     }
 
     public void Stop()
     {
         _coalesceTimer.Stop();
-        if (_source is not null)
-        {
-            _source.RemoveHook(WndProc);
-            _source = null;
-        }
-
         if (_registered && _windowHandle != IntPtr.Zero)
         {
-            RemoveClipboardFormatListener(_windowHandle);
+            _ = RemoveClipboardFormatListener(_windowHandle);
         }
 
+        _messageSink?.Dispose();
+        _messageSink = null;
         _registered = false;
         _windowHandle = IntPtr.Zero;
     }
 
-    public bool CopyToClipboard(Guid id)
+    public async Task<bool> CopyToClipboardAsync(Guid id)
     {
         var item = _store.Find(id);
         if (item is null)
@@ -84,7 +88,7 @@ public sealed class ClipboardHistoryMonitor : IDisposable
         try
         {
             _writing = true;
-            _reader.Write(item);
+            await _reader.WriteAsync(item);
             _updates.IgnoreSequence(GetClipboardSequenceNumber());
             return true;
         }
@@ -120,14 +124,23 @@ public sealed class ClipboardHistoryMonitor : IDisposable
         _coalesceTimer.Tick -= OnCoalesceTimerTick;
     }
 
-    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    private bool HandleWindowMessage(
+        IntPtr windowHandle,
+        uint message,
+        UIntPtr wParam,
+        IntPtr lParam,
+        out IntPtr result)
     {
-        if (msg == WmClipboardUpdate)
+        result = IntPtr.Zero;
+        if (message != WmClipboardUpdate)
         {
-            HandleClipboardUpdate();
+            return false;
         }
 
-        return IntPtr.Zero;
+        HandleClipboardUpdate();
+        // Match the old HwndSource hook's unhandled result so WinUI and any
+        // other native subclasses can continue processing the notification.
+        return false;
     }
 
     private void HandleClipboardUpdate()
@@ -145,7 +158,7 @@ public sealed class ClipboardHistoryMonitor : IDisposable
         }
     }
 
-    private async void OnCoalesceTimerTick(object? sender, EventArgs e)
+    private async void OnCoalesceTimerTick(object? sender, object e)
     {
         _coalesceTimer.Stop();
         if (_reading)
@@ -184,7 +197,7 @@ public sealed class ClipboardHistoryMonitor : IDisposable
         {
             try
             {
-                return _reader.Read(DateTimeOffset.Now);
+                return await _reader.ReadAsync(DateTimeOffset.Now);
             }
             catch
             {

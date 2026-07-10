@@ -14,7 +14,7 @@ public sealed class AppLaunchProvider : ICommandProvider
 
     public bool IsEnabled(CommandBarSettings settings) => settings.AppLauncherEnabled;
 
-    public Task<IReadOnlyList<CommandBarResult>> QueryAsync(string query, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CommandBarResult>> QueryAsync(string query, CancellationToken cancellationToken)
     {
         var shortcuts = Shortcuts();
         var matches = string.IsNullOrWhiteSpace(query)
@@ -29,7 +29,11 @@ public sealed class AppLaunchProvider : ICommandProvider
                 .OrderByDescending(match => match.score)
                 .Take(6);
 
-        var results = matches.Select(match => new CommandBarResult(
+        var results = new List<CommandBarResult>();
+        foreach (var match in matches)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            results.Add(new CommandBarResult(
                 match.shortcut.Name,
                 string.IsNullOrWhiteSpace(match.shortcut.TargetPath) ? "App" : match.shortcut.TargetPath,
                 Name,
@@ -40,10 +44,12 @@ public sealed class AppLaunchProvider : ICommandProvider
                     ShellExecute.Launch(match.shortcut.ShortcutPath);
                     return Task.CompletedTask;
                 },
-                ShellIconService.LoadSmallIcon(match.shortcut.TargetPath ?? match.shortcut.ShortcutPath),
-                "\uE756"))
-            .ToList();
-        return Task.FromResult<IReadOnlyList<CommandBarResult>>(results);
+                await ShellIconService.LoadSmallIconAsync(
+                    match.shortcut.TargetPath ?? match.shortcut.ShortcutPath),
+                "\uE756"));
+        }
+
+        return results;
     }
 
     private IReadOnlyList<AppShortcut> Shortcuts() =>

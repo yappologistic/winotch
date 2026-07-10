@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Windows;
-using System.Windows.Threading;
+using Microsoft.UI.Xaml;
 
 namespace Winotch;
 
@@ -164,7 +163,7 @@ public partial class MainWindow
 
     private void AgendaJoin_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.Button { Tag: string url })
+        if (sender is Microsoft.UI.Xaml.Controls.Button { Tag: string url })
         {
             OpenMeetingUrl(url);
         }
