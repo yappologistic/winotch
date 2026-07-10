@@ -142,8 +142,8 @@ public partial class MainWindow
         CommandBarPanel.Opacity = 0;
         CommandBarPanel.Visibility = Visibility.Visible;
         HeaderRow.Height = new GridLength(44);
-        NotchShell.Padding = new Thickness(16, 12, 16, 20);
-        NotchShell.CornerRadius = new CornerRadius(0, 0, 34, 34);
+        ShellContent.Margin = new Thickness(16, 12, 16, 20);
+        SetShellCornerRadius(34);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         var monitor = CurrentMonitor(preferCursor: true);
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.Command(monitor.WidthDip), monitor), _animationFrameRate);

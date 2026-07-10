@@ -59,9 +59,10 @@
         </Grid.Resources>
 
         <ScrollViewer
+            HorizontalContentAlignment="Stretch"
             HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="32,28,32,36">
+            <StackPanel Margin="32,28,32,36" HorizontalAlignment="Stretch">
                 <TextBlock
                     FontFamily="{StaticResource WinotchDisplayFont}"
                     FontSize="28"

@@ -116,10 +116,11 @@ public static class ShellAnimator
         var generation = state.NextGeneration();
         StopShellVisual(shell);
 
-        var crossesMonitors = Math.Abs(current.Left - geometry.Left) > Math.Max(current.Width, geometry.Width);
+        var crossesMonitors = CrossesMonitorBoundary(current, geometry);
+        var currentHost = CurrentHostGeometry(window);
         var host = crossesMonitors
             ? geometry with { ShellHeight = geometry.WindowHeight }
-            : UnionHost(window, current, geometry);
+            : UnionHost(current, geometry, currentHost);
 
         // Moving a real HWND between monitors cannot be expressed as a XAML
         // composition animation. Move it atomically, then preserve the size
@@ -170,6 +171,10 @@ public static class ShellAnimator
 
             StopShellVisual(shell);
             visual.Scale = Vector3.One;
+            // The union host exists only while the shell is morphing. Commit
+            // the destination HWND bounds when the compositor finishes so the
+            // transparent part of the overlay never intercepts the desktop.
+            ApplyShellGeometry(window, shell, geometry, geometry);
             state.Transition = null;
         };
         visual.StartAnimation(nameof(Visual.Scale), scale);
@@ -348,25 +353,40 @@ public static class ShellAnimator
         _ = frameRate;
     }
 
-    private static ShellGeometry UnionHost(
-        FluentWindow window,
+    internal static ShellGeometry UnionHost(
         ShellGeometry current,
-        ShellGeometry target)
+        ShellGeometry target,
+        ShellGeometry currentHost)
     {
-        var hostLeft = Math.Min(Math.Min(current.Left, target.Left), window.Left);
-        var hostTop = Math.Min(Math.Min(current.Top, target.Top), window.Top);
+        var hostLeft = Math.Min(Math.Min(current.Left, target.Left), currentHost.Left);
+        var hostTop = Math.Min(Math.Min(current.Top, target.Top), currentHost.Top);
         var hostRight = Math.Max(
             Math.Max(current.Left + current.Width, target.Left + target.Width),
-            window.Left + window.Width);
+            currentHost.Left + currentHost.Width);
         var hostBottom = Math.Max(
             Math.Max(current.Top + current.WindowHeight, target.Top + target.WindowHeight),
-            window.Top + window.Height);
+            currentHost.Top + currentHost.WindowHeight);
         return new ShellGeometry(
             hostRight - hostLeft,
             hostBottom - hostTop,
             hostBottom - hostTop,
             hostLeft,
-            hostTop);
+            hostTop,
+            target.DpiScale);
+    }
+
+    internal static bool CrossesMonitorBoundary(ShellGeometry current, ShellGeometry target)
+    {
+        var currentScale = current.DpiScale > 0 ? current.DpiScale : 1d;
+        var targetScale = target.DpiScale > 0 ? target.DpiScale : currentScale;
+        if (Math.Abs(currentScale - targetScale) > 0.001)
+        {
+            return true;
+        }
+
+        var physicalDelta = Math.Abs((current.Left * currentScale) - (target.Left * targetScale));
+        var widestPhysicalState = Math.Max(current.Width * currentScale, target.Width * targetScale);
+        return physicalDelta >= widestPhysicalState;
     }
 
     private static ShellGeometry CurrentShellGeometry(FluentWindow window, FrameworkElement shell)
@@ -388,11 +408,12 @@ public static class ShellAnimator
             Current(shell.Height, shell.ActualHeight),
             window.Height,
             left,
-            top);
+            top,
+            window.RasterizationScale);
     }
 
     private static ShellGeometry CurrentHostGeometry(FluentWindow window) =>
-        new(window.Width, window.Height, window.Height, window.Left, window.Top);
+        new(window.Width, window.Height, window.Height, window.Left, window.Top, window.RasterizationScale);
 
     private static void ApplyShellGeometry(
         FluentWindow window,
@@ -400,11 +421,23 @@ public static class ShellAnimator
         ShellGeometry shellGeometry,
         ShellGeometry hostGeometry)
     {
-        window.MoveAndResize(
-            hostGeometry.Left,
-            hostGeometry.Top,
-            hostGeometry.Width,
-            hostGeometry.WindowHeight);
+        if (hostGeometry.DpiScale > 0)
+        {
+            window.MoveAndResizeAtScale(
+                hostGeometry.Left,
+                hostGeometry.Top,
+                hostGeometry.Width,
+                hostGeometry.WindowHeight,
+                hostGeometry.DpiScale);
+        }
+        else
+        {
+            window.MoveAndResize(
+                hostGeometry.Left,
+                hostGeometry.Top,
+                hostGeometry.Width,
+                hostGeometry.WindowHeight);
+        }
         shell.HorizontalAlignment = HorizontalAlignment.Left;
         shell.VerticalAlignment = VerticalAlignment.Top;
         shell.Margin = new Thickness(
@@ -529,7 +562,8 @@ public static class ShellAnimator
                 Lerp(From.ShellHeight, To.ShellHeight, progress),
                 Lerp(From.WindowHeight, To.WindowHeight, progress),
                 Lerp(From.Left, To.Left, progress),
-                Lerp(From.Top, To.Top, progress));
+                Lerp(From.Top, To.Top, progress),
+                To.DpiScale > 0 ? To.DpiScale : From.DpiScale);
         }
     }
 

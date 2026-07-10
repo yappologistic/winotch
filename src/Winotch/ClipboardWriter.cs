@@ -12,9 +12,15 @@ internal static class ClipboardWriter
         };
         package.SetText(text);
         package.Properties.Add("ExcludeClipboardContentFromMonitorProcessing", true);
-        package.Properties.ExcludeFromHistory = true;
-        package.Properties.ExcludeFromRoaming = true;
-        Clipboard.SetContent(package);
+        var options = new ClipboardContentOptions
+        {
+            IsAllowedInHistory = false,
+            IsRoamable = false
+        };
+        if (!Clipboard.SetContentWithOptions(package, options))
+        {
+            throw new InvalidOperationException("The clipboard is currently unavailable.");
+        }
         Clipboard.Flush();
         return Task.CompletedTask;
     }

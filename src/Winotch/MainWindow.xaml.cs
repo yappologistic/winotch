@@ -95,15 +95,12 @@ public partial class MainWindow : FluentWindow
         _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _statsTimer.Tick += (_, _) => RefreshSystemStats();
         _calendarTimer.Tick += async (_, _) => await RefreshCalendarAsync();
-        _notifications.NotificationsChanged += (_, _) =>
-            _ = DispatcherQueue.TryEnqueue(async () => await RefreshStatusAsync());
         _media.MediaChanged += (_, _) =>
             _ = DispatcherQueue.TryEnqueue(async () => await RefreshStatusAsync());
         _clipboardHistory.HistoryChanged += OnClipboardHistoryChanged;
         ClipboardPanel.CopyRequested += ClipboardPanel_CopyRequested;
         ClipboardPanel.DeleteRequested += ClipboardPanel_DeleteRequested;
         ClipboardPanel.ClearRequested += ClipboardPanel_ClearRequested;
-        InitializeFeatureFlyouts();
         SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
     }
@@ -726,8 +723,8 @@ public partial class MainWindow : FluentWindow
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
         SetAudioMoreExpanded(false);
         HeaderRow.Height = new GridLength(28);
-        NotchShell.Padding = new Thickness(10, 4, 10, 6);
-        NotchShell.CornerRadius = new CornerRadius(0, 0, 34, 34);
+        ShellContent.Margin = new Thickness(10, 4, 10, 6);
+        SetShellCornerRadius(34);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
         var monitor = CurrentMonitor(preferCursor: true);
@@ -923,9 +920,9 @@ public partial class MainWindow : FluentWindow
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         DetailPanel.Opacity = 0;
-        HeaderRow.Height = new GridLength(28);
-        NotchShell.Padding = new Thickness(10, 4, 10, 6);
-        NotchShell.CornerRadius = new CornerRadius(0, 0, 24, 24);
+        HeaderRow.Height = new GridLength(52);
+        ShellContent.Margin = new Thickness(12, 8, 12, 12);
+        SetShellCornerRadius(38);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         var monitor = CurrentMonitor();
         ShellAnimator.AnimateShell(this, NotchShell, ShellMetrics.PlaceOnMonitor(ShellMetrics.MediaToast(monitor.WidthDip), monitor), _animationFrameRate);
@@ -1014,7 +1011,7 @@ public partial class MainWindow : FluentWindow
         SetMouseTransparent(false);
         ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
         HeaderRow.Height = new GridLength(48);
-        NotchShell.Padding = new Thickness(18, 8, 18, 12);
+        ShellContent.Margin = new Thickness(18, 8, 18, 12);
         if (_settings.Current.General.ShowDate)
         {
             ShellAnimator.Show(DateText, _animationFrameRate);
@@ -1051,13 +1048,13 @@ public partial class MainWindow : FluentWindow
         LiveStrip.Opacity = isLive ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
         ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center;
-        HeaderRow.Height = new GridLength(isLive ? 44 : 28);
-        NotchShell.Padding = isFullBar
+        HeaderRow.Height = new GridLength(isLive ? 52 : 44);
+        ShellContent.Margin = isFullBar
             ? new Thickness(10, 2, 10, 2)
             : isLive
-                ? new Thickness(12, 7, 12, 7)
-                : new Thickness(10, 4, 10, 6);
-        NotchShell.CornerRadius = isFullBar ? new CornerRadius(0) : new CornerRadius(0, 0, isLive ? 28 : 20, isLive ? 28 : 20);
+                ? new Thickness(12, 10, 12, 14)
+                : new Thickness(16, 10, 16, 14);
+        SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34);
         if (isFullBar)
         {
             _appBar.ReserveTop(this, geometry.WindowHeight, monitor);
@@ -1086,11 +1083,18 @@ public partial class MainWindow : FluentWindow
 
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
-        var hostGeometry = isFullBar
-            ? geometry
-            : ShellMetrics.PlaceOnMonitor(ShellMetrics.Expanded(monitor.WidthDip), monitor);
-        ShellAnimator.SetShellGeometry(this, NotchShell, geometry, hostGeometry);
+        ShellAnimator.SetShellGeometry(this, NotchShell, geometry, geometry);
         SetMouseTransparent(isFullBar && !_expanded);
+    }
+
+    private void SetShellCornerRadius(double radius)
+    {
+        var corners = radius <= 0
+            ? new CornerRadius(0)
+            : new CornerRadius(0, 0, radius, radius);
+        NotchShell.CornerRadius = corners;
+        TabChrome.CornerRadius = corners;
+        BottomCornerRadius = radius;
     }
 
     private void ApplyHeaderDensity(bool isFullBar)
@@ -1613,8 +1617,10 @@ public partial class MainWindow : FluentWindow
         var maxLeft = monitor.WorkAreaRightDip - _cameraMirrorWindow.Width - 8;
         var minTop = monitor.WorkAreaTopDip + 8;
         var maxTop = monitor.WorkAreaBottomDip - _cameraMirrorWindow.Height - 8;
-        _cameraMirrorWindow.Left = ClampToRange(left, minLeft, maxLeft);
-        _cameraMirrorWindow.Top = ClampToRange(top, minTop, maxTop);
+        _cameraMirrorWindow.MoveToAtScale(
+            ClampToRange(left, minLeft, maxLeft),
+            ClampToRange(top, minTop, maxTop),
+            monitor.DpiScaleX);
     }
 
     private static double ClampToRange(double value, double minimum, double maximum) =>

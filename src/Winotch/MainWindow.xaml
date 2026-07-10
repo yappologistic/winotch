@@ -16,7 +16,6 @@
         Loaded="Window_Loaded">
     <Grid KeyDown="Window_KeyDown">
         <Grid.Resources>
-            <SolidColorBrush x:Key="NotchHitTestFill" Color="#01000000" />
             <Style x:Key="ModeTabButton" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="CornerRadius" Value="18" />
                 <Setter Property="Background" Value="Transparent" />
@@ -41,7 +40,7 @@
                 BorderBrush="{StaticResource NotchStroke}"
                 BorderThickness="0,0,1,1"
                 CornerRadius="0,0,34,34"
-                Padding="16,10,16,14"
+                Padding="0"
                 AllowDrop="True"
                 DragOver="Notch_DragOver"
                 Drop="Notch_Drop"
@@ -49,18 +48,19 @@
                 PointerExited="Window_MouseLeave">
 
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition x:Name="HeaderRow" Height="44" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-
                 <!-- Native Windows compositor material. The translucent shell only
                      tunes contrast; wallpaper sampling and blur come from WinUI. -->
-                <SystemBackdropElement x:Name="TabChrome" Grid.RowSpan="2" IsHitTestVisible="False" CornerRadius="0,0,34,34">
+                <SystemBackdropElement x:Name="TabChrome" IsHitTestVisible="False" CornerRadius="0,0,34,34">
                     <SystemBackdropElement.SystemBackdrop>
                         <DesktopAcrylicBackdrop />
                     </SystemBackdropElement.SystemBackdrop>
                 </SystemBackdropElement>
+
+                <Grid x:Name="ShellContent" Margin="16,10,16,14">
+                    <Grid.RowDefinitions>
+                        <RowDefinition x:Name="HeaderRow" Height="44" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
@@ -762,6 +762,7 @@
                         </Button>
                     </StackPanel>
                 </Grid>
+            </Grid>
             </Grid>
         </Border>
     </Grid>

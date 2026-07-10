@@ -6,6 +6,9 @@
     Title="Shelf"
     AttachToTopEdge="False"
     BottomCornerRadius="24">
+    <local:FluentWindow.SystemBackdrop>
+        <DesktopAcrylicBackdrop />
+    </local:FluentWindow.SystemBackdrop>
 
     <Border
         x:Name="FlyoutChrome"

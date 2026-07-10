@@ -4,10 +4,6 @@ namespace Winotch;
 
 public partial class MainWindow
 {
-    private void InitializeFeatureFlyouts()
-    {
-    }
-
     private void ApplyShelfAndDropletSettings(WinotchSettings settings)
     {
         ApplyShelfSettings(settings.Shelf);
@@ -36,7 +32,9 @@ public partial class MainWindow
         var maxLeft = monitor.WorkAreaRightDip - flyout.Width - 8;
         var minTop = monitor.WorkAreaTopDip + 8;
         var maxTop = monitor.WorkAreaBottomDip - flyout.Height - 8;
-        flyout.Left = ClampToRange(left, minLeft, maxLeft);
-        flyout.Top = ClampToRange(top, minTop, maxTop);
+        flyout.MoveToAtScale(
+            ClampToRange(left, minLeft, maxLeft),
+            ClampToRange(top, minTop, maxTop),
+            monitor.DpiScaleX);
     }
 }

@@ -58,6 +58,7 @@ public sealed class TrayIconService : IDisposable
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(_settings, _startup, _notifications);
+            _settingsWindow.Owner = _mainWindow;
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         }
 

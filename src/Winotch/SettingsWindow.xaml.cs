@@ -254,11 +254,11 @@ public partial class SettingsWindow : FluentWindow
             var access = await _notifications.RequestHistoryAccessAsync();
             NotificationAccessStatusText.Text = access == UserNotificationListenerAccessStatus.Allowed
                 ? "Notification history access enabled."
-                : "Notification history not enabled. Live toast watching still works.";
+                : "Notification history is unavailable without package identity and permission.";
         }
         catch
         {
-            NotificationAccessStatusText.Text = "Notification access request failed. Live toast watching still works.";
+            NotificationAccessStatusText.Text = "Notification access request failed.";
         }
         finally
         {
@@ -401,9 +401,12 @@ public partial class SettingsWindow : FluentWindow
         }
 
         var workArea = displayArea.WorkArea;
-        var size = AppWindow.Size;
-        AppWindow.Move(new Windows.Graphics.PointInt32(
-            workArea.X + Math.Max(0, (workArea.Width - size.Width) / 2),
-            workArea.Y + Math.Max(0, (workArea.Height - size.Height) / 2)));
+        var scale = RasterizationScale;
+        var widthPixels = Width * scale;
+        var heightPixels = Height * scale;
+        MoveToAtScale(
+            (workArea.X + Math.Max(0, (workArea.Width - widthPixels) / 2)) / scale,
+            (workArea.Y + Math.Max(0, (workArea.Height - heightPixels) / 2)) / scale,
+            scale);
     }
 }

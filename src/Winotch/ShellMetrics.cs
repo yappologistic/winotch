@@ -5,27 +5,28 @@ public readonly record struct ShellGeometry(
     double ShellHeight,
     double WindowHeight,
     double Left,
-    double Top = 0);
+    double Top = 0,
+    double DpiScale = 0);
 
 public static class ShellMetrics
 {
-    public const double MiniWidth = 244;
-    public const double MiniShellHeight = 44;
-    public const double MiniWindowHeight = 52;
+    public const double MiniWidth = 260;
+    public const double MiniShellHeight = 68;
+    public const double MiniWindowHeight = 68;
     public const double FullBarShellHeight = 32;
-    public const double FullBarWindowHeight = 34;
-    public const double LiveStripWidth = 460;
-    public const double LiveStripShellHeight = 58;
-    public const double LiveStripWindowHeight = 66;
-    public const double MediaToastWidth = 460;
-    public const double MediaToastShellHeight = 68;
+    public const double FullBarWindowHeight = 32;
+    public const double LiveStripWidth = 440;
+    public const double LiveStripShellHeight = 76;
+    public const double LiveStripWindowHeight = 76;
+    public const double MediaToastWidth = 440;
+    public const double MediaToastShellHeight = 76;
     public const double MediaToastWindowHeight = 76;
     public const double ExpandedWidth = 960;
     public const double ExpandedShellHeight = 520;
-    public const double ExpandedWindowHeight = 580;
+    public const double ExpandedWindowHeight = 520;
     public const double CommandWidth = 600;
     public const double CommandShellHeight = 300;
-    public const double CommandWindowHeight = 316;
+    public const double CommandWindowHeight = 300;
 
     public static double CenterLeft(double screenWidth, double width) =>
         Math.Max(0, (screenWidth - width) / 2);
@@ -72,7 +73,12 @@ public static class ShellMetrics
         var left = monitor.LeftDip + geometry.Left;
         var minLeft = monitor.LeftDip;
         var maxLeft = monitor.LeftDip + Math.Max(0, monitor.WidthDip - geometry.Width);
-        return geometry with { Left = Math.Clamp(left, minLeft, maxLeft), Top = monitor.TopDip };
+        return geometry with
+        {
+            Left = Math.Clamp(left, minLeft, maxLeft),
+            Top = monitor.TopDip,
+            DpiScale = monitor.DpiScaleX
+        };
     }
 
     private static double FitWidth(double width, double screenWidth) =>

@@ -23,6 +23,7 @@ public class FluentWindow : Window
     private bool _topmost = true;
     private bool _showInTaskbar;
     private bool _contentHooked;
+    private double _bottomCornerRadius = 38;
     private FluentWindow? _owner;
     private bool _isLoaded;
     private bool _isPointerOver;
@@ -129,7 +130,15 @@ public class FluentWindow : Window
         }
     }
 
-    public double BottomCornerRadius { get; set; } = 38;
+    public double BottomCornerRadius
+    {
+        get => _bottomCornerRadius;
+        set
+        {
+            _bottomCornerRadius = Math.Max(0, value);
+            ApplyWindowRegion();
+        }
+    }
 
     public bool AttachToTopEdge { get; set; } = true;
 
@@ -189,6 +198,13 @@ public class FluentWindow : Window
         ApplyBounds();
     }
 
+    internal void MoveToAtScale(double leftDip, double topDip, double dpiScale)
+    {
+        _left = leftDip;
+        _top = topDip;
+        ApplyBounds(dpiScale);
+    }
+
     public void ResizeTo(double widthDip, double heightDip)
     {
         _width = Math.Max(1, widthDip);
@@ -203,6 +219,20 @@ public class FluentWindow : Window
         _width = Math.Max(1, widthDip);
         _height = Math.Max(1, heightDip);
         ApplyBounds();
+    }
+
+    internal void MoveAndResizeAtScale(
+        double leftDip,
+        double topDip,
+        double widthDip,
+        double heightDip,
+        double dpiScale)
+    {
+        _left = leftDip;
+        _top = topDip;
+        _width = Math.Max(1, widthDip);
+        _height = Math.Max(1, heightDip);
+        ApplyBounds(dpiScale);
     }
 
     public void DragMove()
@@ -245,37 +275,62 @@ public class FluentWindow : Window
         root.Loaded += (_, args) =>
         {
             _isLoaded = true;
+            if (root.XamlRoot is not null)
+            {
+                root.XamlRoot.Changed += (_, _) => ApplyBounds();
+            }
             ApplyBounds();
             Loaded?.Invoke(this, args);
         };
         root.PointerEntered += (_, _) => _isPointerOver = true;
         root.PointerExited += (_, _) => _isPointerOver = false;
-        root.XamlRoot.Changed += (_, _) => ApplyBounds();
     }
 
-    private double RasterizationScale =>
-        Content is FrameworkElement { XamlRoot: not null } root
-            ? root.XamlRoot.RasterizationScale
-            : 1d;
+    internal double RasterizationScale
+    {
+        get
+        {
+            if (Content is FrameworkElement { XamlRoot: not null } root &&
+                root.XamlRoot.RasterizationScale > 0)
+            {
+                return root.XamlRoot.RasterizationScale;
+            }
 
-    private void ApplyBounds()
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var dpi = hwnd == IntPtr.Zero ? 96u : GetDpiForWindow(hwnd);
+            return dpi > 0 ? dpi / 96d : 1d;
+        }
+    }
+
+    private void ApplyBounds(double? scaleOverride = null)
     {
         if (AppWindow is null)
         {
             return;
         }
 
-        var scale = RasterizationScale;
-        var bounds = new RectInt32(
-            (int)Math.Round(_left * scale),
-            (int)Math.Round(_top * scale),
-            Math.Max(1, (int)Math.Round(_width * scale)),
-            Math.Max(1, (int)Math.Round(_height * scale)));
+        var scale = scaleOverride is > 0 ? scaleOverride.Value : RasterizationScale;
+        var bounds = ToPhysicalBounds(_left, _top, _width, _height, scale);
         AppWindow.MoveAndResize(bounds);
-        ApplyWindowRegion();
+        ApplyWindowRegion(scale);
     }
 
-    private void ApplyWindowRegion()
+    internal static RectInt32 ToPhysicalBounds(
+        double leftDip,
+        double topDip,
+        double widthDip,
+        double heightDip,
+        double dpiScale)
+    {
+        var scale = dpiScale > 0 ? dpiScale : 1d;
+        return new RectInt32(
+            (int)Math.Round(leftDip * scale),
+            (int)Math.Round(topDip * scale),
+            Math.Max(1, (int)Math.Round(widthDip * scale)),
+            Math.Max(1, (int)Math.Round(heightDip * scale)));
+    }
+
+    private void ApplyWindowRegion(double? scaleOverride = null)
     {
         if (!UseWindowRegion)
         {
@@ -288,7 +343,7 @@ public class FluentWindow : Window
             return;
         }
 
-        var scale = RasterizationScale;
+        var scale = scaleOverride is > 0 ? scaleOverride.Value : RasterizationScale;
         var width = Math.Max(1, (int)Math.Round(_width * scale));
         var height = Math.Max(1, (int)Math.Round(_height * scale));
         var radius = Math.Max(1, (int)Math.Round(BottomCornerRadius * scale));
@@ -345,6 +400,9 @@ public class FluentWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hwnd);
 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

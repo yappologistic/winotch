@@ -6,6 +6,9 @@
     RequestedTheme="Dark">
     <Application.Resources>
         <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources />
+            </ResourceDictionary.MergedDictionaries>
             <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <!-- Reference-matched Fluent material palette. The backdrop itself is native
                  Desktop Acrylic; these translucent layers tune contrast over any wallpaper. -->
@@ -29,6 +32,7 @@
 
             <SolidColorBrush x:Key="NotchBlack" Color="{StaticResource WinotchFallbackColor}" />
             <SolidColorBrush x:Key="NotchPanel" Color="{StaticResource WinotchSurfaceColor}" />
+            <SolidColorBrush x:Key="NotchHitTestFill" Color="#01000000" />
             <SolidColorBrush x:Key="NotchPanelRaised" Color="{StaticResource WinotchSurfaceRaisedColor}" />
             <SolidColorBrush x:Key="NotchPanelHover" Color="{StaticResource WinotchSurfaceHoverColor}" />
             <SolidColorBrush x:Key="NotchPanelPressed" Color="{StaticResource WinotchSurfacePressedColor}" />

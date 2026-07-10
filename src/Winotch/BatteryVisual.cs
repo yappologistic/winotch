@@ -11,15 +11,19 @@ public sealed record BatteryVisual(double FillWidth, WinUIBrush Brush)
     public static BatteryVisual FromPercent(int percent, bool isCharging = false)
     {
         var clamped = Math.Clamp(percent, 0, 100);
-        var color = isCharging
+        return new BatteryVisual(FillWidthForPercent(clamped), new WinUISolidColorBrush(ColorForPercent(clamped, isCharging)));
+    }
+
+    public static WinUIColor ColorForPercent(int percent, bool isCharging = false)
+    {
+        var clamped = Math.Clamp(percent, 0, 100);
+        return isCharging
             ? WinUIColor.FromArgb(255, 50, 215, 75)
             : clamped < 20
             ? WinUIColor.FromArgb(255, 255, 69, 58)
             : clamped < 50
                 ? WinUIColor.FromArgb(255, 255, 204, 0)
                 : WinUIColor.FromArgb(255, 246, 246, 244);
-
-        return new BatteryVisual(FillWidthForPercent(clamped), new WinUISolidColorBrush(color));
     }
 
     public static double FillWidthForPercent(int percent, double maxFillWidth = IconFillWidth)
