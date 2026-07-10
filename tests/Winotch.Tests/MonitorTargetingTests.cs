@@ -107,8 +107,20 @@ public class MonitorTargetingTests
         Assert.Equal(1706.67, monitor.WorkAreaRightDip, precision: 2);
         Assert.Equal(622, monitor.WorkAreaBottomDip);
         Assert.Equal(1.5, monitor.DpiScaleY);
-        Assert.Equal(1158, geometry.Left, precision: 2);
+        Assert.Equal(1150, geometry.Left, precision: 2);
         Assert.Equal(0, geometry.Top);
+        Assert.Equal(1.5, geometry.DpiScale);
+
+        var physical = FluentWindow.ToPhysicalBounds(
+            geometry.Left,
+            geometry.Top,
+            geometry.Width,
+            geometry.WindowHeight,
+            geometry.DpiScale);
+        Assert.Equal(1725, physical.X);
+        Assert.Equal(0, physical.Y);
+        Assert.Equal(390, physical.Width);
+        Assert.Equal(102, physical.Height);
     }
 
     [Fact]
@@ -130,7 +142,7 @@ public class MonitorTargetingTests
     }
 
     [Fact]
-    public void ExpandedPlacementUsesWpfDipWidthOnScaledPrimaryMonitor()
+    public void ExpandedPlacementUsesWinUiDipWidthOnScaledPrimaryMonitor()
     {
         var monitor = new MonitorSnapshot(
             "primary",

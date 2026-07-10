@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 namespace Winotch.Tests;
 
 public sealed class UiMarkupTests
@@ -44,16 +46,104 @@ public sealed class UiMarkupTests
     }
 
     [Fact]
-    public void ScrollViewersAutoHideScrollBarsUntilScrolled()
+    public void AppResourcesDefineReferenceMatchedFluentTokens()
     {
         var appXaml = ReadRepoFile("src", "Winotch", "App.xaml");
-        var appCode = ReadRepoFile("src", "Winotch", "App.xaml.cs");
+        var doc = XDocument.Parse(appXaml);
+        XNamespace ui = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var xamlKey = XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml");
+        var keys = doc.Descendants()
+            .Select(element => (string?)element.Attribute(xamlKey))
+            .Where(key => key is not null)
+            .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Contains("AutoHideScrollViewer_Loaded", appXaml, StringComparison.Ordinal);
-        Assert.Contains("AutoHideScrollViewer_ScrollChanged", appXaml, StringComparison.Ordinal);
-        Assert.Contains("TargetType=\"{x:Type ScrollBar}\"", appXaml, StringComparison.Ordinal);
-        Assert.Contains("SetScrollBarsOpacity(viewer, 0)", appCode, StringComparison.Ordinal);
-        Assert.Contains("SetScrollBarsOpacity(viewer, 1)", appCode, StringComparison.Ordinal);
+        Assert.Equal("Dark", (string?)doc.Root?.Attribute("RequestedTheme"));
+        Assert.Contains("WinotchTextFont", keys);
+        Assert.Contains("WinotchDisplayFont", keys);
+        Assert.Contains("WinotchSurfaceColor", keys);
+        Assert.Contains("WinotchSurfaceRaisedColor", keys);
+        Assert.Contains("WinotchStrokeColor", keys);
+        Assert.Contains("WinotchAccentColor", keys);
+        Assert.Contains("WinotchPillCornerRadius", keys);
+        Assert.Contains("WinotchCardCornerRadius", keys);
+        Assert.Contains(doc.Descendants(ui + "Style"), style =>
+            (string?)style.Attribute("TargetType") == "Button");
+    }
+
+    [Fact]
+    public void ShellUsesNativeDesktopAcrylicAndReferenceGeometry()
+    {
+        var doc = XDocument.Parse(ReadRepoFile("src", "Winotch", "MainWindow.xaml"));
+        XNamespace ui = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var xamlName = XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml");
+        var shell = doc.Descendants(ui + "Border")
+            .Single(element => (string?)element.Attribute(xamlName) == "NotchShell");
+
+        Assert.Equal("FluentWindow", doc.Root?.Name.LocalName);
+        Assert.Equal("using:Winotch", doc.Root?.GetNamespaceOfPrefix("local")?.NamespaceName);
+        Assert.Equal("260", (string?)shell.Attribute("Width"));
+        Assert.Equal("68", (string?)shell.Attribute("Height"));
+        Assert.Equal("0,0,34,34", (string?)shell.Attribute("CornerRadius"));
+        Assert.Equal("Center", (string?)shell.Attribute("HorizontalAlignment"));
+        var backdropHost = Assert.Single(shell.Descendants(ui + "SystemBackdropElement"));
+        Assert.Single(backdropHost.Descendants(ui + "DesktopAcrylicBackdrop"));
+    }
+
+    [Fact]
+    public void ShellModesSynchronizeVisibleBackdropAndNativeCornerRadii()
+    {
+        var code = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
+
+        Assert.Contains("NotchShell.CornerRadius = corners", code, StringComparison.Ordinal);
+        Assert.Contains("TabChrome.CornerRadius = corners", code, StringComparison.Ordinal);
+        Assert.Contains("BottomCornerRadius = radius", code, StringComparison.Ordinal);
+        Assert.Contains("SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34)", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XamlUsesWinUiControlsWithoutWpfOnlyTemplatesOrTriggers()
+    {
+        var root = FindRepoRoot();
+        var xamlFiles = Directory.GetFiles(Path.Combine(root, "src", "Winotch"), "*.xaml", SearchOption.AllDirectories);
+
+        Assert.NotEmpty(xamlFiles);
+        foreach (var file in xamlFiles)
+        {
+            var xaml = File.ReadAllText(file);
+            var doc = XDocument.Parse(xaml);
+            Assert.Equal(
+                "http://schemas.microsoft.com/winfx/2006/xaml/presentation",
+                doc.Root?.GetDefaultNamespace().NamespaceName);
+            Assert.DoesNotContain("{x:Type", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<ControlTemplate", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<Trigger", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<EventTrigger", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("<Storyboard", xaml, StringComparison.Ordinal);
+            Assert.DoesNotContain("DockPanel", xaml, StringComparison.Ordinal);
+        }
+
+        var main = ReadRepoFile("src", "Winotch", "MainWindow.xaml");
+        Assert.Contains("<ListView", main, StringComparison.Ordinal);
+        Assert.Contains("<Slider", main, StringComparison.Ordinal);
+        Assert.Contains("<ProgressBar", main, StringComparison.Ordinal);
+        Assert.Contains("PointerPressed=", main, StringComparison.Ordinal);
+
+        var settings = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml");
+        Assert.Contains("<ToggleSwitch", settings, StringComparison.Ordinal);
+        Assert.Contains("<ComboBox", settings, StringComparison.Ordinal);
+        Assert.Contains("<MicaBackdrop", settings, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ShelfFlyout.xaml")]
+    [InlineData("ColorPickerDroplet.xaml")]
+    [InlineData("TextScrubberDroplet.xaml")]
+    [InlineData("CameraMirrorWindow.xaml")]
+    public void AuxiliaryFlyoutsUseNativeDesktopAcrylic(string fileName)
+    {
+        var xaml = ReadRepoFile("src", "Winotch", fileName);
+
+        Assert.Contains("<DesktopAcrylicBackdrop", xaml, StringComparison.Ordinal);
     }
 
     [Theory]

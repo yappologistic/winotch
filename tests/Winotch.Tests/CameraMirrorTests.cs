@@ -1,5 +1,4 @@
-using WpfRect = System.Windows.Rect;
-using WpfSize = System.Windows.Size;
+using Windows.Foundation;
 
 namespace Winotch.Tests;
 
@@ -70,8 +69,8 @@ public class CameraMirrorTests
         double expectedY)
     {
         var placement = CameraMirrorLayout.Cover(
-            new WpfSize(sourceWidth, sourceHeight),
-            new WpfSize(boundsWidth, boundsHeight));
+            new Size(sourceWidth, sourceHeight),
+            new Size(boundsWidth, boundsHeight));
 
         Assert.Equal(expectedWidth, placement.Width, precision: 2);
         Assert.Equal(expectedHeight, placement.Height, precision: 2);
@@ -83,10 +82,10 @@ public class CameraMirrorTests
     public void CoverReturnsEmptyForUnavailableDimensions()
     {
         var placement = CameraMirrorLayout.Cover(
-            new WpfSize(0, 1080),
-            new WpfSize(320, 240));
+            new Size(0, 1080),
+            new Size(320, 240));
 
-        Assert.Equal(WpfRect.Empty, placement);
+        Assert.Equal(default, placement);
     }
 
     [Fact]

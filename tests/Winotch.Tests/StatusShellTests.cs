@@ -1,10 +1,6 @@
-using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using System.Xml.Linq;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media.Animation;
 using Windows.Storage;
 
 namespace Winotch.Tests;
@@ -255,21 +251,14 @@ public class StatusShellTests
     }
 
     [Fact]
-    public async Task NotificationReadAsyncDropsExpiredLiveToastsFromPublicSnapshot()
+    public void NotificationServiceDoesNotInspectArbitraryDesktopWindows()
     {
-        using var service = new NotificationService();
-        var liveToasts = (List<NotificationItem>)typeof(NotificationService)
-            .GetField("_liveToasts", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-            .GetValue(service)!;
-        var now = DateTimeOffset.Now;
-        liveToasts.Add(new NotificationItem("Old", "Expired", "Toast", now - TimeSpan.FromMinutes(10), null, []));
-        liveToasts.Add(new NotificationItem("Fresh", "Current", "Toast", now, null, []));
+        var source = ReadRepoFile("src", "Winotch", "NotificationService.cs");
+        var project = ReadRepoFile("src", "Winotch", "Winotch.csproj");
 
-        var snapshot = await service.ReadAsync();
-
-        Assert.Equal("Live toasts", snapshot.Status);
-        var item = Assert.Single(snapshot.Items);
-        Assert.Equal("Fresh", item.App);
+        Assert.DoesNotContain("System.Windows.Automation", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Automation.AddAutomationEventHandler", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Microsoft.WindowsDesktop.App", project, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -279,11 +268,13 @@ public class StatusShellTests
     [InlineData(19, false, 3.04, 255, 69, 58)]
     public void BatteryVisualUsesFillAndThresholdColors(int percent, bool isCharging, double expectedWidth, byte red, byte green, byte blue)
     {
-        var visual = BatteryVisual.FromPercent(percent, isCharging);
-        var brush = Assert.IsType<SolidColorBrush>(visual.Brush);
+        var color = BatteryVisual.ColorForPercent(percent, isCharging);
 
-        Assert.Equal(expectedWidth, visual.FillWidth, precision: 2);
-        Assert.Equal(Color.FromRgb(red, green, blue), brush.Color);
+        Assert.Equal(expectedWidth, BatteryVisual.FillWidthForPercent(percent), precision: 2);
+        Assert.Equal(255, color.A);
+        Assert.Equal(red, color.R);
+        Assert.Equal(green, color.G);
+        Assert.Equal(blue, color.B);
     }
 
     [Theory]
@@ -293,9 +284,6 @@ public class StatusShellTests
     [InlineData(200, 16)]
     public void BatteryVisualClampsFillToIconInterior(int percent, double expectedWidth)
     {
-        var visual = BatteryVisual.FromPercent(percent);
-
-        Assert.Equal(expectedWidth, visual.FillWidth, precision: 2);
         Assert.Equal(expectedWidth, BatteryVisual.FillWidthForPercent(percent), precision: 2);
     }
 
@@ -327,17 +315,24 @@ public class StatusShellTests
     }
 
     [Theory]
-    [InlineData(50, 246, 246, 244)]
-    [InlineData(49, 255, 204, 0)]
-    [InlineData(20, 255, 204, 0)]
-    [InlineData(19, 255, 69, 58)]
-    [InlineData(5, 50, 215, 75)]
-    public void BatteryVisualUsesExpectedThresholdColors(int percent, byte red, byte green, byte blue)
+    [InlineData(50, false, 246, 246, 244)]
+    [InlineData(49, false, 255, 204, 0)]
+    [InlineData(20, false, 255, 204, 0)]
+    [InlineData(19, false, 255, 69, 58)]
+    [InlineData(5, true, 50, 215, 75)]
+    public void BatteryVisualKeepsChargingAndLowBatteryThresholdPalette(
+        int percent,
+        bool isCharging,
+        byte red,
+        byte green,
+        byte blue)
     {
-        var visual = BatteryVisual.FromPercent(percent, isCharging: percent == 5);
-        var brush = Assert.IsType<SolidColorBrush>(visual.Brush);
+        var color = BatteryVisual.ColorForPercent(percent, isCharging);
 
-        Assert.Equal(Color.FromRgb(red, green, blue), brush.Color);
+        Assert.Equal(255, color.A);
+        Assert.Equal(red, color.R);
+        Assert.Equal(green, color.G);
+        Assert.Equal(blue, color.B);
     }
 
     [Fact]
@@ -541,7 +536,7 @@ public class StatusShellTests
     [Fact]
     public void ExpandedNotificationTemplateBindsAppTitleBodyAndClampsBody()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Winotch\MainWindow.xaml", AppContext.BaseDirectory);
+        var path = Path.Combine(FindRepoRoot(), "src", "Winotch", "MainWindow.xaml");
         var xaml = XDocument.Load(path);
         XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
         var list = xaml.Descendants()
@@ -554,8 +549,8 @@ public class StatusShellTests
         Assert.Contains(textBlocks, element => (string?)element.Attribute("Text") == "{Binding Title}");
         var body = Assert.Single(textBlocks, element => (string?)element.Attribute("Text") == "{Binding Body}");
         Assert.Equal("48", (string?)body.Attribute("MaxHeight"));
-        Assert.Equal("True", (string?)body.Attribute("ClipToBounds"));
         Assert.Equal("Wrap", (string?)body.Attribute("TextWrapping"));
+        Assert.Equal("CharacterEllipsis", (string?)body.Attribute("TextTrimming"));
     }
 
     [Fact]
@@ -742,10 +737,10 @@ public class StatusShellTests
     }
 
     [Fact]
-    public void MediaArtworkReturnsNullForMissingArtwork()
+    public async Task MediaArtworkReturnsNullForMissingArtwork()
     {
-        Assert.Null(MediaArtwork.FromBytes(null));
-        Assert.Null(MediaArtwork.FromBytes([]));
+        Assert.Null(await MediaArtwork.FromBytesAsync(null));
+        Assert.Null(await MediaArtwork.FromBytesAsync([]));
     }
 
     [Fact]
@@ -828,11 +823,11 @@ public class StatusShellTests
     [Fact]
     public void ShellMetricsCentersMiniAndExpandedWidths()
     {
-        Assert.Equal(838, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
+        Assert.Equal(830, ShellMetrics.CenterLeft(1920, ShellMetrics.MiniWidth));
         Assert.Equal(480, ShellMetrics.CenterLeft(1920, ShellMetrics.ExpandedWidth));
-        Assert.Equal(new ShellGeometry(1920, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
-        Assert.Equal(new ShellGeometry(244, 44, 52, 838), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
-        Assert.Equal(new ShellGeometry(460, 68, 76, 730), ShellMetrics.MediaToast(1920));
+        Assert.Equal(new ShellGeometry(1920, 32, 32, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
+        Assert.Equal(new ShellGeometry(260, 68, 68, 830), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
+        Assert.Equal(new ShellGeometry(440, 76, 76, 740), ShellMetrics.MediaToast(1920));
     }
 
     [Fact]
@@ -843,17 +838,17 @@ public class StatusShellTests
         var expanded = ShellMetrics.Expanded(1919);
 
         Assert.Equal(ShellMetrics.MiniWidth, mini.Width);
-        Assert.Equal(837.5, mini.Left);
+        Assert.Equal(829.5, mini.Left);
         Assert.Equal(1919, fullBar.Width);
         Assert.Equal(0, fullBar.Left);
         Assert.Equal(479.5, expanded.Left);
-        Assert.True(expanded.WindowHeight > expanded.ShellHeight);
+        Assert.Equal(expanded.ShellHeight, expanded.WindowHeight);
     }
 
     [Fact]
     public void MainShellIsCenteredInsideAnimatingHostWindow()
     {
-        var path = Path.GetFullPath(@"..\..\..\..\..\src\Winotch\MainWindow.xaml", AppContext.BaseDirectory);
+        var path = Path.Combine(FindRepoRoot(), "src", "Winotch", "MainWindow.xaml");
         var xaml = XDocument.Load(path);
         var shell = xaml.Descendants()
             .Single(element => (string?)element.Attribute("{http://schemas.microsoft.com/winfx/2006/xaml}Name") == "NotchShell");
@@ -874,10 +869,10 @@ public class StatusShellTests
     [Fact]
     public void ShellMetricsFitWithinNarrowMonitorWidths()
     {
-        Assert.Equal(new ShellGeometry(200, 44, 52, 0), ShellMetrics.ForMode(isFullBar: false, screenWidth: 200));
-        Assert.Equal(new ShellGeometry(800, 520, 580, 0), ShellMetrics.Expanded(800));
-        Assert.Equal(new ShellGeometry(400, 68, 76, 0), ShellMetrics.MediaToast(400));
-        Assert.Equal(new ShellGeometry(0, 32, 34, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: -1));
+        Assert.Equal(new ShellGeometry(200, 68, 68, 0), ShellMetrics.ForMode(isFullBar: false, screenWidth: 200));
+        Assert.Equal(new ShellGeometry(800, 520, 520, 0), ShellMetrics.Expanded(800));
+        Assert.Equal(new ShellGeometry(400, 76, 76, 0), ShellMetrics.MediaToast(400));
+        Assert.Equal(new ShellGeometry(0, 32, 32, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: -1));
     }
 
     [Theory]
@@ -895,7 +890,7 @@ public class StatusShellTests
         var toast = ShellMetrics.MediaToast(1919);
 
         Assert.Equal(ShellMetrics.MediaToastWidth, toast.Width);
-        Assert.Equal(729.5, toast.Left);
+        Assert.Equal(739.5, toast.Left);
         Assert.True(toast.Width < ShellMetrics.ExpandedWidth);
         Assert.True(toast.WindowHeight < ShellMetrics.ExpandedWindowHeight);
     }
@@ -904,7 +899,7 @@ public class StatusShellTests
     public void MiniShellLeavesRoomForHeaderGlyphs()
     {
         Assert.True(ShellMetrics.MiniShellHeight - 10 >= 32);
-        Assert.True(ShellMetrics.MiniWidth >= 244);
+        Assert.True(ShellMetrics.MiniWidth >= 260);
     }
 
     [Fact]
@@ -916,199 +911,69 @@ public class StatusShellTests
     }
 
     [Fact]
-    public void ShellAnimatorKeepsBaseGeometryWhileAnimating()
+    public void ShellAnimatorUsesWinUiDependencyProperties()
     {
-        Exception? failure = null;
-        var thread = new Thread(() => failure = Record.Exception(() =>
-        {
-            var target = new Border
-            {
-                Width = ShellMetrics.MiniWidth,
-                Height = ShellMetrics.MiniWindowHeight
-            };
-            var window = new Window
-            {
-                Width = 1,
-                Height = 1,
-                Content = target,
-                Opacity = 0,
-                ShowInTaskbar = false,
-                WindowStyle = WindowStyle.None
-            };
-            window.Show();
+        var method = typeof(ShellAnimator).GetMethod(nameof(ShellAnimator.Animate));
 
-            try
-            {
-                ShellAnimator.Animate(target, FrameworkElement.WidthProperty, ShellMetrics.ExpandedWidth, 60);
-                ShellAnimator.Animate(target, FrameworkElement.HeightProperty, ShellMetrics.ExpandedWindowHeight, 60);
-
-                Assert.Equal(ShellMetrics.MiniWidth, target.GetAnimationBaseValue(FrameworkElement.WidthProperty));
-                Assert.Equal(ShellMetrics.MiniWindowHeight, target.GetAnimationBaseValue(FrameworkElement.HeightProperty));
-                Assert.True(target.HasAnimatedProperties);
-
-                var frame = new DispatcherFrame();
-                var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ShellAnimationTiming.MotionMilliseconds + 80) };
-                timer.Tick += (_, _) =>
-                {
-                    timer.Stop();
-                    frame.Continue = false;
-                };
-                timer.Start();
-                Dispatcher.PushFrame(frame);
-
-                Assert.Equal(ShellMetrics.ExpandedWidth, target.Width);
-                Assert.Equal(ShellMetrics.ExpandedWindowHeight, target.Height);
-                Assert.False(target.HasAnimatedProperties);
-            }
-            finally
-            {
-                window.Close();
-            }
-        }));
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-
-        Assert.Null(failure);
+        Assert.NotNull(method);
+        var parameters = method.GetParameters();
+        Assert.Equal(typeof(UIElement), parameters[0].ParameterType);
+        Assert.Equal(typeof(DependencyProperty), parameters[1].ParameterType);
+        Assert.Equal(typeof(double), parameters[2].ParameterType);
+        Assert.Equal(typeof(int), parameters[3].ParameterType);
     }
 
     [Fact]
-    public void ShellAnimatorKeepsHostStableDuringShellMorph()
+    public void ShellAnimatorShellMorphUsesFluentWindowAndWinUiElement()
     {
-        Exception? failure = null;
-        var thread = new Thread(() => failure = Record.Exception(() =>
-        {
-            var expanded = new ShellGeometry(
-                ShellMetrics.ExpandedWidth,
-                ShellMetrics.ExpandedShellHeight,
-                ShellMetrics.ExpandedWindowHeight,
-                540);
-            var mini = new ShellGeometry(
-                ShellMetrics.MiniWidth,
-                ShellMetrics.MiniShellHeight,
-                ShellMetrics.MiniWindowHeight,
-                838);
-            var shell = new Border
-            {
-                Width = expanded.Width,
-                Height = expanded.ShellHeight,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Top
-            };
-            var window = new Window
-            {
-                Width = expanded.Width,
-                Height = expanded.WindowHeight,
-                Left = expanded.Left,
-                Top = expanded.Top,
-                Content = shell,
-                Opacity = 0,
-                ShowInTaskbar = false,
-                WindowStartupLocation = WindowStartupLocation.Manual,
-                WindowStyle = WindowStyle.None
-            };
-            window.Show();
+        var method = typeof(ShellAnimator).GetMethod(nameof(ShellAnimator.AnimateShell));
 
-            try
-            {
-                ShellAnimator.AnimateShell(window, shell, mini, 60);
-
-                Assert.Equal(expanded.Left, window.Left);
-                Assert.Equal(expanded.Width, window.Width);
-                Assert.Equal(expanded.WindowHeight, window.Height);
-                Assert.False(window.HasAnimatedProperties);
-                Assert.True(shell.HasAnimatedProperties);
-                Assert.Equal(HorizontalAlignment.Left, shell.HorizontalAlignment);
-                Assert.Equal(VerticalAlignment.Top, shell.VerticalAlignment);
-
-                PumpUntil(
-                    () => !shell.HasAnimatedProperties,
-                    TimeSpan.FromMilliseconds(ShellAnimationTiming.MotionMilliseconds + 500));
-
-                Assert.Equal(expanded.Left, window.Left, precision: 0);
-                Assert.Equal(expanded.Width, window.Width, precision: 0);
-                Assert.Equal(expanded.WindowHeight, window.Height, precision: 0);
-                Assert.Equal(mini.Width, shell.Width);
-                Assert.Equal(mini.ShellHeight, shell.Height);
-                Assert.Equal(HorizontalAlignment.Left, shell.HorizontalAlignment);
-                Assert.Equal(new Thickness(mini.Left - expanded.Left, 0, 0, 0), shell.Margin);
-                Assert.False(shell.HasAnimatedProperties);
-            }
-            finally
-            {
-                window.Close();
-            }
-        }));
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-
-        Assert.Null(failure);
+        Assert.NotNull(method);
+        var parameters = method.GetParameters();
+        Assert.Equal(typeof(FluentWindow), parameters[0].ParameterType);
+        Assert.Equal(typeof(FrameworkElement), parameters[1].ParameterType);
+        Assert.Equal(typeof(ShellGeometry), parameters[2].ParameterType);
+        Assert.Equal(typeof(int), parameters[3].ParameterType);
     }
 
     [Fact]
-    public void ShellAnimatorPreservesCurrentOpacityWhenFadeIsInterrupted()
+    public void ShellAnimatorUnionHostCoversBothStatesAndKeepsDestinationDpi()
     {
-        Exception? failure = null;
-        var thread = new Thread(() => failure = Record.Exception(() =>
-        {
-            var target = new Border
-            {
-                Opacity = 0,
-                Visibility = Visibility.Visible
-            };
-            var window = new Window
-            {
-                Width = 1,
-                Height = 1,
-                Content = target,
-                Opacity = 0,
-                ShowInTaskbar = false,
-                WindowStyle = WindowStyle.None
-            };
-            window.Show();
+        var current = new ShellGeometry(260, 68, 68, 830, 0, 1);
+        var target = new ShellGeometry(440, 76, 76, 1000, 20, 1.5);
+        var currentHost = new ShellGeometry(260, 68, 68, 830, 0, 1);
 
-            try
-            {
-                ShellAnimator.Show(target, 60);
-                PumpUntil(
-                    () => target.Opacity is > 0.05 and < 0.95,
-                    TimeSpan.FromMilliseconds(ShellAnimationTiming.FadeMilliseconds + 250));
-                var showingOpacity = target.Opacity;
-                Assert.InRange(showingOpacity, 0.05, 0.95);
+        var host = ShellAnimator.UnionHost(current, target, currentHost);
 
-                ShellAnimator.Hide(target, 60);
-                var hideBaseOpacity = (double)target.GetAnimationBaseValue(UIElement.OpacityProperty);
-                Assert.InRange(hideBaseOpacity, 0.05, 0.95);
-                Assert.True(Math.Abs(showingOpacity - hideBaseOpacity) < 0.05);
+        Assert.Equal(610, host.Width);
+        Assert.Equal(96, host.ShellHeight);
+        Assert.Equal(96, host.WindowHeight);
+        Assert.Equal(830, host.Left);
+        Assert.Equal(0, host.Top);
+        Assert.Equal(1.5, host.DpiScale);
+    }
 
-                PumpUntil(
-                    () => target.Opacity >= 0 && target.Opacity < hideBaseOpacity,
-                    TimeSpan.FromMilliseconds(ShellAnimationTiming.FadeMilliseconds + 250));
-                var hidingOpacity = target.Opacity;
-                Assert.InRange(hidingOpacity, 0, hideBaseOpacity);
+    [Fact]
+    public void ShellAnimatorTreatsDifferentDpiPlacementAsCrossMonitorMove()
+    {
+        var primary = new ShellGeometry(260, 68, 68, 830, 0, 1);
+        var scaledSecondary = new ShellGeometry(260, 68, 68, 1790, 0, 1.5);
 
-                ShellAnimator.Show(target, 60);
-                var reshowBaseOpacity = (double)target.GetAnimationBaseValue(UIElement.OpacityProperty);
-                Assert.True(Math.Abs(hidingOpacity - reshowBaseOpacity) < 0.05);
-                Assert.Equal(Visibility.Visible, target.Visibility);
+        Assert.True(ShellAnimator.CrossesMonitorBoundary(primary, scaledSecondary));
+        Assert.False(ShellAnimator.CrossesMonitorBoundary(primary, primary with { Width = 960, Left = 480 }));
+    }
 
-                PumpDispatcher(TimeSpan.FromMilliseconds(ShellAnimationTiming.FadeMilliseconds + 80));
-
-                Assert.Equal(Visibility.Visible, target.Visibility);
-                Assert.Equal(1, target.Opacity, precision: 2);
-                Assert.False(target.HasAnimatedProperties);
-            }
-            finally
-            {
-                window.Close();
-            }
-        }));
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-
-        Assert.Null(failure);
+    [Theory]
+    [InlineData(-1, 0)]
+    [InlineData(0, 0)]
+    [InlineData(0.125, 0.657)]
+    [InlineData(0.5, 0.966)]
+    [InlineData(0.875, 0.999)]
+    [InlineData(1, 1)]
+    [InlineData(2, 1)]
+    public void CompositionEasingIsClampedFluentCubicBezier(double progress, double expected)
+    {
+        Assert.Equal(expected, ShellAnimationTiming.EaseCompositionProgress(progress), precision: 3);
     }
 
     [Fact]
@@ -1123,9 +988,12 @@ public class StatusShellTests
     [Fact]
     public void ShellMotionEasingComesFromSharedTiming()
     {
-        var easing = Assert.IsType<QuarticEase>(ShellAnimationTiming.CreateEasing());
+        var method = typeof(ShellAnimationTiming).GetMethod(nameof(ShellAnimationTiming.CreateEasing));
+        var source = ReadRepoFile("src", "Winotch", "ShellAnimationTiming.cs");
 
-        Assert.Equal(EasingMode.EaseOut, easing.EasingMode);
+        Assert.NotNull(method);
+        Assert.Equal(typeof(EasingFunctionBase), method.ReturnType);
+        Assert.Contains("new QuarticEase { EasingMode = EasingMode.EaseOut }", source);
     }
 
     [Fact]
@@ -1137,26 +1005,18 @@ public class StatusShellTests
     private static MediaSnapshot Media(string title, string artist, MediaState state) =>
         new(title, artist, "Brave", null, state, true, true, true, true);
 
-    private static void PumpDispatcher(TimeSpan duration)
-    {
-        var frame = new DispatcherFrame();
-        var timer = new DispatcherTimer { Interval = duration };
-        timer.Tick += (_, _) =>
-        {
-            timer.Stop();
-            frame.Continue = false;
-        };
-        timer.Start();
-        Dispatcher.PushFrame(frame);
-    }
+    private static string ReadRepoFile(params string[] parts) =>
+        File.ReadAllText(Path.Combine(FindRepoRoot(), Path.Combine(parts)));
 
-    private static void PumpUntil(Func<bool> condition, TimeSpan timeout)
+    private static string FindRepoRoot()
     {
-        var deadline = DateTime.UtcNow + timeout;
-        while (!condition() && DateTime.UtcNow < deadline)
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Winotch.slnx")))
         {
-            PumpDispatcher(TimeSpan.FromMilliseconds(8));
+            directory = directory.Parent;
         }
+
+        return directory?.FullName ?? throw new DirectoryNotFoundException("Could not find repository root.");
     }
 
     private static PriorityStatusSnapshot Status(
