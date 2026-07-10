@@ -8,7 +8,7 @@ This spec defines three new feature directions for Winotch. All three reuse the
 existing design language (`DESIGN.md` tokens, Segoe UI Variable, pill shell,
 `ShellAnimationTiming` motion) and the established architecture patterns:
 
-- Pure-logic services + models in their own files (testable without WPF).
+- Pure-logic services + models in their own files (testable without a UI framework).
 - Feature UI in **its own XAML UserControl or flyout window** (the
   `CameraMirrorWindow` / `ClipboardHistoryPanel` pattern), not a band baked
   into the expanded panel.

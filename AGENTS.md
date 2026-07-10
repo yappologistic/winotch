@@ -1,12 +1,14 @@
 # Winotch Agent Guide
 
 ## Project
-Winotch is a native Windows desktop notch: a centered, top-attached black overlay inspired by the MacBook notch. It shows time, date, battery, Wi-Fi, volume, and recent notifications with polished motion.
+Winotch is a native Windows desktop notch: a centered, top-attached Fluent overlay inspired by the MacBook notch. It shows time, date, battery, Wi-Fi, volume, media, and recent notifications with polished motion.
 
 ## Stack
-- Use C# and WPF on `net8.0-windows` for direct Windows desktop integration, transparent always-on-top windows, and repeatable CLI build/run loops.
+- Use C# and WinUI 3 on `net8.0-windows10.0.26100.0`, backed by the stable Windows App SDK 2.2 release.
+- Use WinUI `SystemBackdropElement`/`DesktopAcrylicBackdrop` for the compact overlay and `MicaBackdrop` for Settings. Do not replace native materials with simulated blur.
+- Use `Microsoft.UI.Windowing.AppWindow` for placement, visibility, switcher presence, and presenter behavior. Keep narrowly scoped Win32 interop for HWND-only behavior such as rounded window regions, ownership, drag, hotkeys, and clipboard messages.
 - Prefer Windows built-in APIs and .NET libraries before adding packages.
-- Keep the app unpackaged unless a later feature needs MSIX capabilities.
+- Keep the alpha app unpackaged and source-only. If full notification history is required, use an explicitly approved package-identity approach; `UserNotificationListener` access cannot be assumed for an unpackaged process.
 
 ## Commands
 - Build: `dotnet build`
@@ -18,6 +20,8 @@ Winotch is a native Windows desktop notch: a centered, top-attached black overla
 - Keep design tokens in one place and reuse them.
 - Use Segoe UI Variable / Segoe UI first; it is the closest native Windows equivalent to Apple's San Francisco without bundling proprietary fonts.
 - Keep the notch centered across resolution changes and monitor changes.
+- Preserve the reference geometry: Mini is `260 x 68` DIPs; Live and compact media/toast surfaces are `440 x 76` DIPs.
+- Treat Desktop Acrylic, translucent blue-gray contrast layers, subtle white strokes, rounded geometry, and Fluent control states as one consistent visual system across shell modes and auxiliary flyouts.
 - Prefer small, focused components over speculative architecture.
 
 ## Git

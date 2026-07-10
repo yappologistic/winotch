@@ -4,7 +4,9 @@
 
 ```mermaid
 flowchart TD
-    App["WPF App"] --> Window["Transparent Topmost Notch Window"]
+    App["WinUI 3 App / Windows App SDK 2.2"] --> Window["FluentWindow + AppWindow Overlay Host"]
+    Window --> Acrylic["SystemBackdropElement / Desktop Acrylic"]
+    App --> SettingsChrome["Mica Alt Settings Window"]
     Window --> Clock["Clock Timer"]
     Window --> Status["Status Timer"]
     Status --> Battery["Windows Power Status"]
@@ -46,6 +48,20 @@ flowchart TD
     Stats --> Window
 ```
 
+## Platform and Window Host
+
+Winotch targets `net8.0-windows10.0.26100.0` and references stable `Microsoft.WindowsAppSDK` 2.2.0. It remains an unpackaged x64 `WinExe` during alpha (`WindowsPackageType=None`) and declares Windows 10 build 19041 as its minimum supported OS. The repository remains source-only: publish folders, screenshots, installers, and binaries are local artifacts and are not committed or released.
+
+The visual tree is WinUI 3 XAML. `FluentWindow` centralizes the desktop-window behavior shared by the notch and auxiliary surfaces:
+
+- `Window.AppWindow` and `OverlappedPresenter` own border/title-bar removal, topmost state, switcher/taskbar presence, physical placement, visibility, and size.
+- Public shell geometry stays in XAML DIPs. Each monitor placement carries the destination monitor's scale so the first `AppWindow` move is converted directly to physical pixels; `XamlRoot.RasterizationScale` takes over after Windows applies the destination DPI.
+- `WinRT.Interop.WindowNative.GetWindowHandle` is used only for behavior without a WinUI abstraction: rounded window regions, ownership, caption-style dragging, global hotkeys, app-bar integration, clipboard messages, and a small number of native status APIs.
+- `CreateRoundRectRgn`/`SetWindowRgn` track each animated host size. Top-attached surfaces offset the rounded region above the HWND, producing square top corners and rounded bottom corners without an opaque rectangular fringe.
+- Overlay surfaces can call `AppWindow.Show(false)` when they must appear without taking foreground activation. Interactive controls retain normal WinUI input and accessibility behavior.
+
+The notch and transient flyouts use native Desktop Acrylic. The main shell places `DesktopAcrylicBackdrop` in a `SystemBackdropElement`, with translucent blue-gray layers and a solid fallback from `App.xaml`. Settings uses Mica Base Alt because it is a conventional long-lived window. Windows controls material fallback when transparency is disabled, Battery Saver or high contrast is active, graphics support is insufficient, or the session is remote.
+
 ## UI System
 
 ```mermaid
@@ -75,17 +91,21 @@ flowchart LR
 
 ## Design Tokens
 
-- `NotchBlack`: shell background
-- `NotchPanel`: chip/control background
+- `WinotchFallbackColor`: solid blue-gray material fallback
+- `NotchBlack`: compatibility brush backed by the current fallback color, not a black-theme requirement
+- `NotchPanel`: translucent Acrylic contrast layer
+- `NotchPanelRaised`: stronger translucent shell layer
+- `NotchStroke`: subtle white material edge
 - `NotchText`: primary text
 - `NotchMutedText`: secondary text
+- `NotchAccent`: cyan Fluent accent
 - Typography: Segoe UI Variable Text, falling back to Segoe UI
-- Icons: Segoe MDL2 Assets
-- Settings reuses these tokens with a dark toggle switch style and section header style so later feature groups can add controls without inventing new chrome.
+- Icons: Segoe Fluent Icons, falling back to Segoe MDL2 Assets
+- Settings reuses these tokens with native WinUI controls, Mica, toggle switch styling, and shared section cards so later feature groups do not invent new chrome.
 
 ## Motion
 
-The resting notch is a compact top-attached pill. Hover expands width and height with WPF-native property animations. Detail content begins fading in during the geometry morph, while the header/status layout switches after the shell settles so it does not jump mid-transition. Media, notification, and priority status events use the compact toast geometry instead of opening the full expanded panel.
+The resting notch is a `260 x 68` DIP top-attached capsule. Live activities, media state, and compact toasts use the `440 x 76` DIP reference capsule. Hover expands width and height with WinUI/Windows Composition transforms and opacity transitions while `FluentWindow` synchronizes the physical AppWindow bounds and rounded region. Detail content begins fading in during the geometry morph, while the header/status layout switches after the shell settles so it does not jump mid-transition. Media, notification, and priority status events use compact geometry instead of opening the full expanded panel.
 
 Animation timings live in `ShellAnimationTiming`:
 
@@ -96,17 +116,17 @@ Animation timings live in `ShellAnimationTiming`:
 
 ## Shell States
 
-- `Mini`: tiny centered pill used for every foreground app state today.
-- `Live`: a centered slim strip that auto-grows from Mini for one ongoing activity without opening the expanded panel.
+- `Mini`: centered `260 x 68` capsule used for every foreground app state today.
+- `Live`: centered `440 x 76` strip that auto-grows from Mini for one ongoing activity without opening the expanded panel.
 - `Expanded`: larger centered island on hover.
-- `Compact Toast`: centered transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
+- `Compact Toast`: centered `440 x 76` transient capsule for media track changes, unsilenced notification arrivals, and priority status alerts.
 - `Command`: hotkey-driven centered command surface with one input row and a compact results list.
 
 `ForegroundWindowService.DecideMode` currently returns `Mini` for every foreground app state. `MainWindow.LiveActivities` can lift that Mini result to `Live` while an activity is active, then falls back to the foreground mode when the activity ends. Foreground detection still uses Win32 window bounds for monitor targeting, and hover expansion remains user-driven instead of foreground-driven. When Winotch owns foreground, fallback app-window scanning ignores shell, hidden, minimized, own, and tiny utility windows so minimized apps do not pull the notch to the wrong monitor.
 
 ## Live Activities
 
-`LiveActivityService` is pure logic with no WPF types. It arbitrates one visible activity at a time in priority order: optional active call, transient quick timer, now-playing media, then privacy activity dots. Camera and microphone dots reuse the privacy-usage state already read by `PriorityStatusService`; screen-share is modeled for the strip and tests, but the current Windows status path does not yet expose a screen-share source.
+`LiveActivityService` is UI-framework-independent logic. It arbitrates one visible activity at a time in priority order: optional active call, transient quick timer, now-playing media, then privacy activity dots. Camera and microphone dots reuse the privacy-usage state already read by `PriorityStatusService`; screen-share is modeled for the strip and tests, but the current Windows status path does not yet expose a screen-share source.
 
 The transient quick timer is separate from the persisted focus timer. It stores only in-memory wall-clock timestamps, supports start/pause/resume/cancel, clamps progress to `0..1`, and disappears when expired or when Winotch exits. The expanded Timer panel has small 5/10/15 minute start buttons; active timer controls live on the strip.
 
@@ -126,7 +146,7 @@ Winotch runs one notch window and targets it to one monitor at a time. One-notch
 
 `ForegroundWindowService` returns the current shell mode plus the foreground app rectangle. `MonitorTargeting` chooses the monitor containing that foreground rectangle; when the foreground is the desktop or shell, it chooses the monitor containing the cursor, then the last used monitor, then the primary monitor. The Settings follow-active-monitor toggle bypasses foreground/cursor targeting and pins the notch to the primary monitor. This keeps shell focus predictable without creating duplicate notches.
 
-Shell geometry is still computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. `MonitorSnapshot` keeps native pixel bounds for Win32 APIs and exposes WPF-facing DIP properties by dividing through the monitor scale, so mini and expanded geometry remain centered on high-DPI monitors.
+Shell geometry is computed by `ShellMetrics`, but MainWindow offsets it by the selected monitor's DIP origin and uses that monitor's DPI-scaled width. `MonitorSnapshot` keeps native pixel bounds for Win32 APIs and exposes WinUI-facing DIP properties by dividing through the monitor scale, so Mini, Live, toast, and expanded geometry remain centered on high-DPI monitors.
 
 ## Media
 
@@ -146,11 +166,13 @@ CPU uses `Processor Information\% Processor Utility\_Total` with `Processor\% Pr
 
 ## Camera Mirror
 
-The camera mirror button opens a separate topmost rounded flyout positioned under the notch. `CameraMirrorService` owns the `MediaCapture` and `MediaFrameReader` lifecycle, emits CPU-backed BGRA frames for WPF, and closes the device on X, Esc, outside click, notch collapse, pause, or suspend/resume. The UI computes cover placement so the preview fills the rounded viewport without stretching, cropping overflow at the edges, and mirrors horizontally by default. Camera selection stays on the default Windows camera; a picker is not part of the current scope.
+The camera mirror button opens a separate topmost rounded Acrylic flyout positioned under the notch. `CameraMirrorService` owns the `MediaCapture` and `MediaFrameReader` lifecycle, emits CPU-backed BGRA frames for a WinUI `WriteableBitmap`, and closes the device on X, Esc, outside click, notch collapse, pause, or suspend/resume. The UI computes cover placement so the preview fills the rounded viewport without stretching, cropping overflow at the edges, and mirrors horizontally by default. Camera selection stays on the default Windows camera; a picker is not part of the current scope.
 
 ## Notifications
 
-Winotch reads notification history through `UserNotificationListener` when Windows grants access and also watches live Windows toast windows through UI Automation in unpackaged builds. Settings owns the explicit Request access button, while `NotificationService.RequestHistoryAccessAsync` owns the Windows permission prompt so passive refreshes never request permission. Source builds treat history access as optional and keep the live-toast fallback accurate. New unsilenced notifications show a compact toast with app/sender text, message body, time, app icon when available, and up to two live action buttons when Windows exposes invokable toast actions. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
+Winotch reads notification history through `UserNotificationListener` only when Windows grants access and the process has the User Notification Listener manifest capability. That capability requires package identity and cannot be assumed by the current unpackaged source build. Settings owns the explicit Request access button, while `NotificationService.RequestHistoryAccessAsync` owns the Windows permission prompt so passive refreshes never request permission.
+
+Unpackaged builds do not inspect arbitrary desktop windows as a notification substitute. A future package-with-external-location identity could declare the capability without moving Winotch's binaries into MSIX, but it is not part of the source-only alpha deployment. New unsilenced notifications show a compact toast with app/sender text, message body, time, and app icon when available. `SHQueryUserNotificationState` and the global toast toggle gate Winotch's own popups so Do Not Disturb/quiet states do not create duplicate interruption.
 
 ## Clipboard History
 
@@ -162,7 +184,7 @@ Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy`
 
 The shelf is a separate topmost rounded flyout below the notch, not an expanded-panel band. `ShelfService` owns memory-only staged rows, cap, dedupe, remove, clear, and settings normalization. The notch itself is the drop target, and the expanded panel only exposes a compact shelf button that opens the flyout.
 
-Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a WPF `DataObject`, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. Exit, pause, collapse, outside click, X, and Esc close the flyout; app exit clears the in-memory list.
+Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a Windows data package, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. Exit, pause, collapse, outside click, X, and Esc close the flyout; app exit clears the in-memory list.
 
 ## Droplets
 
@@ -186,7 +208,7 @@ Feature settings gate runtime work, not only visibility: clipboard off unregiste
 
 Privacy surfaces stay local by default: clipboard history is memory-only, camera frames are preview-only and never persisted, settings JSON stays under `%LOCALAPPDATA%\Winotch`, and network fetches are limited to user-provided calendar URLs.
 
-The tray surface is a WinForms `NotifyIcon` with Open Settings, Pause/Resume notch, Start with Windows, and Exit. Pause hides the overlay and releases any app-bar reservation; resume reapplies the detected shell mode. Exit is explicit from the tray so closing the settings window does not terminate the app.
+The tray surface uses a native hidden message window and `Shell_NotifyIcon` with Open Settings, Pause/Resume notch, Start with Windows, and Exit. Pause hides the overlay and releases any app-bar reservation; resume reapplies the detected shell mode. Exit is explicit from the tray so closing the settings window does not terminate the app.
 
 Start with Windows is backed by `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `Winotch`. The app reads the actual registry state for the settings/tray checkbox, writes the quoted current executable path, and rewrites stale paths when access succeeds.
 
@@ -211,7 +233,7 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Focus timer start/pause/resume/skip/stop/auto-cycle transitions, wall-clock remaining math, persistence roundtrip, expired-while-closed handling, formatting, and progress clamp behavior.
 - ICS URL normalization, folded-line parsing, all-day handling, timezone/DST conversion, recurrence expansion, `EXDATE`, join-link extraction, agenda selection, countdown formatting, focus priority, conditional GET caching, and stale-toast suppression.
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
-- Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and live action invocation.
+- Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and local toast action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
 - Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, and thumbnail-only image staging.
 - Droplet color formatting/parsing and text scrub transforms/counts.

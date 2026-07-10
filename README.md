@@ -1,6 +1,6 @@
 # Winotch
 
-Winotch is a native Windows notch overlay. It stays centered at the top of the selected monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, controls, and system health in a compact black shell. Foreground detection currently keeps the shell in Mini for every foreground app state; hover still expands the shell when the user opens it.
+Winotch is a native WinUI 3 notch overlay. It stays centered at the top of the selected monitor and shows time, date, battery, Wi-Fi, volume, media, notifications, focus state, agenda, clipboard, controls, and system health in a compact Desktop Acrylic shell. Foreground detection currently keeps the shell in Mini for every foreground app state; hover still expands the shell when the user opens it.
 
 ## Alpha Status
 
@@ -10,10 +10,10 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 
 ## Features
 
-- Notch shell: centered Mini pill for foreground states, hover-expanded panel, compact toasts, polished WPF motion, and DPI-correct monitor centering.
+- Notch shell: centered `260 x 68` Mini pill for foreground states, `440 x 76` live/media capsules, hover-expanded panel, native Desktop Acrylic, polished WinUI motion, and DPI-correct monitor centering.
 - Live Activities: Mini auto-grows into a slim live strip for active calls, quick in-memory timers, playing media, or privacy activity dots, then returns to Mini when idle.
 - Media: current Windows media session metadata, artwork, playback controls, and media-change toasts.
-- Notifications: Windows notification list, compact notification toasts, live action buttons when Windows exposes them, and OS quiet-state suppression.
+- Notifications: Windows notification list, compact notification toasts, and OS quiet-state suppression when package identity and user permission are available.
 - Priority alerts: low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, microphone/camera activity, and focus completion toasts.
 - Control center: output device switching, master volume, optional per-app mixer, microphone mute, brightness controls, and Wi-Fi profile connect.
 - Focus timer: 25/5, 50/10, or custom focus sessions with pause/resume/skip/stop, auto-cycle, persistence, and compact live state.
@@ -30,9 +30,12 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 
 ## Stack
 
-- C# WPF on `net8.0-windows10.0.19041.0`
-- Transparent, topmost desktop window for the notch shell
-- Windows Forms power status for battery
+- C# and WinUI 3 on `net8.0-windows10.0.26100.0`, with Windows App SDK `2.2.0`
+- Unpackaged `WinExe` alpha build targeting x64, with Windows 10 build 19041 as the declared minimum OS
+- WinUI `SystemBackdropElement` and `DesktopAcrylicBackdrop` for the overlay, compact toasts, and auxiliary flyouts
+- WinUI `MicaBackdrop` Base Alt for the long-lived Settings window
+- `AppWindow`/`OverlappedPresenter` for topmost, borderless placement and narrow HWND interop for rounded regions, drag, ownership, hotkeys, and clipboard messages
+- Native `GetSystemPowerStatus` for battery state
 - Core Audio COM interop for master volume, per-app audio sessions, output device switching, and default microphone mute
 - WMI and DDC/CI monitor APIs for brightness controls when hardware exposes them
 - Windows system media transport controls for current audio metadata, artwork, and playback actions
@@ -43,7 +46,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - Windows performance counters, memory status, and network interface counters for expanded-panel system stats
 - `HttpClient` for user-provided ICS subscription URLs with conditional GET caching
 
-WPF is the first implementation because it gives direct transparent-window and desktop interop support with a simple CLI build/run loop.
+The application UI is entirely WinUI 3 and has no WPF or Windows Forms framework dependency.
 
 ## Setup From Source
 
@@ -52,7 +55,8 @@ Prerequisites:
 - Windows 10 version 2004 or newer, or Windows 11
 - Git
 - .NET 8 SDK for build, run, test, and local publish
-- .NET 8 Desktop Runtime only if you run a framework-dependent publish on a machine without the SDK
+- Windows App Runtime 2.2 for framework-dependent local runs on a machine where the WinUI development tooling has not installed it
+- Visual Studio 2022 17.8 or newer with Windows application development tools is recommended for XAML editing and debugging; CLI build, run, and test use the commands below
 
 Clone:
 
@@ -79,7 +83,7 @@ Test:
 dotnet test
 ```
 
-Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text, time, and available live Windows action buttons when the OS exposes them. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
+Hover the notch to expand it. The control center changes the current output device, tracks the master volume on the selected output, exposes active per-app audio sessions with volume/mute controls, toggles the default microphone mute, and shows brightness sliders for displays that support WMI or DDC/CI brightness. The Focus section starts 25/5, 50/10, or custom 1..180 minute focus timers, with optional auto-cycle; active timers stay visible in the compact pill and survive restart from `%LOCALAPPDATA%\Winotch\focus-timer.json`. Media buttons control the focused Windows media session in the expanded capsule and in the brief media toast. Notification toasts show app/sender text and time when supported notification access is available. Priority status toasts appear for focus completions, low battery, charger connect/disconnect, Wi-Fi loss/reconnect, Bluetooth device connect, and mic/camera activity. The expanded panel also shows a small clipboard history with text, links, image thumbnails, and copied file lists. Wi-Fi connect works for saved Windows Wi-Fi profiles.
 
 On multi-monitor setups, the notch follows the monitor containing the foreground app while the shell mode remains Mini until hover expansion or a compact toast. When the desktop or shell has focus, it follows the monitor containing the cursor, falling back to the last monitor and then the primary monitor if needed. Settings can disable active-monitor following and keep the notch on the primary monitor.
 
@@ -127,7 +131,7 @@ Diagnostics export copies a local device and settings summary to the Windows cli
 
 ## Camera Mirror
 
-The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed frame reading and renders frames into WPF as an in-memory preview. If Windows reports no camera, access denial, or exclusive-use failure, the flyout shows a quiet inline message instead of retrying. Opening the mirror suppresses Winotch's own camera-in-use priority alert while the preview is active.
+The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed frame reading and renders frames into a WinUI `WriteableBitmap` as an in-memory preview. If Windows reports no camera, access denial, or exclusive-use failure, the flyout shows a quiet inline message instead of retrying. Opening the mirror suppresses Winotch's own camera-in-use priority alert while the preview is active.
 
 ## Shelf
 
@@ -141,17 +145,19 @@ Color picker and text scrubber are fully local utilities. They add no packages, 
 
 Winotch is currently an unpackaged desktop app with no published GitHub binary. If you want a local EXE from source, publish into a local folder.
 
-Framework-dependent publish, smallest output:
+Framework-dependent publish, smallest output. Install the matching Windows App Runtime 2.2 on the target machine:
 
 ```powershell
 dotnet publish src/Winotch/Winotch.csproj -c Release -o "$env:LOCALAPPDATA\Winotch"
 ```
 
-Self-contained publish, no separate .NET install needed:
+Self-contained publish, carrying .NET and Windows App SDK runtime files in the output folder:
 
 ```powershell
-dotnet publish src/Winotch/Winotch.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o "$env:LOCALAPPDATA\Winotch"
+dotnet publish src/Winotch/Winotch.csproj -c Release -r win-x64 --self-contained true -p:WindowsAppSDKSelfContained=true -o "$env:LOCALAPPDATA\Winotch"
 ```
+
+The self-contained output is a folder deployment, not a release binary. Do not commit it, attach it to GitHub, or treat it as a supported installer while Winotch remains source-only alpha software.
 
 Run the local publish:
 
@@ -170,7 +176,7 @@ Remove-Item "$env:LOCALAPPDATA\Winotch" -Recurse -Force
 
 ## Notification Access
 
-Windows requires explicit user permission for notification listener access. Full all-app notification access also requires the Windows User Notification capability in a packaged app manifest. Current source builds treat notification history as optional and still watch live Windows toast windows where possible when history access is denied or unavailable. Winotch requests notification history access only when the user clicks Request access in Settings; passive status refreshes do not open the Windows permission prompt.
+Windows requires explicit user permission for notification listener access. Full all-app history through `UserNotificationListener` also requires the User Notification Listener capability in a package manifest and therefore package identity; a plain unpackaged source run cannot assume that capability. Current source builds treat notification history as optional and do not inspect unrelated windows as a substitute. A future package-with-external-location identity can add the capability without moving Winotch's binaries into MSIX, but that is not part of the current source-only alpha deployment. Winotch requests notification history access only when the user clicks Request access in Settings; passive status refreshes do not open the Windows permission prompt.
 
 Winotch respects the Windows notification state before showing its own compact notification toast. If Windows reports that notifications should be suppressed, including Do Not Disturb/quiet states, Winotch updates the notification list but does not pop a toast.
 
