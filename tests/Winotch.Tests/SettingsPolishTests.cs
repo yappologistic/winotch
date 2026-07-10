@@ -18,12 +18,19 @@ public class SettingsPolishTests
             (string?)setter.Attribute("Property") == "MinWidth" &&
             (string?)setter.Attribute("Value") == "44");
         Assert.Equal("ToggleSwitch", (string?)toggleStyle.Attribute("TargetType"));
-        Assert.Single(doc.Descendants(ui + "DesktopAcrylicBackdrop"));
+        Assert.Single(doc.Descendants().Where(element =>
+            element.Name.LocalName == "PersistentDesktopAcrylicBackdrop"));
         Assert.True(doc.Descendants(ui + "ToggleSwitch").Count() >= 10);
         Assert.Contains("AutomationProperties.Name=\"Toast duration scale\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"ICS subscription URLs\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Request notification access\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Copy diagnostics\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"Toggle full screen\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"Minimize Settings\"", xaml);
+        Assert.Contains("AutomationProperties.Name=\"Close Settings\"", xaml);
+        Assert.Contains("Click=\"ToggleSettingsMaximizeClick\"", xaml);
+        Assert.Contains("Click=\"MinimizeSettingsClick\"", xaml);
+        Assert.Contains("Click=\"CloseSettingsClick\"", xaml);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", xaml);
         Assert.Contains("Click=\"RequestNotificationAccessClick\"", xaml);
         Assert.Contains("Click=\"CopyDiagnosticsClick\"", xaml);
@@ -31,6 +38,32 @@ public class SettingsPolishTests
         Assert.DoesNotContain("DropShadowEffect", xaml);
         Assert.DoesNotContain("ControlTemplate", xaml);
         Assert.DoesNotContain("Trigger", xaml);
+
+        var code = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml.cs");
+        Assert.Contains("presenter.Restore()", code);
+        Assert.Contains("presenter.Minimize()", code);
+        Assert.Contains("AppWindowPresenterKind.FullScreen", code);
+        Assert.Contains("AppWindowPresenterKind.Default", code);
+        Assert.Contains("AppWindow.MoveAndResize(bounds)", code);
+        Assert.Contains("_settingsRestoreBounds", code);
+        Assert.Contains("SettingsRoot.Width = double.NaN", code);
+        Assert.Contains("SettingsRoot.Height = double.NaN", code);
+    }
+
+    [Fact]
+    public void OpeningSettingsCommitsTheNotchToCompactBoundsBeforeActivation()
+    {
+        var shell = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
+        var tray = ReadRepoFile("src", "Winotch", "TrayIconService.cs");
+
+        Assert.Contains("internal void PrepareForSettings()", shell);
+        Assert.Contains("SetExpanded(false, animate: false)", shell);
+        Assert.Contains("animate: false, force: true", shell);
+        Assert.Contains("_mainWindow.PrepareForSettings();", tray);
+        Assert.DoesNotContain("_settingsWindow.Owner = _mainWindow", tray);
+        Assert.True(
+            tray.IndexOf("_mainWindow.PrepareForSettings();", StringComparison.Ordinal) <
+            tray.IndexOf("_settingsWindow.Show();", StringComparison.Ordinal));
     }
 
     [Fact]

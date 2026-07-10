@@ -33,6 +33,7 @@ public class FluentWindow : Window
         Activated += (_, args) =>
         {
             _isActive = args.WindowActivationState != WindowActivationState.Deactivated;
+            NormalizeOverlayWindowStyle();
             ConfigureDwmBorder();
             EnforceOverlayTopmost();
         };
@@ -196,6 +197,7 @@ public class FluentWindow : Window
         InitializeFluentWindow();
         AppWindow.Show();
         _isVisible = true;
+        NormalizeOverlayWindowStyle();
         ConfigureDwmBorder();
         EnforceOverlayTopmost();
     }
@@ -205,6 +207,7 @@ public class FluentWindow : Window
         InitializeFluentWindow();
         AppWindow.Show(activateWindow: false);
         _isVisible = true;
+        NormalizeOverlayWindowStyle();
         ConfigureDwmBorder();
         EnforceOverlayTopmost();
     }
@@ -286,8 +289,44 @@ public class FluentWindow : Window
         presenter.IsMaximizable = !UseOverlayChrome;
         presenter.IsMinimizable = !UseOverlayChrome;
         presenter.IsAlwaysOnTop = UseOverlayChrome && _topmost;
+        NormalizeOverlayWindowStyle();
         ConfigureDwmBorder();
         EnforceOverlayTopmost();
+    }
+
+    private void NormalizeOverlayWindowStyle()
+    {
+        if (!UseOverlayChrome)
+        {
+            return;
+        }
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        // AppWindow's borderless presenter can retain a DLGFRAME/SYSMENU style
+        // on some Windows builds. That leaves a non-client inset around every
+        // shell size even when DWMWA_BORDER_COLOR is unavailable. Normalize the
+        // overlay to a true popup so its client area equals its window bounds.
+        var style = GetWindowLongPtr(hwnd, GwlStyle).ToInt64();
+        var next = (style & ~OverlayChromeStyleMask) | WsPopup;
+        if (next == style)
+        {
+            return;
+        }
+
+        _ = SetWindowLongPtr(hwnd, GwlStyle, new IntPtr(next));
+        _ = SetWindowPos(
+            hwnd,
+            IntPtr.Zero,
+            0,
+            0,
+            0,
+            0,
+            SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
     }
 
     private void ConfigureDwmBorder()
@@ -336,7 +375,17 @@ public class FluentWindow : Window
             _isLoaded = true;
             if (root.XamlRoot is not null)
             {
-                root.XamlRoot.Changed += (_, _) => ApplyBounds();
+                root.XamlRoot.Changed += (_, _) =>
+                {
+                    // Overlay coordinates are DIP-based and must be reapplied
+                    // when monitor scale changes. Conventional windows instead
+                    // remain fully owned by the native presenter so maximize,
+                    // snap, and restore transitions cannot be overwritten.
+                    if (UseOverlayChrome)
+                    {
+                        ApplyBounds();
+                    }
+                };
             }
             ApplyBounds();
             Loaded?.Invoke(this, args);
@@ -421,6 +470,41 @@ public class FluentWindow : Window
         // notch flush/square at the monitor edge while rounding only its bottom.
         var regionTop = AttachToTopEdge ? -radius : 0;
         var region = CreateRoundRectRgn(0, regionTop, width + 1, height + 1, radius * 2, radius * 2);
+        ApplyCreatedWindowRegion(hwnd, region);
+    }
+
+    internal void ApplyVisibleShellRegion(ShellGeometry shell, ShellGeometry host)
+    {
+        if (!UseWindowRegion || !UseOverlayChrome)
+        {
+            return;
+        }
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var scale = host.DpiScale > 0 ? host.DpiScale : RasterizationScale;
+        var left = (int)Math.Round((shell.Left - host.Left) * scale);
+        var top = (int)Math.Round((shell.Top - host.Top) * scale);
+        var width = Math.Max(1, (int)Math.Round(shell.Width * scale));
+        var height = Math.Max(1, (int)Math.Round(shell.WindowHeight * scale));
+        var radius = Math.Max(1, (int)Math.Round(BottomCornerRadius * scale));
+        var regionTop = AttachToTopEdge && top == 0 ? -radius : top;
+        var region = CreateRoundRectRgn(
+            left,
+            regionTop,
+            left + width + 1,
+            top + height + 1,
+            radius * 2,
+            radius * 2);
+        ApplyCreatedWindowRegion(hwnd, region);
+    }
+
+    private static void ApplyCreatedWindowRegion(IntPtr hwnd, IntPtr region)
+    {
         if (region == IntPtr.Zero)
         {
             return;
@@ -448,14 +532,26 @@ public class FluentWindow : Window
     }
 
     private const int GwlHwndParent = -8;
+    private const int GwlStyle = -16;
     private const int DwmwaBorderColor = 34;
     private const uint DwmColorNone = 0xFFFFFFFE;
+    private const long WsBorder = 0x00800000L;
+    private const long WsDlgFrame = 0x00400000L;
+    private const long WsThickFrame = 0x00040000L;
+    private const long WsSysMenu = 0x00080000L;
+    private const long WsMinimizeBox = 0x00020000L;
+    private const long WsMaximizeBox = 0x00010000L;
+    private const long WsPopup = unchecked((long)0x80000000L);
+    private const long OverlayChromeStyleMask =
+        WsBorder | WsDlgFrame | WsThickFrame | WsSysMenu | WsMinimizeBox | WsMaximizeBox;
     private const uint WmNcLButtonDown = 0x00A1;
     private const int HtCaption = 2;
     private static readonly IntPtr HwndTopmost = new(-1);
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
     private const uint SwpNoActivate = 0x0010;
+    private const uint SwpFrameChanged = 0x0020;
 
     [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateRoundRectRgn(
@@ -475,6 +571,9 @@ public class FluentWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern IntPtr GetWindowLongPtr(IntPtr hwnd, int index);
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

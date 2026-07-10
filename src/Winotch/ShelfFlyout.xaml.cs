@@ -54,8 +54,6 @@ public sealed partial class ShelfFlyout : FluentWindow
         ShowInTaskbar = false;
         Topmost = true;
         BottomCornerRadius = 24;
-        SystemBackdrop = new DesktopAcrylicBackdrop();
-
         Loaded += Window_Loaded;
         Activated += Window_Activated;
         Closed += Window_Closed;

@@ -91,8 +91,10 @@ public sealed class UiMarkupTests
         Assert.Equal("Center", (string?)shell.Attribute("HorizontalAlignment"));
         Assert.Equal("Transparent", (string?)shell.Attribute("BorderBrush"));
         Assert.Equal("0", (string?)shell.Attribute("BorderThickness"));
+        Assert.Equal("{StaticResource NotchHitTestFill}", (string?)shell.Attribute("Background"));
         var backdropHost = Assert.Single(shell.Descendants(ui + "SystemBackdropElement"));
-        Assert.Single(backdropHost.Descendants(ui + "DesktopAcrylicBackdrop"));
+        Assert.Single(backdropHost.Descendants().Where(element =>
+            element.Name.LocalName == "PersistentDesktopAcrylicBackdrop"));
     }
 
     [Fact]
@@ -113,6 +115,9 @@ public sealed class UiMarkupTests
 
         Assert.Contains("DwmwaBorderColor", code, StringComparison.Ordinal);
         Assert.Contains("DwmColorNone", code, StringComparison.Ordinal);
+        Assert.Contains("NormalizeOverlayWindowStyle", code, StringComparison.Ordinal);
+        Assert.Contains("WsPopup", code, StringComparison.Ordinal);
+        Assert.Contains("SwpFrameChanged", code, StringComparison.Ordinal);
         Assert.Contains("HwndTopmost", code, StringComparison.Ordinal);
         Assert.Contains("OverlappedPresenterState.Maximized", code, StringComparison.Ordinal);
     }
@@ -148,7 +153,7 @@ public sealed class UiMarkupTests
         var settings = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml");
         Assert.Contains("<ToggleSwitch", settings, StringComparison.Ordinal);
         Assert.Contains("<ComboBox", settings, StringComparison.Ordinal);
-        Assert.Contains("<DesktopAcrylicBackdrop", settings, StringComparison.Ordinal);
+        Assert.Contains("<local:PersistentDesktopAcrylicBackdrop", settings, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -160,7 +165,7 @@ public sealed class UiMarkupTests
     {
         var xaml = ReadRepoFile("src", "Winotch", fileName);
 
-        Assert.Contains("<DesktopAcrylicBackdrop", xaml, StringComparison.Ordinal);
+        Assert.Contains("<local:PersistentDesktopAcrylicBackdrop", xaml, StringComparison.Ordinal);
     }
 
     [Theory]

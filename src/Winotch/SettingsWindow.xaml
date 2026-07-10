@@ -12,10 +12,10 @@
     UseWindowRegion="False"
     BottomCornerRadius="12">
     <local:FluentWindow.SystemBackdrop>
-        <DesktopAcrylicBackdrop />
+        <local:PersistentDesktopAcrylicBackdrop />
     </local:FluentWindow.SystemBackdrop>
 
-    <Grid Background="Transparent">
+    <Grid x:Name="SettingsRoot" Background="Transparent">
         <Grid.Resources>
             <Style x:Key="SettingsSectionHeader" TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{StaticResource WinotchDisplayFont}" />
@@ -65,17 +65,57 @@
             VerticalScrollBarVisibility="Hidden"
             PointerWheelChanged="SettingsScrollViewer_PointerWheelChanged"
             ViewChanged="SettingsScrollViewer_ViewChanged">
-            <StackPanel Margin="32,28,32,36" HorizontalAlignment="Stretch" MaxWidth="760">
-                <TextBlock
-                    FontFamily="{StaticResource WinotchDisplayFont}"
-                    FontSize="28"
-                    FontWeight="SemiBold"
-                    Text="Winotch Settings" />
-                <TextBlock
-                    Margin="0,5,0,26"
-                    Foreground="{StaticResource NotchMutedText}"
-                    FontSize="13"
-                    Text="Personalize the notch and choose which local integrations are active." />
+            <StackPanel Margin="32,88,32,36" HorizontalAlignment="Stretch" MaxWidth="760">
+                <Grid Margin="0,0,0,26">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock
+                            FontFamily="{StaticResource WinotchDisplayFont}"
+                            FontSize="28"
+                            FontWeight="SemiBold"
+                            Text="Winotch Settings" />
+                        <TextBlock
+                            Margin="0,5,0,0"
+                            Foreground="{StaticResource NotchMutedText}"
+                            FontSize="13"
+                            Text="Personalize the notch and choose which local integrations are active." />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                    <Button
+                        Width="40"
+                        Height="40"
+                        AutomationProperties.Name="Minimize Settings"
+                        Click="MinimizeSettingsClick"
+                        Style="{StaticResource MediaIconButton}"
+                        ToolTipService.ToolTip="Minimize Settings">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE921;" />
+                    </Button>
+                    <Button
+                        Grid.Column="1"
+                        Width="40"
+                        Height="40"
+                        Margin="16,0,0,0"
+                        VerticalAlignment="Top"
+                        AutomationProperties.Name="Toggle full screen"
+                        Click="ToggleSettingsMaximizeClick"
+                        Style="{StaticResource MediaIconButton}"
+                        ToolTipService.ToolTip="Maximize or restore Settings">
+                        <TextBlock x:Name="SettingsMaximizeGlyph" Style="{StaticResource IconText}" Text="&#xE922;" />
+                    </Button>
+                    <Button
+                        Width="40"
+                        Height="40"
+                        AutomationProperties.Name="Close Settings"
+                        Click="CloseSettingsClick"
+                        Style="{StaticResource MediaIconButton}"
+                        ToolTipService.ToolTip="Close Settings">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8BB;" />
+                    </Button>
+                    </StackPanel>
+                </Grid>
 
                 <Border Style="{StaticResource SettingsCard}">
                     <StackPanel Spacing="8">

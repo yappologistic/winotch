@@ -15,6 +15,8 @@ public partial class SettingsWindow : FluentWindow
     private readonly NotificationService _notifications;
     private bool _syncing;
     private bool _centered;
+    private bool _settingsFullScreen;
+    private Windows.Graphics.RectInt32? _settingsRestoreBounds;
     private readonly DispatcherTimer _scrollIndicatorTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(750)
@@ -27,6 +29,7 @@ public partial class SettingsWindow : FluentWindow
         _notifications = notifications;
         _syncing = true;
         InitializeComponent();
+        ExtendsContentIntoTitleBar = false;
         _syncing = false;
         _scrollIndicatorTimer.Tick += (_, _) =>
         {
@@ -35,6 +38,7 @@ public partial class SettingsWindow : FluentWindow
         };
         Loaded += SettingsWindow_Loaded;
         Closed += SettingsWindow_Closed;
+        AppWindow.Changed += SettingsAppWindow_Changed;
         _settings.Changed += Settings_Changed;
     }
 
@@ -54,12 +58,109 @@ public partial class SettingsWindow : FluentWindow
         VersionText.Text = $"Version {typeof(App).Assembly.GetName().Version?.ToString(3) ?? "dev"}";
         SyncFromSettings(_settings.Current);
         RefreshStartupState(persist: true);
+        SyncSettingsLayoutToClient();
     }
 
     private void SettingsWindow_Closed(object sender, WindowEventArgs e)
     {
         _scrollIndicatorTimer.Stop();
         _settings.Changed -= Settings_Changed;
+    }
+
+    private void ToggleSettingsMaximizeClick(object sender, RoutedEventArgs e)
+    {
+        if (_settingsFullScreen)
+        {
+            RestoreSettingsBounds();
+            return;
+        }
+
+        if (AppWindow.Presenter is OverlappedPresenter presenter &&
+            presenter.State != OverlappedPresenterState.Restored)
+        {
+            presenter.Restore();
+        }
+
+        _settingsRestoreBounds = new Windows.Graphics.RectInt32(
+            AppWindow.Position.X,
+            AppWindow.Position.Y,
+            AppWindow.Size.Width,
+            AppWindow.Size.Height);
+        _settingsFullScreen = true;
+        SettingsRoot.Width = double.NaN;
+        SettingsRoot.Height = double.NaN;
+        AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+        Activate();
+        QueueSettingsLayoutSync();
+        UpdateSettingsCaptionState();
+    }
+
+    private void RestoreSettingsBounds()
+    {
+        if (_settingsRestoreBounds is not { } restoreBounds)
+        {
+            return;
+        }
+
+        _settingsFullScreen = false;
+        AppWindow.SetPresenter(AppWindowPresenterKind.Default);
+        ConfigureSettingsPresenter();
+        ApplySettingsBounds(restoreBounds);
+        _settingsRestoreBounds = null;
+        UpdateSettingsCaptionState();
+    }
+
+    private void ApplySettingsBounds(Windows.Graphics.RectInt32 bounds)
+    {
+        SettingsRoot.Width = double.NaN;
+        SettingsRoot.Height = double.NaN;
+        AppWindow.MoveAndResize(bounds);
+        QueueSettingsLayoutSync();
+    }
+
+    private void MinimizeSettingsClick(object sender, RoutedEventArgs e)
+    {
+        if (_settingsFullScreen)
+        {
+            RestoreSettingsBounds();
+        }
+
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Minimize();
+        }
+    }
+
+    private void CloseSettingsClick(object sender, RoutedEventArgs e) => Close();
+
+    private void SettingsAppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidSizeChange || args.DidPresenterChange)
+        {
+            QueueSettingsLayoutSync();
+        }
+    }
+
+    private void QueueSettingsLayoutSync() =>
+        DispatcherQueue.TryEnqueue(
+            Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            () =>
+            {
+                SyncSettingsLayoutToClient();
+                UpdateSettingsCaptionState();
+            });
+
+    private void SyncSettingsLayoutToClient()
+    {
+        SettingsRoot.Width = double.NaN;
+        SettingsRoot.Height = double.NaN;
+    }
+
+    private void UpdateSettingsCaptionState()
+    {
+        SettingsMaximizeGlyph.Text = _settingsFullScreen
+            ? "\uE923"
+            : "\uE922";
     }
 
     private void SettingsScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)

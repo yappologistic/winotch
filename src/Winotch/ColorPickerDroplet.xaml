@@ -11,7 +11,7 @@
     AttachToTopEdge="False"
     BottomCornerRadius="24">
     <local:FluentWindow.SystemBackdrop>
-        <DesktopAcrylicBackdrop />
+        <local:PersistentDesktopAcrylicBackdrop />
     </local:FluentWindow.SystemBackdrop>
 
     <Border x:Name="FlyoutChrome"

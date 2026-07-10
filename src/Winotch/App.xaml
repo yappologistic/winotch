@@ -16,12 +16,12 @@
             <FontFamily x:Key="WinotchDisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
             <FontFamily x:Key="WinotchIconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
-            <Color x:Key="WinotchFallbackColor">#E63B4C69</Color>
-            <Color x:Key="WinotchSurfaceColor">#8A304564</Color>
-            <Color x:Key="WinotchSurfaceRaisedColor">#B33B506F</Color>
-            <Color x:Key="WinotchSurfaceHoverColor">#CC4B6180</Color>
-            <Color x:Key="WinotchSurfacePressedColor">#E0576D8C</Color>
-            <Color x:Key="WinotchStrokeColor">#47FFFFFF</Color>
+            <Color x:Key="WinotchFallbackColor">#E6262C38</Color>
+            <Color x:Key="WinotchSurfaceColor">#50374452</Color>
+            <Color x:Key="WinotchSurfaceRaisedColor">#663B4858</Color>
+            <Color x:Key="WinotchSurfaceHoverColor">#78475465</Color>
+            <Color x:Key="WinotchSurfacePressedColor">#8A526071</Color>
+            <Color x:Key="WinotchStrokeColor">#32FFFFFF</Color>
             <Color x:Key="WinotchTextColor">#FFFFFFFF</Color>
             <Color x:Key="WinotchMutedTextColor">#C9E7ECF5</Color>
             <Color x:Key="WinotchSubtleTextColor">#91D8E0ED</Color>

@@ -36,7 +36,7 @@
                 Height="68"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Center"
-                Background="{StaticResource NotchPanelRaised}"
+                Background="{StaticResource NotchHitTestFill}"
                 BorderBrush="Transparent"
                 BorderThickness="0"
                 CornerRadius="0,0,34,34"
@@ -52,7 +52,7 @@
                      tunes contrast; wallpaper sampling and blur come from WinUI. -->
                 <SystemBackdropElement x:Name="TabChrome" IsHitTestVisible="False" CornerRadius="0,0,34,34">
                     <SystemBackdropElement.SystemBackdrop>
-                        <DesktopAcrylicBackdrop />
+                        <local:PersistentDesktopAcrylicBackdrop />
                     </SystemBackdropElement.SystemBackdrop>
                 </SystemBackdropElement>
 

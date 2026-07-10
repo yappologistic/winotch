@@ -820,7 +820,7 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    private void SetExpanded(bool expanded)
+    private void SetExpanded(bool expanded, bool animate = true)
     {
         if (_expanded == expanded)
         {
@@ -840,21 +840,22 @@ public partial class MainWindow : FluentWindow
         {
             StopSystemStats();
             // Tool flyouts are independent windows; collapsing the notch back to Mini should not dismiss them.
-            ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
+            ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate, force: true);
             return;
         }
 
         ShellAnimator.Hide(DateText, _animationFrameRate);
+        ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
-        ClockGroup.HorizontalAlignment = HorizontalAlignment.Center;
+        ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
         ApplyHeaderDensity(isFullBar: false);
         _appBar.Release();
         SetMouseTransparent(false);
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
         SetAudioMoreExpanded(false);
-        HeaderRow.Height = new GridLength(28);
-        ShellContent.Margin = new Thickness(10, 4, 10, 6);
+        HeaderRow.Height = new GridLength(48);
+        ShellContent.Margin = new Thickness(18, 8, 18, 12);
         SetShellCornerRadius(34);
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
@@ -1112,6 +1113,8 @@ public partial class MainWindow : FluentWindow
     {
         try
         {
+            // The shell now animates with a clip rather than scaling its visual,
+            // so content can fade in early without being stretched or warped.
             await Task.Delay(ShellAnimationTiming.DetailRevealDelay, cancellationToken);
         }
         catch (OperationCanceledException)
@@ -1124,25 +1127,9 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 1, _animationFrameRate);
-        try
-        {
-            await Task.Delay(ShellAnimationTiming.DetailRevealCompletionDelay, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-
-        if (!_expanded || cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
         SetMouseTransparent(false);
-        ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
-        HeaderRow.Height = new GridLength(48);
-        ShellContent.Margin = new Thickness(18, 8, 18, 12);
+        ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 1, _animationFrameRate);
+        ShellAnimator.Show(ClockGroup, _animationFrameRate);
         if (_settings.Current.General.ShowDate)
         {
             ShellAnimator.Show(DateText, _animationFrameRate);
@@ -1216,6 +1203,26 @@ public partial class MainWindow : FluentWindow
         DetailPanel.Opacity = 0;
         ShellAnimator.SetShellGeometry(this, NotchShell, geometry, geometry);
         SetMouseTransparent(isFullBar && !_expanded);
+    }
+
+    /// <summary>
+    /// Returns the overlay to its compact committed bounds before Settings takes
+    /// focus. This avoids leaving an expanded compositor union host above a
+    /// maximized Settings window when the shell deactivates mid-transition.
+    /// </summary>
+    internal void PrepareForSettings()
+    {
+        _collapseTimer.Stop();
+        HideCommandBar(restoreShell: false);
+        HideCompactToast(restoreShell: false);
+
+        if (_expanded)
+        {
+            SetExpanded(false, animate: false);
+            return;
+        }
+
+        ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: false, force: true);
     }
 
     private void SetShellCornerRadius(double radius)

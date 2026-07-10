@@ -22,7 +22,7 @@
         <!-- The rounded flyout material is rendered by the system compositor. -->
         <SystemBackdropElement CornerRadius="24">
             <SystemBackdropElement.SystemBackdrop>
-                <DesktopAcrylicBackdrop />
+                <local:PersistentDesktopAcrylicBackdrop />
             </SystemBackdropElement.SystemBackdrop>
         </SystemBackdropElement>
 

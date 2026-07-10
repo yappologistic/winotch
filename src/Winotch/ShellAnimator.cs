@@ -98,8 +98,9 @@ public static class ShellAnimator
     }
 
     /// <summary>
-    /// Morphs the top-attached shell inside a stable union host. Width scales
-    /// around the horizontal center while height grows down from the top edge.
+    /// Morphs the top-attached shell inside a stable union host. A compositor
+    /// clip reveals or conceals the final surface without scaling its text,
+    /// controls, or system-backdrop pixels.
     /// </summary>
     public static void AnimateShell(
         FluentWindow window,
@@ -114,6 +115,7 @@ public static class ShellAnimator
         var state = ShellStates.GetOrCreateValue(window);
         var current = state.Transition?.Current() ?? CurrentShellGeometry(window, shell);
         var generation = state.NextGeneration();
+        state.StopTimer();
         StopShellVisual(shell);
 
         var crossesMonitors = CrossesMonitorBoundary(current, geometry);
@@ -122,44 +124,40 @@ public static class ShellAnimator
             ? geometry with { ShellHeight = geometry.WindowHeight }
             : UnionHost(current, geometry, currentHost);
 
-        // Moving a real HWND between monitors cannot be expressed as a XAML
-        // composition animation. Move it atomically, then preserve the size
-        // morph at the destination without creating a desktop-spanning host.
-        var visualFrom = crossesMonitors
-            ? current with { Left = geometry.Left + ((geometry.Width - current.Width) / 2), Top = geometry.Top }
-            : current;
+        // Moving a real HWND between monitors is committed atomically so a
+        // transition never spans two DPI coordinate systems.
+        if (crossesMonitors)
+        {
+            ApplyShellGeometry(window, shell, geometry, geometry);
+            state.Transition = null;
+            return;
+        }
 
-        ApplyShellGeometry(window, shell, geometry, host);
+        var expanding = geometry.Width >= current.Width && geometry.ShellHeight >= current.ShellHeight;
+        var displayedGeometry = expanding ? geometry : current;
+        ApplyShellGeometry(window, shell, displayedGeometry, host);
         shell.UpdateLayout();
 
         var visual = ElementCompositionPreview.GetElementVisual(shell);
-        var targetWidth = Positive(geometry.Width);
-        var targetHeight = Positive(geometry.ShellHeight);
-        var fromScale = new Vector3(
-            (float)(Positive(visualFrom.Width) / targetWidth),
-            (float)(Positive(visualFrom.ShellHeight) / targetHeight),
-            1);
-        var center = new Vector3((float)(targetWidth / 2), 0, 0);
-        visual.CenterPoint = center;
-
-        // Account for non-centered monitor changes while letting center-point
-        // scaling handle the common centered notch transition by itself.
-        var baseOffset = visual.Offset;
-        var fromOffset = baseOffset + new Vector3(
-            (float)(visualFrom.Left - geometry.Left - (center.X * (1 - fromScale.X))),
-            (float)(visualFrom.Top - geometry.Top),
-            0);
-
         var compositor = visual.Compositor;
         var easing = ShellAnimationTiming.CreateCompositionEasing(compositor);
-        var scale = compositor.CreateVector3KeyFrameAnimation();
-        scale.Duration = ShellAnimationTiming.MotionDuration;
-        scale.InsertKeyFrame(0, fromScale);
-        scale.InsertKeyFrame(1, Vector3.One, easing);
-        var offset = compositor.CreateVector3KeyFrameAnimation();
-        offset.Duration = ShellAnimationTiming.MotionDuration;
-        offset.InsertKeyFrame(0, fromOffset);
-        offset.InsertKeyFrame(1, baseOffset, easing);
+        var clip = compositor.CreateInsetClip();
+        var horizontalDifference = Math.Max(0, Math.Abs(geometry.Width - current.Width) / 2);
+        var verticalDifference = Math.Max(0, Math.Abs(geometry.ShellHeight - current.ShellHeight));
+        var fromHorizontalInset = expanding ? horizontalDifference : 0;
+        var toHorizontalInset = expanding ? 0 : horizontalDifference;
+        var fromBottomInset = expanding ? verticalDifference : 0;
+        var toBottomInset = expanding ? 0 : verticalDifference;
+        clip.LeftInset = (float)fromHorizontalInset;
+        clip.RightInset = (float)fromHorizontalInset;
+        clip.BottomInset = (float)fromBottomInset;
+        visual.Clip = clip;
+
+        var leftInset = CreateInsetAnimation(compositor, fromHorizontalInset, toHorizontalInset, easing);
+        var rightInset = CreateInsetAnimation(compositor, fromHorizontalInset, toHorizontalInset, easing);
+        var bottomInset = CreateInsetAnimation(compositor, fromBottomInset, toBottomInset, easing);
+        var transition = new GeometryTransition(current, geometry, Stopwatch.GetTimestamp());
+        StartVisibleRegionAnimation(window, shell, host, transition, state, generation, frameRate);
 
         var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
         batch.Completed += (_, _) =>
@@ -169,19 +167,68 @@ public static class ShellAnimator
                 return;
             }
 
+            state.StopTimer();
             StopShellVisual(shell);
-            visual.Scale = Vector3.One;
-            // The union host exists only while the shell is morphing. Commit
-            // the destination HWND bounds when the compositor finishes so the
-            // transparent part of the overlay never intercepts the desktop.
             ApplyShellGeometry(window, shell, geometry, geometry);
             state.Transition = null;
         };
-        visual.StartAnimation(nameof(Visual.Scale), scale);
-        visual.StartAnimation(nameof(Visual.Offset), offset);
+        clip.StartAnimation(nameof(InsetClip.LeftInset), leftInset);
+        clip.StartAnimation(nameof(InsetClip.RightInset), rightInset);
+        clip.StartAnimation(nameof(InsetClip.BottomInset), bottomInset);
         batch.End();
 
-        state.Transition = new GeometryTransition(current, geometry, Stopwatch.GetTimestamp());
+        state.Transition = transition;
+    }
+
+    private static ScalarKeyFrameAnimation CreateInsetAnimation(
+        Compositor compositor,
+        double from,
+        double to,
+        CompositionEasingFunction easing)
+    {
+        var animation = compositor.CreateScalarKeyFrameAnimation();
+        animation.Duration = ShellAnimationTiming.MotionDuration;
+        animation.InsertKeyFrame(0, (float)from);
+        animation.InsertKeyFrame(1, (float)to, easing);
+        return animation;
+    }
+
+    private static void StartVisibleRegionAnimation(
+        FluentWindow window,
+        FrameworkElement shell,
+        ShellGeometry host,
+        GeometryTransition transition,
+        ShellAnimationState state,
+        int generation,
+        int frameRate)
+    {
+        var timer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(Math.Max(1, 1000d / frameRate))
+        };
+        timer.Tick += (_, _) =>
+        {
+            if (state.Generation != generation)
+            {
+                timer.Stop();
+                return;
+            }
+
+            if (transition.HasCompleted)
+            {
+                timer.Stop();
+                StopShellVisual(shell);
+                ApplyShellGeometry(window, shell, transition.To, transition.To);
+                state.Timer = null;
+                state.Transition = null;
+                return;
+            }
+
+            window.ApplyVisibleShellRegion(transition.Current(), host);
+        };
+        state.Timer = timer;
+        window.ApplyVisibleShellRegion(transition.Current(), host);
+        timer.Start();
     }
 
     public static void SetShellGeometry(
@@ -194,6 +241,7 @@ public static class ShellAnimator
         ArgumentNullException.ThrowIfNull(shell);
         var state = ShellStates.GetOrCreateValue(window);
         state.NextGeneration();
+        state.StopTimer();
         state.Transition = null;
         StopShellVisual(shell);
         ApplyShellGeometry(window, shell, shellGeometry, hostGeometry);
@@ -209,6 +257,7 @@ public static class ShellAnimator
         var current = state.Transition?.Current() ?? CurrentShellGeometry(window, shell);
         var host = CurrentHostGeometry(window);
         state.NextGeneration();
+        state.StopTimer();
         state.Transition = null;
         StopShellVisual(shell);
         StopElementAnimations(detail, resetTransform: false);
@@ -397,6 +446,10 @@ public static class ShellAnimator
         {
             left += shell.Margin.Left;
         }
+        else if (shell.HorizontalAlignment == HorizontalAlignment.Center)
+        {
+            left += (window.Width - Current(shell.Width, shell.ActualWidth)) / 2;
+        }
 
         if (shell.VerticalAlignment == VerticalAlignment.Top)
         {
@@ -483,6 +536,14 @@ public static class ShellAnimator
         visual.StopAnimation(nameof(Visual.Scale));
         visual.StopAnimation(nameof(Visual.Offset));
         visual.Scale = Vector3.One;
+        if (visual.Clip is InsetClip clip)
+        {
+            clip.StopAnimation(nameof(InsetClip.LeftInset));
+            clip.StopAnimation(nameof(InsetClip.RightInset));
+            clip.StopAnimation(nameof(InsetClip.BottomInset));
+        }
+
+        visual.Clip = null;
     }
 
     private static Vector3 RevealScale(double progress)
@@ -543,8 +604,15 @@ public static class ShellAnimator
     {
         public int Generation { get; private set; }
         public GeometryTransition? Transition { get; set; }
+        public DispatcherTimer? Timer { get; set; }
 
         public int NextGeneration() => Generation = Next(Generation);
+
+        public void StopTimer()
+        {
+            Timer?.Stop();
+            Timer = null;
+        }
     }
 
     private sealed record ScalarTransition(double From, double To, TimeSpan Duration, long Started)
@@ -554,6 +622,8 @@ public static class ShellAnimator
 
     private sealed record GeometryTransition(ShellGeometry From, ShellGeometry To, long Started)
     {
+        public bool HasCompleted => Stopwatch.GetElapsedTime(Started) >= ShellAnimationTiming.MotionDuration;
+
         public ShellGeometry Current()
         {
             var progress = Progress(ShellAnimationTiming.MotionDuration, Started);

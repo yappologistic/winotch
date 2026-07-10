@@ -5,8 +5,8 @@
 ```mermaid
 flowchart TD
     App["WinUI 3 App / Windows App SDK 2.2"] --> Window["FluentWindow + AppWindow Overlay Host"]
-    Window --> Acrylic["SystemBackdropElement / Desktop Acrylic"]
-    App --> SettingsChrome["Mica Alt Settings Window"]
+    Window --> Acrylic["SystemBackdropElement / persistent Desktop Acrylic"]
+    App --> SettingsChrome["Desktop Acrylic Settings Window"]
     Window --> Clock["Clock Timer"]
     Window --> Status["Status Timer"]
     Status --> Battery["Windows Power Status"]
@@ -60,7 +60,7 @@ The visual tree is WinUI 3 XAML. `FluentWindow` centralizes the desktop-window b
 - `CreateRoundRectRgn`/`SetWindowRgn` track each animated host size. Top-attached surfaces offset the rounded region above the HWND, producing square top corners and rounded bottom corners without an opaque rectangular fringe.
 - Overlay surfaces can call `AppWindow.Show(false)` when they must appear without taking foreground activation. Interactive controls retain normal WinUI input and accessibility behavior.
 
-The notch, transient flyouts, and Settings use native Desktop Acrylic. The main shell places `DesktopAcrylicBackdrop` in a `SystemBackdropElement`, with translucent blue-gray layers and a solid fallback from `App.xaml`; Settings applies `DesktopAcrylicBackdrop` to its conventional resizable window and keeps its cards centered and width-capped when maximized. Windows controls material fallback when transparency is disabled, Battery Saver or high contrast is active, graphics support is insufficient, or the session is remote.
+The notch, transient flyouts, and Settings use native Desktop Acrylic. `PersistentDesktopAcrylicBackdrop` owns a Windows App SDK `DesktopAcrylicController`, keeps `SystemBackdropConfiguration.IsInputActive` enabled when another app has focus, and preserves the system configuration for theme, high contrast, and transparency fallback. The main shell hosts that backdrop in a `SystemBackdropElement` beneath low-opacity neutral contrast layers; Settings applies the same material to its conventional resizable window, exposes minimize/full-screen/restore/close actions through AppWindow, and keeps its cards centered and width-capped. Overlay-only HWND style normalization removes the legacy non-client frame before every placement while Settings retains conventional resize chrome. Shell morphs animate a compositor clip without scaling text, while a synchronized HWND region prevents the temporary union host from exposing an unpainted black rectangle.
 
 ## UI System
 
