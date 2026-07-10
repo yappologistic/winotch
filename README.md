@@ -4,7 +4,7 @@ Winotch is a native Windows notch overlay. It stays centered at the top of the s
 
 ## Alpha Status
 
-Winotch is alpha, source-only software for tinkerers and testers. There is no published EXE, installer, GitHub Release, or tag yet. Clone the repository, build it locally, and expect rough edges while the app is still changing.
+Winotch is alpha software for tinkerers and testers. Pre-built binaries (x64 and ARM64) are available under GitHub Releases for tagged releases (e.g. `v*`). You can also clone the repository and build it locally from source. Expect rough edges while the app is still changing.
 
 License: The Unlicense. Use, modify, copy, publish, or sell it with no restrictions.
 
@@ -115,7 +115,7 @@ The camera mirror uses `Windows.Media.Capture.MediaCapture` with CPU-backed fram
 
 ## Optional Local Publish
 
-Winotch is currently an unpackaged desktop app with no published GitHub binary. If you want a local EXE from source, publish into a local folder.
+Winotch is currently an unpackaged desktop app. In addition to downloading pre-built binaries from GitHub Releases, if you want a local EXE from source, you can publish into a local folder.
 
 Framework-dependent publish, smallest output:
 
