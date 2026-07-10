@@ -30,8 +30,12 @@ public sealed class UiMarkupTests
         var xaml = ReadRepoFile("src", "Winotch", "CommandBar", "CommandBarPanel.xaml");
 
         Assert.Contains("MinHeight=\"50\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MaxHeight=\"272\"", xaml, StringComparison.Ordinal);
         Assert.Contains("MaxWidth=\"112\"", xaml, StringComparison.Ordinal);
         Assert.Contains("TextWrapping=\"NoWrap\"", xaml, StringComparison.Ordinal);
+
+        var code = ReadRepoFile("src", "Winotch", "MainWindow.CommandBar.cs");
+        Assert.Contains("ResizeCommandBarForResults(results.Count)", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,6 +89,8 @@ public sealed class UiMarkupTests
         Assert.Equal("68", (string?)shell.Attribute("Height"));
         Assert.Equal("0,0,34,34", (string?)shell.Attribute("CornerRadius"));
         Assert.Equal("Center", (string?)shell.Attribute("HorizontalAlignment"));
+        Assert.Equal("Transparent", (string?)shell.Attribute("BorderBrush"));
+        Assert.Equal("0", (string?)shell.Attribute("BorderThickness"));
         var backdropHost = Assert.Single(shell.Descendants(ui + "SystemBackdropElement"));
         Assert.Single(backdropHost.Descendants(ui + "DesktopAcrylicBackdrop"));
     }
@@ -98,6 +104,17 @@ public sealed class UiMarkupTests
         Assert.Contains("TabChrome.CornerRadius = corners", code, StringComparison.Ordinal);
         Assert.Contains("BottomCornerRadius = radius", code, StringComparison.Ordinal);
         Assert.Contains("SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34)", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FluentWindowSuppressesNativeOverlayBorderAndPreservesNativeMaximize()
+    {
+        var code = ReadRepoFile("src", "Winotch", "FluentWindow.cs");
+
+        Assert.Contains("DwmwaBorderColor", code, StringComparison.Ordinal);
+        Assert.Contains("DwmColorNone", code, StringComparison.Ordinal);
+        Assert.Contains("HwndTopmost", code, StringComparison.Ordinal);
+        Assert.Contains("OverlappedPresenterState.Maximized", code, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -131,7 +148,7 @@ public sealed class UiMarkupTests
         var settings = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml");
         Assert.Contains("<ToggleSwitch", settings, StringComparison.Ordinal);
         Assert.Contains("<ComboBox", settings, StringComparison.Ordinal);
-        Assert.Contains("<MicaBackdrop", settings, StringComparison.Ordinal);
+        Assert.Contains("<DesktopAcrylicBackdrop", settings, StringComparison.Ordinal);
     }
 
     [Theory]

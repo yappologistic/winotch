@@ -5,7 +5,7 @@ Winotch is a native Windows desktop notch: a centered, top-attached Fluent overl
 
 ## Stack
 - Use C# and WinUI 3 on `net8.0-windows10.0.26100.0`, backed by the stable Windows App SDK 2.2 release.
-- Use WinUI `SystemBackdropElement`/`DesktopAcrylicBackdrop` for the compact overlay and `MicaBackdrop` for Settings. Do not replace native materials with simulated blur.
+- Use WinUI `SystemBackdropElement`/`DesktopAcrylicBackdrop` for the compact overlay and Settings. Do not replace native materials with simulated blur.
 - Use `Microsoft.UI.Windowing.AppWindow` for placement, visibility, switcher presence, and presenter behavior. Keep narrowly scoped Win32 interop for HWND-only behavior such as rounded window regions, ownership, drag, hotkeys, and clipboard messages.
 - Prefer Windows built-in APIs and .NET libraries before adding packages.
 - Keep the alpha app unpackaged and source-only. If full notification history is required, use an explicitly approved package-identity approach; `UserNotificationListener` access cannot be assumed for an unpackaged process.

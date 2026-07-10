@@ -60,7 +60,7 @@ The visual tree is WinUI 3 XAML. `FluentWindow` centralizes the desktop-window b
 - `CreateRoundRectRgn`/`SetWindowRgn` track each animated host size. Top-attached surfaces offset the rounded region above the HWND, producing square top corners and rounded bottom corners without an opaque rectangular fringe.
 - Overlay surfaces can call `AppWindow.Show(false)` when they must appear without taking foreground activation. Interactive controls retain normal WinUI input and accessibility behavior.
 
-The notch and transient flyouts use native Desktop Acrylic. The main shell places `DesktopAcrylicBackdrop` in a `SystemBackdropElement`, with translucent blue-gray layers and a solid fallback from `App.xaml`. Settings uses Mica Base Alt because it is a conventional long-lived window. Windows controls material fallback when transparency is disabled, Battery Saver or high contrast is active, graphics support is insufficient, or the session is remote.
+The notch, transient flyouts, and Settings use native Desktop Acrylic. The main shell places `DesktopAcrylicBackdrop` in a `SystemBackdropElement`, with translucent blue-gray layers and a solid fallback from `App.xaml`; Settings applies `DesktopAcrylicBackdrop` to its conventional resizable window and keeps its cards centered and width-capped when maximized. Windows controls material fallback when transparency is disabled, Battery Saver or high contrast is active, graphics support is insufficient, or the session is remote.
 
 ## UI System
 
@@ -136,7 +136,7 @@ Call detection is gated by `LiveActivitySettings.CallDetectionEnabled` and is of
 
 ## Command Bar
 
-The command bar is a shell mode, not a separate flyout window. `MainWindow.CommandBar` registers the configurable global hotkey on the notch HWND, opens `ShellMode.Command`, animates through `ShellMetrics.Command`, and blocks hover expansion, foreground polling, and compact toasts while the input owns focus. `Esc` collapses back to the normal foreground-driven shell mode.
+The command bar is a shell mode, not a separate flyout window. `MainWindow.CommandBar` registers the configurable global hotkey on the notch HWND, opens `ShellMode.Command`, and animates through `ShellMetrics.Command`. Its height follows the visible result count up to a four-row cap, after which the local result list scrolls. It blocks hover expansion, foreground polling, and compact toasts while the input owns focus. `Esc` collapses back to the normal foreground-driven shell mode.
 
 `CommandBarService` fans queries out to enabled providers and ranks their local results by fuzzy score plus provider priority. Providers live under `CommandBar/`: Start Menu shortcut launch through `.lnk` COM parsing and `ShellExecuteEx`, visible top-level window switching through Win32 enumeration and `SetForegroundWindow`, a custom tokenizer/shunting-yard calculator, local unit conversion, and quick commands backed by existing Winotch services/state. The feature adds no network calls; currency conversion is out of scope.
 

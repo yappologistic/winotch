@@ -548,7 +548,7 @@ public class StatusShellTests
         Assert.Contains(textBlocks, element => (string?)element.Attribute("Text") == "{Binding App}");
         Assert.Contains(textBlocks, element => (string?)element.Attribute("Text") == "{Binding Title}");
         var body = Assert.Single(textBlocks, element => (string?)element.Attribute("Text") == "{Binding Body}");
-        Assert.Equal("48", (string?)body.Attribute("MaxHeight"));
+        Assert.Equal("32", (string?)body.Attribute("MaxHeight"));
         Assert.Equal("Wrap", (string?)body.Attribute("TextWrapping"));
         Assert.Equal("CharacterEllipsis", (string?)body.Attribute("TextTrimming"));
     }
@@ -828,6 +828,15 @@ public class StatusShellTests
         Assert.Equal(new ShellGeometry(1920, 32, 32, 0), ShellMetrics.ForMode(isFullBar: true, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(260, 68, 68, 830), ShellMetrics.ForMode(isFullBar: false, screenWidth: 1920));
         Assert.Equal(new ShellGeometry(440, 76, 76, 740), ShellMetrics.MediaToast(1920));
+    }
+
+    [Fact]
+    public void CommandShellHeightFollowsVisibleResultsAndCapsAtFourRows()
+    {
+        Assert.Equal(120, ShellMetrics.Command(1920, 0).ShellHeight);
+        Assert.Equal(256, ShellMetrics.Command(1920, 2).ShellHeight);
+        Assert.Equal(392, ShellMetrics.Command(1920, 4).ShellHeight);
+        Assert.Equal(392, ShellMetrics.Command(1920, 20).ShellHeight);
     }
 
     [Fact]

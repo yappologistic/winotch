@@ -18,7 +18,7 @@ public class SettingsPolishTests
             (string?)setter.Attribute("Property") == "MinWidth" &&
             (string?)setter.Attribute("Value") == "44");
         Assert.Equal("ToggleSwitch", (string?)toggleStyle.Attribute("TargetType"));
-        Assert.Single(doc.Descendants(ui + "MicaBackdrop"));
+        Assert.Single(doc.Descendants(ui + "DesktopAcrylicBackdrop"));
         Assert.True(doc.Descendants(ui + "ToggleSwitch").Count() >= 10);
         Assert.Contains("AutomationProperties.Name=\"Toast duration scale\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"ICS subscription URLs\"", xaml);
@@ -73,13 +73,18 @@ public class SettingsPolishTests
 
         var notificationList = doc.Descendants(ui + "ListView")
             .Single(element => (string?)element.Attribute(xamlName) == "NotificationList");
-        Assert.Equal("Auto", (string?)notificationList.Attribute("ScrollViewer.VerticalScrollBarVisibility"));
+        Assert.Equal("Hidden", (string?)notificationList.Attribute("ScrollViewer.VerticalScrollBarVisibility"));
+        Assert.Contains(doc.Descendants(ui + "Border"), element =>
+            (string?)element.Attribute(xamlName) == "ActivityScrollIndicator" &&
+            (string?)element.Attribute("Opacity") == "0");
+        Assert.Contains(doc.Descendants(ui + "TranslateTransform"), element =>
+            (string?)element.Attribute(xamlName) == "ActivityScrollIndicatorTransform");
 
         var notificationItem = notificationList.Descendants(ui + "StackPanel")
-            .Single(element => (string?)element.Attribute("MaxHeight") == "85");
+            .Single(element => (string?)element.Attribute("MaxHeight") == "68");
         var notificationBody = notificationList.Descendants(ui + "TextBlock")
             .Single(element => (string?)element.Attribute("Text") == "{Binding Body}");
-        Assert.Equal("48", (string?)notificationBody.Attribute("MaxHeight"));
+        Assert.Equal("32", (string?)notificationBody.Attribute("MaxHeight"));
         Assert.Equal("Wrap", (string?)notificationBody.Attribute("TextWrapping"));
         Assert.Equal("CharacterEllipsis", (string?)notificationBody.Attribute("TextTrimming"));
     }

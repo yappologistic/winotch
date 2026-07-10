@@ -12,7 +12,7 @@
     UseWindowRegion="False"
     BottomCornerRadius="12">
     <local:FluentWindow.SystemBackdrop>
-        <MicaBackdrop Kind="BaseAlt" />
+        <DesktopAcrylicBackdrop />
     </local:FluentWindow.SystemBackdrop>
 
     <Grid Background="Transparent">
@@ -26,8 +26,8 @@
             </Style>
 
             <Style x:Key="SettingsCard" TargetType="Border">
-                <Setter Property="Background" Value="{StaticResource NotchPanel}" />
-                <Setter Property="BorderBrush" Value="{StaticResource NotchStroke}" />
+                <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="CornerRadius" Value="{StaticResource WinotchCardCornerRadius}" />
                 <Setter Property="Padding" Value="20" />
@@ -59,10 +59,13 @@
         </Grid.Resources>
 
         <ScrollViewer
+            x:Name="SettingsScrollViewer"
             HorizontalContentAlignment="Stretch"
             HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="32,28,32,36" HorizontalAlignment="Stretch">
+            VerticalScrollBarVisibility="Hidden"
+            PointerWheelChanged="SettingsScrollViewer_PointerWheelChanged"
+            ViewChanged="SettingsScrollViewer_ViewChanged">
+            <StackPanel Margin="32,28,32,36" HorizontalAlignment="Stretch" MaxWidth="760">
                 <TextBlock
                     FontFamily="{StaticResource WinotchDisplayFont}"
                     FontSize="28"
@@ -316,5 +319,20 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
+        <Border
+            x:Name="SettingsScrollIndicator"
+            Width="3"
+            Height="48"
+            Margin="0,12,8,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Background="{StaticResource NotchMutedText}"
+            CornerRadius="2"
+            IsHitTestVisible="False"
+            Opacity="0">
+            <Border.RenderTransform>
+                <TranslateTransform x:Name="SettingsScrollIndicatorTransform" />
+            </Border.RenderTransform>
+        </Border>
     </Grid>
 </local:FluentWindow>

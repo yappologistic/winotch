@@ -1,6 +1,8 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.UI.Notifications.Management;
 
@@ -13,6 +15,10 @@ public partial class SettingsWindow : FluentWindow
     private readonly NotificationService _notifications;
     private bool _syncing;
     private bool _centered;
+    private readonly DispatcherTimer _scrollIndicatorTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(750)
+    };
 
     public SettingsWindow(SettingsService settings, StartupService startup, NotificationService notifications)
     {
@@ -22,6 +28,11 @@ public partial class SettingsWindow : FluentWindow
         _syncing = true;
         InitializeComponent();
         _syncing = false;
+        _scrollIndicatorTimer.Tick += (_, _) =>
+        {
+            _scrollIndicatorTimer.Stop();
+            SettingsScrollIndicator.Opacity = 0;
+        };
         Loaded += SettingsWindow_Loaded;
         Closed += SettingsWindow_Closed;
         _settings.Changed += Settings_Changed;
@@ -47,7 +58,47 @@ public partial class SettingsWindow : FluentWindow
 
     private void SettingsWindow_Closed(object sender, WindowEventArgs e)
     {
+        _scrollIndicatorTimer.Stop();
         _settings.Changed -= Settings_Changed;
+    }
+
+    private void SettingsScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (SettingsScrollIndicator.Opacity <= 0 || sender is not ScrollViewer viewer)
+        {
+            return;
+        }
+
+        ShowSettingsScrollIndicator(viewer);
+    }
+
+    private void SettingsScrollViewer_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is ScrollViewer viewer)
+        {
+            ShowSettingsScrollIndicator(viewer);
+        }
+    }
+
+    private void ShowSettingsScrollIndicator(ScrollViewer viewer)
+    {
+        if (viewer.ScrollableHeight <= 0 || viewer.ExtentHeight <= 0)
+        {
+            SettingsScrollIndicator.Opacity = 0;
+            return;
+        }
+
+        var trackHeight = Math.Max(0, viewer.ActualHeight - 24);
+        var thumbHeight = Math.Clamp(
+            trackHeight * (viewer.ViewportHeight / viewer.ExtentHeight),
+            Math.Min(36, trackHeight),
+            trackHeight);
+        var progress = viewer.VerticalOffset / viewer.ScrollableHeight;
+        SettingsScrollIndicator.Height = thumbHeight;
+        SettingsScrollIndicatorTransform.Y = Math.Max(0, (trackHeight - thumbHeight) * progress);
+        SettingsScrollIndicator.Opacity = 1;
+        _scrollIndicatorTimer.Stop();
+        _scrollIndicatorTimer.Start();
     }
 
     private void Settings_Changed(object? sender, WinotchSettings settings)

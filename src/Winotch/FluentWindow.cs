@@ -31,7 +31,11 @@ public class FluentWindow : Window
     public FluentWindow()
     {
         Activated += (_, args) =>
+        {
             _isActive = args.WindowActivationState != WindowActivationState.Deactivated;
+            ConfigureDwmBorder();
+            EnforceOverlayTopmost();
+        };
         Closed += (_, _) =>
         {
             _isVisible = false;
@@ -45,6 +49,22 @@ public class FluentWindow : Window
         };
         AppWindow.Changed += (_, args) =>
         {
+            if (!UseOverlayChrome)
+            {
+                var scale = RasterizationScale;
+                if (args.DidPositionChange)
+                {
+                    _left = AppWindow.Position.X / scale;
+                    _top = AppWindow.Position.Y / scale;
+                }
+
+                if (args.DidSizeChange)
+                {
+                    _width = AppWindow.Size.Width / scale;
+                    _height = AppWindow.Size.Height / scale;
+                }
+            }
+
             if (args.DidSizeChange)
             {
                 ApplyWindowRegion();
@@ -176,6 +196,8 @@ public class FluentWindow : Window
         InitializeFluentWindow();
         AppWindow.Show();
         _isVisible = true;
+        ConfigureDwmBorder();
+        EnforceOverlayTopmost();
     }
 
     public void ShowWithoutActivation()
@@ -183,6 +205,8 @@ public class FluentWindow : Window
         InitializeFluentWindow();
         AppWindow.Show(activateWindow: false);
         _isVisible = true;
+        ConfigureDwmBorder();
+        EnforceOverlayTopmost();
     }
 
     public void Hide()
@@ -262,6 +286,41 @@ public class FluentWindow : Window
         presenter.IsMaximizable = !UseOverlayChrome;
         presenter.IsMinimizable = !UseOverlayChrome;
         presenter.IsAlwaysOnTop = UseOverlayChrome && _topmost;
+        ConfigureDwmBorder();
+        EnforceOverlayTopmost();
+    }
+
+    private void ConfigureDwmBorder()
+    {
+        if (!UseOverlayChrome)
+        {
+            return;
+        }
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (hwnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        // Windows 11 otherwise draws a one-pixel non-client border even when
+        // the title bar is disabled. COLOR_NONE removes that outer stripe.
+        var color = DwmColorNone;
+        _ = DwmSetWindowAttribute(hwnd, DwmwaBorderColor, ref color, sizeof(uint));
+    }
+
+    private void EnforceOverlayTopmost()
+    {
+        if (!UseOverlayChrome || !_topmost)
+        {
+            return;
+        }
+
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (hwnd != IntPtr.Zero)
+        {
+            _ = SetWindowPos(hwnd, HwndTopmost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate);
+        }
     }
 
     private void HookContent()
@@ -305,6 +364,16 @@ public class FluentWindow : Window
     private void ApplyBounds(double? scaleOverride = null)
     {
         if (AppWindow is null)
+        {
+            return;
+        }
+
+        // A normal app window owns its bounds while maximized/minimized. Reapplying
+        // cached XAML dimensions here would immediately undo the native presenter
+        // transition when XamlRoot reports its new rasterization scale.
+        if (!UseOverlayChrome &&
+            AppWindow.Presenter is OverlappedPresenter presenter &&
+            presenter.State is OverlappedPresenterState.Maximized or OverlappedPresenterState.Minimized)
         {
             return;
         }
@@ -379,8 +448,14 @@ public class FluentWindow : Window
     }
 
     private const int GwlHwndParent = -8;
+    private const int DwmwaBorderColor = 34;
+    private const uint DwmColorNone = 0xFFFFFFFE;
     private const uint WmNcLButtonDown = 0x00A1;
     private const int HtCaption = 2;
+    private static readonly IntPtr HwndTopmost = new(-1);
+    private const uint SwpNoSize = 0x0001;
+    private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoActivate = 0x0010;
 
     [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateRoundRectRgn(
@@ -400,6 +475,24 @@ public class FluentWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hwnd, int index, IntPtr value);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetWindowPos(
+        IntPtr hwnd,
+        IntPtr insertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd,
+        int attribute,
+        ref uint value,
+        int valueSize);
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);

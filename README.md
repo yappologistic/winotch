@@ -33,7 +33,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - C# and WinUI 3 on `net8.0-windows10.0.26100.0`, with Windows App SDK `2.2.0`
 - Unpackaged `WinExe` alpha build targeting x64, with Windows 10 build 19041 as the declared minimum OS
 - WinUI `SystemBackdropElement` and `DesktopAcrylicBackdrop` for the overlay, compact toasts, and auxiliary flyouts
-- WinUI `MicaBackdrop` Base Alt for the long-lived Settings window
+- WinUI `DesktopAcrylicBackdrop` for the long-lived Settings window, with centered responsive content when maximized
 - `AppWindow`/`OverlappedPresenter` for topmost, borderless placement and narrow HWND interop for rounded regions, drag, ownership, hotkeys, and clipboard messages
 - Native `GetSystemPowerStatus` for battery state
 - Core Audio COM interop for master volume, per-app audio sessions, output device switching, and default microphone mute

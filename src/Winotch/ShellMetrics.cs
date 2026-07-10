@@ -25,8 +25,9 @@ public static class ShellMetrics
     public const double ExpandedShellHeight = 520;
     public const double ExpandedWindowHeight = 520;
     public const double CommandWidth = 600;
-    public const double CommandShellHeight = 300;
-    public const double CommandWindowHeight = 300;
+    public const double CommandMinimumHeight = 120;
+    public const double CommandMaximumHeight = 392;
+    public const double CommandResultHeight = 68;
 
     public static double CenterLeft(double screenWidth, double width) =>
         Math.Max(0, (screenWidth - width) / 2);
@@ -62,10 +63,12 @@ public static class ShellMetrics
         return new ShellGeometry(width, LiveStripShellHeight, LiveStripWindowHeight, CenterLeft(screenWidth, width));
     }
 
-    public static ShellGeometry Command(double screenWidth)
+    public static ShellGeometry Command(double screenWidth, int resultCount = 0)
     {
         var width = FitWidth(CommandWidth, screenWidth);
-        return new ShellGeometry(width, CommandShellHeight, CommandWindowHeight, CenterLeft(screenWidth, width));
+        var visibleResults = Math.Clamp(resultCount, 0, 4);
+        var height = Math.Min(CommandMaximumHeight, CommandMinimumHeight + (visibleResults * CommandResultHeight));
+        return new ShellGeometry(width, height, height, CenterLeft(screenWidth, width));
     }
 
     public static ShellGeometry PlaceOnMonitor(ShellGeometry geometry, MonitorSnapshot monitor)

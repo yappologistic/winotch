@@ -64,7 +64,7 @@
                      Style="{StaticResource NotchTextBox}"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
                      FontSize="12"
                      AutomationProperties.Name="Input text"
                      TextChanged="InputBox_TextChanged" />
@@ -109,7 +109,7 @@
                      Style="{StaticResource NotchTextBox}"
                      IsReadOnly="True"
                      TextWrapping="Wrap"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.VerticalScrollBarVisibility="Hidden"
                      FontSize="12"
                      AutomationProperties.Name="Scrubbed text" />
 

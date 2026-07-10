@@ -205,7 +205,22 @@ public partial class MainWindow
         if (!query.IsCancellationRequested)
         {
             CommandBarPanel.SetResults(results);
+            ResizeCommandBarForResults(results.Count);
         }
+    }
+
+    private void ResizeCommandBarForResults(int resultCount)
+    {
+        if (!_commandBarVisible)
+        {
+            return;
+        }
+
+        var monitor = CurrentMonitor(preferCursor: true);
+        var geometry = ShellMetrics.PlaceOnMonitor(
+            ShellMetrics.Command(monitor.WidthDip, resultCount),
+            monitor);
+        ShellAnimator.AnimateShell(this, NotchShell, geometry, _animationFrameRate);
     }
 
     private async void CommandBarInput_PreviewKeyDown(object sender, KeyRoutedEventArgs e)

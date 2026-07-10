@@ -33,6 +33,8 @@ public partial class MainWindow : FluentWindow
     private readonly DispatcherTimer _shellTimer = new() { Interval = ShellAnimationTiming.ForegroundPollInterval };
     private readonly DispatcherTimer _collapseTimer = new() { Interval = ShellAnimationTiming.CollapseGuard };
     private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly DispatcherTimer _scrollIndicatorTimer = new() { Interval = TimeSpan.FromMilliseconds(750) };
+    private ScrollViewer? _activityScrollViewer;
     private readonly AudioService _audio = new();
     private readonly AudioDeviceService _audioDevices = new();
     private readonly AudioSessionService _audioSessions = new();
@@ -94,6 +96,7 @@ public partial class MainWindow : FluentWindow
         _shellTimer.Tick += (_, _) => ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true);
         _collapseTimer.Tick += (_, _) => CollapseAfterPointerExit();
         _statsTimer.Tick += (_, _) => RefreshSystemStats();
+        _scrollIndicatorTimer.Tick += (_, _) => HideTransientScrollIndicators();
         _calendarTimer.Tick += async (_, _) => await RefreshCalendarAsync();
         _media.MediaChanged += (_, _) =>
             _ = DispatcherQueue.TryEnqueue(async () => await RefreshStatusAsync());
@@ -421,6 +424,134 @@ public partial class MainWindow : FluentWindow
     {
         NotificationCountText.Text = notifications.Items.Count.ToString();
         NotificationList.ItemsSource = notifications.Items;
+    }
+
+    private void TransientScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (sender is not ScrollViewer viewer)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(viewer, SystemRailScroll) && SystemRailScrollIndicator.Opacity > 0)
+        {
+            ShowTransientScrollIndicator(viewer, SystemRailScrollIndicator, SystemRailScrollIndicatorTransform);
+        }
+        else if (ReferenceEquals(viewer, AudioControlsScroll) && AudioScrollIndicator.Opacity > 0)
+        {
+            ShowTransientScrollIndicator(viewer, AudioScrollIndicator, AudioScrollIndicatorTransform);
+        }
+    }
+
+    private void TransientScrollViewer_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not ScrollViewer viewer)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(viewer, SystemRailScroll))
+        {
+            ShowTransientScrollIndicator(viewer, SystemRailScrollIndicator, SystemRailScrollIndicatorTransform);
+        }
+        else if (ReferenceEquals(viewer, AudioControlsScroll))
+        {
+            ShowTransientScrollIndicator(viewer, AudioScrollIndicator, AudioScrollIndicatorTransform);
+        }
+    }
+
+    private void ActivityList_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        if (_activityScrollViewer is not null)
+        {
+            ShowTransientScrollIndicator(
+                _activityScrollViewer,
+                ActivityScrollIndicator,
+                ActivityScrollIndicatorTransform);
+        }
+    }
+
+    private void ActivityList_Loaded(object sender, RoutedEventArgs e)
+    {
+        var viewer = FindDescendantScrollViewer(NotificationList);
+        if (ReferenceEquals(viewer, _activityScrollViewer))
+        {
+            return;
+        }
+
+        if (_activityScrollViewer is not null)
+        {
+            _activityScrollViewer.ViewChanged -= ActivityScrollViewer_ViewChanged;
+        }
+
+        _activityScrollViewer = viewer;
+        if (_activityScrollViewer is not null)
+        {
+            _activityScrollViewer.ViewChanged += ActivityScrollViewer_ViewChanged;
+        }
+    }
+
+    private void ActivityScrollViewer_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (ActivityScrollIndicator.Opacity > 0 && sender is ScrollViewer viewer)
+        {
+            ShowTransientScrollIndicator(viewer, ActivityScrollIndicator, ActivityScrollIndicatorTransform);
+        }
+    }
+
+    private static ScrollViewer? FindDescendantScrollViewer(DependencyObject root)
+    {
+        if (root is ScrollViewer viewer)
+        {
+            return viewer;
+        }
+
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+        {
+            if (FindDescendantScrollViewer(VisualTreeHelper.GetChild(root, index)) is { } descendant)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
+    }
+
+    private void ShowTransientScrollIndicator(
+        ScrollViewer viewer,
+        FrameworkElement indicator,
+        TranslateTransform transform)
+    {
+        if (viewer.ScrollableHeight <= 0 || viewer.ExtentHeight <= 0)
+        {
+            indicator.Opacity = 0;
+            return;
+        }
+
+        var trackHeight = Math.Max(0, viewer.ActualHeight - 8);
+        var thumbHeight = Math.Clamp(
+            trackHeight * (viewer.ViewportHeight / viewer.ExtentHeight),
+            Math.Min(36, trackHeight),
+            trackHeight);
+        var progress = viewer.ScrollableHeight <= 0 ? 0 : viewer.VerticalOffset / viewer.ScrollableHeight;
+        indicator.Height = thumbHeight;
+        transform.Y = Math.Max(0, (trackHeight - thumbHeight) * progress);
+        indicator.Opacity = 1;
+        RestartScrollIndicatorTimer();
+    }
+
+    private void RestartScrollIndicatorTimer()
+    {
+        _scrollIndicatorTimer.Stop();
+        _scrollIndicatorTimer.Start();
+    }
+
+    private void HideTransientScrollIndicators()
+    {
+        _scrollIndicatorTimer.Stop();
+        ShellAnimator.Animate(SystemRailScrollIndicator, UIElement.OpacityProperty, 0, _animationFrameRate);
+        ShellAnimator.Animate(AudioScrollIndicator, UIElement.OpacityProperty, 0, _animationFrameRate);
+        ShellAnimator.Animate(ActivityScrollIndicator, UIElement.OpacityProperty, 0, _animationFrameRate);
     }
 
     private void ApplyFeatureSettings(WinotchSettings settings)

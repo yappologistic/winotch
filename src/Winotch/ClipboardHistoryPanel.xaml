@@ -50,7 +50,7 @@
             ItemClick="ClipboardItem_Click"
             ItemContainerStyle="{StaticResource NotchListBoxItem}"
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            ScrollViewer.VerticalScrollBarVisibility="Hidden"
             SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="local:ClipboardHistoryRow">
