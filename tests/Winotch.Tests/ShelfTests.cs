@@ -1,4 +1,7 @@
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Graphics.Imaging;
+using Windows.Storage;
+using Windows.Storage.Streams;
 
 namespace Winotch.Tests;
 
@@ -142,6 +145,68 @@ public class ShelfTests
 
         Assert.True(await shelf.StageDropAsync(package.GetView(), Now));
         Assert.Equal("dropped note", Assert.Single(shelf.Items).Preview);
+    }
+
+    [Fact]
+    public async Task ShelfStagesARealWindowsLinkDropPayload()
+    {
+        var package = new DataPackage();
+        package.SetWebLink(new Uri("https://example.com/shelf"));
+        var shelf = new ShelfService(new ShelfSettings());
+
+        Assert.True(await shelf.StageDropAsync(package.GetView(), Now));
+        var item = Assert.Single(shelf.Items);
+        Assert.Equal(ShelfItemKind.Link, item.Kind);
+        Assert.Equal("https://example.com/shelf", item.Text);
+    }
+
+    [Fact]
+    public async Task ShelfStagesARealWindowsFileDropPayload()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"winotch-shelf-{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(path, "shelf file");
+        try
+        {
+            var file = await StorageFile.GetFileFromPathAsync(path);
+            var package = new DataPackage();
+            package.SetStorageItems([file]);
+            var shelf = new ShelfService(new ShelfSettings());
+
+            Assert.True(await shelf.StageDropAsync(package.GetView(), Now));
+            var item = Assert.Single(shelf.Items);
+            Assert.Equal(ShelfItemKind.Files, item.Kind);
+            Assert.Equal(path, Assert.Single(item.FilePaths), ignoreCase: true);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ShelfStagesARealWindowsBitmapDropPayload()
+    {
+        using var stream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
+        encoder.SetPixelData(
+            BitmapPixelFormat.Rgba8,
+            BitmapAlphaMode.Straight,
+            1,
+            1,
+            96,
+            96,
+            [0x22, 0x66, 0xCC, 0xFF]);
+        await encoder.FlushAsync();
+        stream.Seek(0);
+
+        var package = new DataPackage();
+        package.SetBitmap(RandomAccessStreamReference.CreateFromStream(stream));
+        var shelf = new ShelfService(new ShelfSettings());
+
+        Assert.True(await shelf.StageDropAsync(package.GetView(), Now));
+        var item = Assert.Single(shelf.Items);
+        Assert.Equal(ShelfItemKind.Image, item.Kind);
+        Assert.NotEmpty(item.ThumbnailPng!);
     }
 
     private static ShelfItem Text(string value, DateTimeOffset? stagedAt = null) =>

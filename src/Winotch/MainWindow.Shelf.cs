@@ -15,7 +15,7 @@ public partial class MainWindow
     {
         _shelf.ApplySettings(settings);
         ShelfButton.Visibility = settings.Enabled ? Visibility.Visible : Visibility.Collapsed;
-        NotchShell.AllowDrop = settings.Enabled;
+        ShellHost.AllowDrop = settings.Enabled;
         SetMouseTransparent(_currentShellMode == ShellMode.FullBar && !settings.Enabled);
         if (!settings.Enabled)
         {
@@ -25,16 +25,13 @@ public partial class MainWindow
 
     private void Notch_DragOver(object sender, DragEventArgs e)
     {
-        e.AcceptedOperation = _settings.Current.Shelf.Enabled &&
-            ShelfService.SupportsDropFormats(e.DataView.AvailableFormats)
-            ? DataPackageOperation.Copy
-            : DataPackageOperation.None;
-        if (e.AcceptedOperation == DataPackageOperation.Copy)
-        {
-            e.DragUIOverride.Caption = "Add to Shelf";
-            e.DragUIOverride.IsCaptionVisible = true;
-        }
+        ConfigureNotchDrag(e);
+    }
 
+    private void Notch_DragEnter(object sender, DragEventArgs e) => ConfigureNotchDrag(e);
+
+    private void Notch_DragLeave(object sender, DragEventArgs e)
+    {
         e.Handled = true;
     }
 
@@ -62,6 +59,21 @@ public partial class MainWindow
         {
             deferral.Complete();
         }
+    }
+
+    private void ConfigureNotchDrag(DragEventArgs e)
+    {
+        e.AcceptedOperation = _settings.Current.Shelf.Enabled &&
+            ShelfService.SupportsDropFormats(e.DataView.AvailableFormats)
+            ? DataPackageOperation.Copy
+            : DataPackageOperation.None;
+        if (e.AcceptedOperation == DataPackageOperation.Copy)
+        {
+            e.DragUIOverride.Caption = "Add to Shelf";
+            e.DragUIOverride.IsCaptionVisible = true;
+        }
+
+        e.Handled = true;
     }
 
     private async void ShelfButton_Click(object sender, RoutedEventArgs e)

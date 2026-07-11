@@ -16,7 +16,14 @@
         MinimumShellHostHeight="520"
         BottomCornerRadius="34"
         Loaded="Window_Loaded">
-    <Grid KeyDown="Window_KeyDown">
+    <Grid x:Name="ShellHost"
+          Background="Transparent"
+          AllowDrop="True"
+          DragEnter="Notch_DragEnter"
+          DragOver="Notch_DragOver"
+          DragLeave="Notch_DragLeave"
+          Drop="Notch_Drop"
+          KeyDown="Window_KeyDown">
         <Grid.Resources>
             <Style x:Key="ModeTabButton" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
                 <Setter Property="CornerRadius" Value="18" />
@@ -43,9 +50,6 @@
                 BorderThickness="0"
                 CornerRadius="0,0,34,34"
                 Padding="0"
-                AllowDrop="True"
-                DragOver="Notch_DragOver"
-                Drop="Notch_Drop"
                 PointerEntered="Window_MouseEnter"
                 PointerExited="Window_MouseLeave">
 

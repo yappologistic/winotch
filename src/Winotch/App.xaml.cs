@@ -22,6 +22,12 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        if (StandardUserRelaunchService.TryRelaunchIfElevated())
+        {
+            Exit();
+            return;
+        }
+
         if (!TryAcquireSingleInstance(SingleInstanceMutexName, out _singleInstanceMutex))
         {
             Exit();

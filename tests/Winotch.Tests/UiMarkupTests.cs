@@ -179,6 +179,7 @@ public sealed class UiMarkupTests
     public void ShelfIsAPersistentDropTargetOnBothSurfaces()
     {
         var shelfXaml = ReadRepoFile("src", "Winotch", "ShelfFlyout.xaml");
+        var notchXaml = ReadRepoFile("src", "Winotch", "MainWindow.xaml");
         var shelfCode = ReadRepoFile("src", "Winotch", "ShelfFlyout.xaml.cs");
         var notchCode = ReadRepoFile("src", "Winotch", "MainWindow.Shelf.cs");
         var mainCode = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
@@ -186,6 +187,10 @@ public sealed class UiMarkupTests
         Assert.Contains("AllowDrop=\"True\"", shelfXaml, StringComparison.Ordinal);
         Assert.Contains("DragOver=\"Shelf_DragOver\"", shelfXaml, StringComparison.Ordinal);
         Assert.Contains("Drop=\"Shelf_Drop\"", shelfXaml, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ShellHost\"", notchXaml, StringComparison.Ordinal);
+        Assert.Contains("Background=\"Transparent\"", notchXaml, StringComparison.Ordinal);
+        Assert.Contains("DragEnter=\"Notch_DragEnter\"", notchXaml, StringComparison.Ordinal);
+        Assert.Contains("Drop=\"Notch_Drop\"", notchXaml, StringComparison.Ordinal);
         Assert.Contains("StageDropAsync(e.DataView", shelfCode, StringComparison.Ordinal);
         Assert.Contains("StageDropAsync(e.DataView", notchCode, StringComparison.Ordinal);
         Assert.Contains("e.GetDeferral()", shelfCode, StringComparison.Ordinal);
