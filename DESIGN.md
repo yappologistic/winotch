@@ -6,7 +6,7 @@ Winotch is a native WinUI 3 notch overlay. The visual system stays compact, top-
 
 - The overlay uses native `DesktopAcrylicBackdrop` through `SystemBackdropElement`. Wallpaper sampling and blur come from the Windows compositor, not a bitmap, screenshot, or simulated blur.
 - Translucent color layers tune contrast over Acrylic without hiding it. A solid blue-gray fallback must remain readable when Windows disables transparency, Battery Saver is active, high contrast is enabled, or the app runs over Remote Desktop.
-- Settings is a long-lived conventional window and uses `DesktopAcrylicBackdrop` with translucent, width-capped cards so the material remains visible at every window size.
+- Settings is a long-lived fixed `540 x 640` utility window and uses `DesktopAcrylicBackdrop` with translucent, width-capped cards, internal scrolling, and one explicit close action.
 - Auxiliary flyouts use the same Desktop Acrylic material and token palette. Do not introduce an unrelated black, gray, or custom-glass treatment.
 
 ## Tokens

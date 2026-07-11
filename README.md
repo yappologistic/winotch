@@ -20,7 +20,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - Clipboard history: in-memory text/link/image/file capture with privacy-format exclusions, thumbnail-only image storage, copy/delete/clear, and no disk persistence.
 - Shelf: drag-and-drop staging flyout below the notch for files, text, links, and image thumbnails, with drag-out/copy/open/remove/clear.
 - Droplets: local color picker and text scrubber flyouts launched from the expanded panel.
-- Settings and tray: live settings, Start with Windows, pause/resume, feature toggles, toast gates, duration scale, and JSON persistence.
+- Settings and tray: one compact fixed-size Settings window with a single close action, live settings, Start with Windows, pause/resume, feature toggles, toast gates, duration scale, JSON persistence, and a shared application/window/tray icon.
 - Charging flourish: charger-connect priority toast with animated battery fill and percent readout.
 - System stats: expanded-only CPU, RAM, and network text values.
 - Camera mirror: live default-camera flyout below the notch with mirror toggle and no recording or saved frames.
@@ -33,7 +33,7 @@ License: The Unlicense. Use, modify, copy, publish, or sell it with no restricti
 - C# and WinUI 3 on `net8.0-windows10.0.26100.0`, with Windows App SDK `2.2.0`
 - Unpackaged `WinExe` alpha build targeting x64, with Windows 10 build 19041 as the declared minimum OS
 - WinUI `SystemBackdropElement` with a native `DesktopAcrylicController` for the overlay, compact toasts, and auxiliary flyouts; the controller keeps the material active while another window has focus and still honors Windows transparency, contrast, and theme policy
-- The same native Desktop Acrylic material for the long-lived Settings window, with centered responsive content, visible minimize/full-screen/close controls, and native AppWindow full-screen/restore presentation
+- The same native Desktop Acrylic material for the long-lived `540 x 640` Settings window, with centered width-capped content, a fixed non-maximizable presenter, and one explicit close action
 - `AppWindow`/`OverlappedPresenter` for topmost, borderless placement and narrow HWND interop for rounded regions, drag, ownership, hotkeys, and clipboard messages
 - Native `GetSystemPowerStatus` for battery state
 - Core Audio COM interop for master volume, per-app audio sessions, output device switching, and default microphone mute
@@ -97,7 +97,7 @@ Press `Ctrl+Alt+Space` to morph the notch into a command input row and local res
 
 The command bar is local-only. It scans Start Menu shortcuts, enumerates visible top-level windows, evaluates math with a custom safe parser, converts local units, and runs existing Winotch actions such as mute, Wi-Fi adapter requests, focus timer start/stop, and pause/resume. Currency conversion and web lookup are intentionally not included.
 
-The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
+The tray icon opens Settings, pauses/resumes the overlay, toggles Start with Windows, and exits the app. Winotch allows one running process at a time, and repeated Settings requests activate the existing Settings window instead of creating duplicates. Settings changes apply live and persist as indented JSON at `%LOCALAPPDATA%\Winotch\settings.json`; corrupt JSON is moved aside as `settings.bad.json` and defaults are used. Settings can disable clipboard capture, per-app mixer, stats sampling, and active-monitor following without restarting.
 
 Charger-connect priority toasts add a compact green battery-fill flourish with a prominent percent readout. Charger disconnect keeps the existing quieter status toast.
 
@@ -105,7 +105,7 @@ The expanded System column shows compact CPU, RAM, and network text values. Samp
 
 The camera button in the expanded control center opens a small live mirror flyout below the notch. The preview is mirrored by default, has a one-click normal-view toggle, and closes on X, Esc, outside click, notch collapse, pause, or power transition. Winotch never records or saves camera frames; the camera device is opened only for the live preview and released on close. The mirror uses the default Windows camera only; a camera picker is intentionally out of scope.
 
-The shelf button opens a separate topmost flyout below the notch. Dropping files, text, links, or images onto the notch stages compact rows in memory; rows can be dragged back out, copied, opened, removed, or cleared. The shelf is capped by Settings, defaults to 8 items, uses the same clipboard privacy exclusion formats as clipboard history, stores only image thumbnails, and clears when Winotch exits.
+The shelf button opens a separate topmost flyout below the notch. Dropping files, text, links, or images onto either the notch or the Shelf stages compact rows in memory; rows can be dragged back out, copied, opened, removed, or cleared. The Shelf remains open across focus, notch-mode, pause, and power-state changes, and closes only through its X, Escape, the Shelf toggle, disabling the feature, or app exit. It is capped by Settings, defaults to 8 items, uses the same clipboard privacy exclusion formats as clipboard history, stores only image thumbnails, and clears when Winotch exits.
 
 Droplets are small local flyouts from the expanded panel. Color picker samples a clicked screen pixel with `CopyFromScreen` and copies hex/RGB text. Text scrubber runs pure string operations for trimming, line-break removal, case changes, and character counts.
 
@@ -117,7 +117,7 @@ Run the full regression suite before sharing a build:
 dotnet test
 ```
 
-The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats sampling/rate math/formatting, camera mirror lifecycle/layout/suppression behavior, command-bar scoring/calculator/unit/hotkey logic, settings persistence/startup helpers, shell mode sizing heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
+The tests cover Wi-Fi parsing, battery fill/color thresholds, focus timer state transitions/persistence/formatting, ICS parsing/recurrence/timezone/join-link/countdown behavior, media toast geometry/timing and dedupe behavior, notification toast metadata/actions/dedupe behavior, clipboard history preview/privacy/dedupe behavior, Shelf storage and native Windows drop payloads, priority status alert transitions, control-center naming/device/brightness/debounce state logic, system stats sampling/rate math/formatting, camera mirror lifecycle/layout/suppression behavior, command-bar scoring/calculator/unit/hotkey logic, settings persistence/startup/single-window/icon helpers, shell mode sizing heuristics, active-monitor selection, app-bar DPI conversion, refresh-rate normalization, and animation timing guards.
 
 Charging flourish tests cover reusable fill-width math, animation parameter derivation, charger-alert mapping, full and low-percent edge cases, and existing low-battery queue ordering.
 

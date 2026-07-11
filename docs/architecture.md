@@ -60,7 +60,9 @@ The visual tree is WinUI 3 XAML. `FluentWindow` centralizes the desktop-window b
 - `CreateRoundRectRgn`/`SetWindowRgn` track each animated host size. Top-attached surfaces offset the rounded region above the HWND, producing square top corners and rounded bottom corners without an opaque rectangular fringe.
 - Overlay surfaces can call `AppWindow.Show(false)` when they must appear without taking foreground activation. Interactive controls retain normal WinUI input and accessibility behavior.
 
-The notch, transient flyouts, and Settings use native Desktop Acrylic. `PersistentDesktopAcrylicBackdrop` owns a Windows App SDK `DesktopAcrylicController`, keeps `SystemBackdropConfiguration.IsInputActive` enabled when another app has focus, and preserves the system configuration for theme, high contrast, and transparency fallback. The main shell hosts that backdrop in a `SystemBackdropElement` beneath low-opacity neutral contrast layers; Settings applies the same material to its conventional resizable window, exposes minimize/full-screen/restore/close actions through AppWindow, and keeps its cards centered and width-capped. Overlay-only HWND style normalization removes the legacy non-client frame before every placement while Settings retains conventional resize chrome. Shell morphs animate a compositor clip without scaling text, while a synchronized HWND region prevents the temporary union host from exposing an unpainted black rectangle.
+The notch, transient flyouts, and Settings use native Desktop Acrylic. `PersistentDesktopAcrylicBackdrop` owns a Windows App SDK `DesktopAcrylicController`, keeps `SystemBackdropConfiguration.IsInputActive` enabled when another app has focus, and preserves the system configuration for theme, high contrast, and transparency fallback. The main shell hosts that backdrop in a `SystemBackdropElement` beneath low-opacity neutral contrast layers; Settings applies the same material to a fixed `540 x 640` utility window, disables resize/minimize/maximize, exposes one close action, and keeps its cards centered and width-capped inside an internal scroller. Overlay-only HWND style normalization removes the legacy non-client frame before every placement, while Settings keeps a narrow border and custom client chrome. Shell morphs animate a compositor clip without scaling text, while a synchronized HWND region prevents the temporary union host from exposing an unpainted black rectangle.
+
+`Resources/WinotchTray.ico` is embedded into the apphost with `ApplicationIcon`, copied into the output `Resources` folder for runtime lookup, assigned to WinUI windows through `AppWindow.SetIcon`, and reused by the native `Shell_NotifyIcon` tray surface. Keeping one source asset prevents the executable, Settings, auxiliary windows, and tray from drifting to different icons.
 
 ## UI System
 
@@ -101,7 +103,7 @@ flowchart LR
 - `NotchAccent`: cyan Fluent accent
 - Typography: Segoe UI Variable Text, falling back to Segoe UI
 - Icons: Segoe Fluent Icons, falling back to Segoe MDL2 Assets
-- Settings reuses these tokens with native WinUI controls, Mica, toggle switch styling, and shared section cards so later feature groups do not invent new chrome.
+- Settings reuses these tokens with native WinUI controls, Desktop Acrylic, toggle switch styling, and shared section cards so later feature groups do not invent new chrome.
 
 ## Motion
 
@@ -202,6 +204,8 @@ When the camera mirror is open, `PriorityStatusTracker` suppresses the camera-ac
 
 ## Settings, Tray, and Startup
 
+`App` acquires the named `Local\Winotch.SingleInstance` mutex before creating `MainWindow`; a second launch exits without creating another notch process. `TrayIconService` keeps one `SettingsWindow` reference and activates that window on repeated open requests, clearing the reference only after the window closes.
+
 Settings live in a typed model persisted by `SettingsService` at `%LOCALAPPDATA%\Winotch\settings.json`. Missing files load defaults, corrupt JSON is renamed to `settings.bad.json`, saves use a temp file plus replace, and `Changed` notifies live UI. The model is additive JSON: General, Toasts, Calendar, and Features groups normalize missing fields to defaults so older files keep working.
 
 Feature settings gate runtime work, not only visibility: clipboard off unregisters the Win32 listener; app mixer off skips audio-session enumeration; stats off stops sampling; follow-active-monitor off pins targeting to the primary monitor.
@@ -235,10 +239,10 @@ The automated suite focuses on deterministic logic that would otherwise surface 
 - Media snapshot display fallbacks, artwork fallback, compact toast geometry/timing, and track-change de-duplication.
 - Notification signature generation, first-run suppression, empty snapshot behavior, repeated-message handling, shell suppression mapping, compact toast metadata, and local toast action invocation.
 - Clipboard history cap/dedupe/delete/clear behavior, preview generation, relative timestamps, privacy exclusion formats, and self-copy update suppression.
-- Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, and thumbnail-only image staging.
+- Shelf cap/dedupe/remove/clear behavior, privacy exclusion handling, thumbnail-only image staging, native OLE format extraction, and real Windows file/text/link/bitmap drop payloads.
 - Droplet color formatting/parsing and text scrub transforms/counts.
 - Priority status transition handling for low battery, charger changes, Wi-Fi loss/reconnect, Bluetooth connects, mic/camera activation, queued alerts, and privacy active-use detection.
-- Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, and startup run-key formatting/stale-path repair.
+- Settings JSON defaults, roundtrip, corrupt-file fallback, locked-file fallback, change events, concurrent saves, toast-duration scaling, startup run-key formatting/stale-path repair, single-instance behavior, fixed window chrome, and icon packaging.
 - Control-center app naming fallbacks, output device ordering/default marking, microphone pill state mapping, brightness normalization/clamping, and debounced brightness writes.
 - System stats fixed windows, network delta/reset handling, and byte/RAM formatting.
 - Camera mirror lifecycle transitions, cover/crop layout math, and self camera-alert suppression.
