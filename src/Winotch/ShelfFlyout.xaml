@@ -17,6 +17,9 @@
         BorderBrush="{StaticResource NotchStroke}"
         BorderThickness="{StaticResource WinotchHairline}"
         CornerRadius="24"
+        AllowDrop="True"
+        DragOver="Shelf_DragOver"
+        Drop="Shelf_Drop"
         KeyDown="FlyoutChrome_KeyDown">
         <Grid RowSpacing="8">
             <Grid.RowDefinitions>
@@ -104,7 +107,7 @@
                         <TextBlock
                             HorizontalAlignment="Center"
                             Style="{StaticResource WinotchBodyText}"
-                            Text="Drop something on the notch" />
+                            Text="Drop something here or on the notch" />
                         <TextBlock
                             HorizontalAlignment="Center"
                             Foreground="{StaticResource NotchMutedText}"

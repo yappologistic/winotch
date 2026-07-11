@@ -10,6 +10,8 @@ namespace Winotch;
 public partial class App : Application
 {
     private const string SingleInstanceMutexName = @"Local\Winotch.SingleInstance";
+    internal const string TransitionSmokeTestArgument = "--transition-smoke-test";
+    internal const string ShelfSmokeTestArgument = "--shelf-smoke-test";
     private Mutex? _singleInstanceMutex;
     private MainWindow? _mainWindow;
 
@@ -50,6 +52,15 @@ public partial class App : Application
         mutex = null;
         return false;
     }
+
+    internal static bool IsTransitionSmokeTest(IReadOnlyList<string> arguments) =>
+        HasLaunchArgument(arguments, TransitionSmokeTestArgument);
+
+    internal static bool IsShelfSmokeTest(IReadOnlyList<string> arguments) =>
+        HasLaunchArgument(arguments, ShelfSmokeTestArgument);
+
+    private static bool HasLaunchArgument(IReadOnlyList<string> arguments, string expected) =>
+        arguments.Any(argument => string.Equals(argument, expected, StringComparison.OrdinalIgnoreCase));
 
     private void ReleaseSingleInstance()
     {

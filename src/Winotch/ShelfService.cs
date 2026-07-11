@@ -67,6 +67,20 @@ public sealed class ShelfService
 
     public ShelfItem? Find(Guid id) => _items.FirstOrDefault(item => item.Id == id);
 
+    public static bool SupportsDropFormats(IEnumerable<string> formats)
+    {
+        ArgumentNullException.ThrowIfNull(formats);
+        var available = formats.ToHashSet(StringComparer.Ordinal);
+        return available.Contains(StandardDataFormats.StorageItems) ||
+               available.Contains(StandardDataFormats.Bitmap) ||
+               available.Contains(StandardDataFormats.Text) ||
+               available.Contains(StandardDataFormats.WebLink) ||
+               available.Contains(StandardDataFormats.ApplicationLink);
+    }
+
+    public async Task<bool> StageDropAsync(DataPackageView data, DateTimeOffset stagedAt) =>
+        Stage(await ReadDropAsync(data, stagedAt));
+
     /// <summary>
     /// Reads an actual WinUI drag payload. The privacy markers are evaluated before
     /// any content is requested, matching clipboard capture behavior.
@@ -93,7 +107,7 @@ public sealed class ShelfService
             return ShelfItem.FromImage(thumbnail, stagedAt);
         }
 
-        return ShelfItem.FromText(await ReadTextAsync(data), stagedAt);
+        return ShelfItem.FromText(await ReadTextOrLinkAsync(data), stagedAt);
     }
 
     private void TrimToCap()
@@ -130,6 +144,20 @@ public sealed class ShelfService
         return await ClipboardThumbnail.FromStreamReferenceAsync(await data.GetBitmapAsync());
     }
 
-    private static async Task<string?> ReadTextAsync(DataPackageView data) =>
-        data.Contains(StandardDataFormats.Text) ? await data.GetTextAsync() : null;
+    private static async Task<string?> ReadTextOrLinkAsync(DataPackageView data)
+    {
+        if (data.Contains(StandardDataFormats.Text))
+        {
+            return await data.GetTextAsync();
+        }
+
+        if (data.Contains(StandardDataFormats.WebLink))
+        {
+            return (await data.GetWebLinkAsync()).ToString();
+        }
+
+        return data.Contains(StandardDataFormats.ApplicationLink)
+            ? (await data.GetApplicationLinkAsync()).ToString()
+            : null;
+    }
 }

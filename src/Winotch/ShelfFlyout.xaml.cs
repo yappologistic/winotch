@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -55,7 +56,6 @@ public sealed partial class ShelfFlyout : FluentWindow
         Topmost = true;
         BottomCornerRadius = 24;
         Loaded += Window_Loaded;
-        Activated += Window_Activated;
         Closed += Window_Closed;
         _ = RefreshAsync();
     }
@@ -80,13 +80,35 @@ public sealed partial class ShelfFlyout : FluentWindow
         AnimateIn();
     }
 
-    private async void Window_Activated(object sender, WindowActivatedEventArgs e)
+    private void Shelf_DragOver(object sender, DragEventArgs e)
     {
-        if (e.WindowActivationState == WindowActivationState.Deactivated &&
-            !_closing &&
-            await FlyoutClosePolicy.ShouldCloseAfterDeactivationAsync(this))
+        e.AcceptedOperation = ShelfService.SupportsDropFormats(e.DataView.AvailableFormats)
+            ? DataPackageOperation.Copy
+            : DataPackageOperation.None;
+        if (e.AcceptedOperation == DataPackageOperation.Copy)
         {
-            await CloseShelfAsync();
+            e.DragUIOverride.Caption = "Add to Shelf";
+            e.DragUIOverride.IsCaptionVisible = true;
+        }
+
+        e.Handled = true;
+    }
+
+    private async void Shelf_Drop(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        var deferral = e.GetDeferral();
+        try
+        {
+            _ = await _shelf.StageDropAsync(e.DataView, DateTimeOffset.Now);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or COMException)
+        {
+            Debug.WriteLine($"Unable to add dropped content to the shelf: {ex}");
+        }
+        finally
+        {
+            deferral.Complete();
         }
     }
 

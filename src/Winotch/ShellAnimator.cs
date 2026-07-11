@@ -471,6 +471,8 @@ public static class ShellAnimator
 
     private static ShellGeometry CurrentShellGeometry(FluentWindow window, FrameworkElement shell)
     {
+        var shellWidth = Current(shell.Width, shell.ActualWidth);
+        var shellHeight = Current(shell.Height, shell.ActualHeight);
         var left = window.Left;
         var top = window.Top;
         if (shell.HorizontalAlignment == HorizontalAlignment.Left)
@@ -479,7 +481,7 @@ public static class ShellAnimator
         }
         else if (shell.HorizontalAlignment == HorizontalAlignment.Center)
         {
-            left += (window.Width - Current(shell.Width, shell.ActualWidth)) / 2;
+            left += (window.Width - shellWidth) / 2;
         }
 
         if (shell.VerticalAlignment == VerticalAlignment.Top)
@@ -488,9 +490,9 @@ public static class ShellAnimator
         }
 
         return new ShellGeometry(
-            Current(shell.Width, shell.ActualWidth),
-            Current(shell.Height, shell.ActualHeight),
-            window.Height,
+            shellWidth,
+            shellHeight,
+            shellHeight,
             left,
             top,
             window.RasterizationScale);

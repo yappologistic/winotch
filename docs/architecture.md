@@ -182,9 +182,9 @@ Privacy handling lives outside the UI in plain classes. `ClipboardPrivacyPolicy`
 
 ## Shelf
 
-The shelf is a separate topmost rounded flyout below the notch, not an expanded-panel band. `ShelfService` owns memory-only staged rows, cap, dedupe, remove, clear, and settings normalization. The notch itself is the drop target, and the expanded panel only exposes a compact shelf button that opens the flyout.
+The shelf is a separate independent topmost rounded flyout below the notch, not an expanded-panel band or an owned popup. `ShelfService` owns memory-only staged rows, cap, dedupe, remove, clear, and settings normalization. Both the notch and the shelf window are drop targets, and the expanded panel exposes a compact shelf button that opens the flyout. When Shelf is enabled, the full-width shell stays hit-testable so Explorer drags can reach its drop target.
 
-Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a Windows data package, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. Exit, pause, collapse, outside click, X, and Esc close the flyout; app exit clears the in-memory list.
+Shelf privacy follows the clipboard privacy model: `ClipboardPrivacyPolicy` skips private formats, image staging stores only a `ClipboardThumbnail`, and nothing is persisted to disk or settings. Staged rows support file paths, text, links, and image thumbnails. Rows can be dragged out through a Windows data package, copied back to the clipboard with privacy exclusion markers, opened when they represent files or links, removed, or cleared. The shelf stays open across focus, notch-mode, pause, and power-state changes; only its X, Escape, the Shelf toggle, disabling the feature, or app exit closes it. App exit clears the in-memory list.
 
 ## Droplets
 

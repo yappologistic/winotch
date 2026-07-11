@@ -125,6 +125,37 @@ public partial class MainWindow : FluentWindow
         await ApplyAccountPictureAsync();
         await RefreshCalendarAsync();
         await RefreshStatusAsync();
+        var launchArguments = Environment.GetCommandLineArgs();
+        if (App.IsTransitionSmokeTest(launchArguments))
+        {
+            _ = RunTransitionSmokeTestAsync();
+        }
+        else if (App.IsShelfSmokeTest(launchArguments))
+        {
+            _ = RunShelfSmokeTestAsync();
+        }
+    }
+
+    private async Task RunTransitionSmokeTestAsync()
+    {
+        await Task.Delay(400);
+        for (var cycle = 0; cycle < 4; cycle++)
+        {
+            SetExpanded(true);
+            await Task.Delay(ShellAnimationTiming.BackdropWarmupMilliseconds + ShellAnimationTiming.MotionMilliseconds + 180);
+            SetExpanded(false);
+            await Task.Delay(ShellAnimationTiming.BackdropWarmupMilliseconds + ShellAnimationTiming.MotionMilliseconds + 180);
+
+            // Exercise cancellation while the backing surface, compositor clip,
+            // and visible native region are all mid-transition.
+            SetExpanded(true);
+            await Task.Delay(120);
+            SetExpanded(false);
+            await Task.Delay(120);
+        }
+
+        await Task.Delay(ShellAnimationTiming.BackdropWarmupMilliseconds + ShellAnimationTiming.MotionMilliseconds + 180);
+        ExitFromTray();
     }
 
     private async Task ApplyAccountPictureAsync()
@@ -145,7 +176,6 @@ public partial class MainWindow : FluentWindow
         var now = DateTime.Now;
         var general = _settings.Current.General;
         TimeText.Text = now.ToString(general.Use24HourClock ? "HH:mm" : "h:mm tt", CultureInfo.CurrentCulture);
-        DateText.Text = now.ToString("ddd, MMM d", CultureInfo.CurrentCulture);
         LargeTimeText.Text = now.ToString(general.Use24HourClock ? "HH:mm:ss" : "h:mm:ss tt", CultureInfo.CurrentCulture);
         LargeDateText.Text = now.ToString("dddd, MMMM d", CultureInfo.CurrentCulture);
         LargeDateText.Visibility = general.ShowDate ? Visibility.Visible : Visibility.Collapsed;
@@ -626,7 +656,7 @@ public partial class MainWindow : FluentWindow
             _expandedReveal = null;
             _expanded = false;
             _ = CloseCameraMirrorAsync();
-            _ = CloseShelfAndDropletsAsync();
+            _ = CloseDropletsAsync();
             HideCompactToast(restoreShell: false);
             _appBar.Release();
             Hide();
@@ -782,7 +812,7 @@ public partial class MainWindow : FluentWindow
         if (e.Mode is PowerModes.Suspend or PowerModes.Resume)
         {
             await CloseCameraMirrorAsync();
-            await CloseShelfAndDropletsAsync();
+            await CloseDropletsAsync();
         }
 
         RefreshFocusTimer();
@@ -844,7 +874,6 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        ShellAnimator.Hide(DateText, _animationFrameRate);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
@@ -1130,15 +1159,6 @@ public partial class MainWindow : FluentWindow
         SetMouseTransparent(false);
         ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 1, _animationFrameRate);
         ShellAnimator.Show(ClockGroup, _animationFrameRate);
-        if (_settings.Current.General.ShowDate)
-        {
-            ShellAnimator.Show(DateText, _animationFrameRate);
-        }
-        else
-        {
-            ShellAnimator.Hide(DateText, _animationFrameRate);
-        }
-
         ShellAnimator.Show(StatusGroup, _animationFrameRate);
     }
 
@@ -1157,7 +1177,6 @@ public partial class MainWindow : FluentWindow
             isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip),
             monitor);
 
-        ShellAnimator.Hide(DateText, _animationFrameRate);
         ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;
         ClockGroup.Opacity = isLive ? 0 : 1;
         StatusGroup.Visibility = isFullBar ? Visibility.Visible : Visibility.Collapsed;
@@ -1195,14 +1214,14 @@ public partial class MainWindow : FluentWindow
                 ShellAnimator.Hide(LiveStrip, _animationFrameRate);
             }
 
-            SetMouseTransparent(isFullBar && !_expanded);
+            SetMouseTransparent(isFullBar && !_expanded && !_settings.Current.Shelf.Enabled);
             return;
         }
 
         ShellAnimator.Clear(this, NotchShell, DetailPanel);
         DetailPanel.Opacity = 0;
         ShellAnimator.SetShellGeometry(this, NotchShell, geometry, geometry);
-        SetMouseTransparent(isFullBar && !_expanded);
+        SetMouseTransparent(isFullBar && !_expanded && !_settings.Current.Shelf.Enabled);
     }
 
     /// <summary>
@@ -1636,15 +1655,6 @@ public partial class MainWindow : FluentWindow
             ApplyCalendarSettings(settings);
             ApplyFeatureSettings(settings);
             ApplyCommandBarSettings(settings);
-            if (!_expanded || !settings.General.ShowDate)
-            {
-                ShellAnimator.Hide(DateText);
-            }
-            else
-            {
-                ShellAnimator.Show(DateText, _animationFrameRate);
-            }
-
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate: true, force: true);
         });
     }

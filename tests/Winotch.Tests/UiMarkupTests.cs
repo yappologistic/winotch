@@ -115,6 +115,19 @@ public sealed class UiMarkupTests
     }
 
     [Fact]
+    public void CompactHeaderKeepsClockOnOneCenteredLine()
+    {
+        var xaml = ReadRepoFile("src", "Winotch", "MainWindow.xaml");
+        var code = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
+
+        Assert.DoesNotContain("x:Name=\"DateText\"", xaml, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellAnimator.Hide(DateText", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShellAnimator.Show(DateText", code, StringComparison.Ordinal);
+        Assert.Contains("ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center", code, StringComparison.Ordinal);
+        Assert.Contains("LargeDateText.Visibility = general.ShowDate", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FluentWindowSuppressesNativeOverlayBorderAndPreservesNativeMaximize()
     {
         var code = ReadRepoFile("src", "Winotch", "FluentWindow.cs");
@@ -143,6 +156,9 @@ public sealed class UiMarkupTests
         Assert.Contains("warmupTimer.Start()", animator, StringComparison.Ordinal);
         Assert.Contains("window.ResolveShellHostGeometry(host)", animator, StringComparison.Ordinal);
         Assert.Contains("ApplyShellGeometry(window, shell, geometry, host)", animator, StringComparison.Ordinal);
+        Assert.Contains("var shellHeight = Current(shell.Height, shell.ActualHeight)", animator, StringComparison.Ordinal);
+        Assert.Contains("shellHeight,\n            shellHeight,", animator, StringComparison.Ordinal);
+        Assert.DoesNotContain("window.Height,\n            left,", animator, StringComparison.Ordinal);
         Assert.True(
             animator.IndexOf("window.PrepareVisibleShellRegion", StringComparison.Ordinal) <
             animator.IndexOf("window.MoveAndResizeAtScale", StringComparison.Ordinal));
@@ -157,6 +173,29 @@ public sealed class UiMarkupTests
         Assert.Contains("!IsOwnedBy(foreground, flyoutHandle)", code, StringComparison.Ordinal);
         Assert.DoesNotContain("flyout.Owner?.IsActive", code, StringComparison.Ordinal);
         Assert.DoesNotContain("processId != Environment.ProcessId", code, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ShelfIsAPersistentDropTargetOnBothSurfaces()
+    {
+        var shelfXaml = ReadRepoFile("src", "Winotch", "ShelfFlyout.xaml");
+        var shelfCode = ReadRepoFile("src", "Winotch", "ShelfFlyout.xaml.cs");
+        var notchCode = ReadRepoFile("src", "Winotch", "MainWindow.Shelf.cs");
+        var mainCode = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
+
+        Assert.Contains("AllowDrop=\"True\"", shelfXaml, StringComparison.Ordinal);
+        Assert.Contains("DragOver=\"Shelf_DragOver\"", shelfXaml, StringComparison.Ordinal);
+        Assert.Contains("Drop=\"Shelf_Drop\"", shelfXaml, StringComparison.Ordinal);
+        Assert.Contains("StageDropAsync(e.DataView", shelfCode, StringComparison.Ordinal);
+        Assert.Contains("StageDropAsync(e.DataView", notchCode, StringComparison.Ordinal);
+        Assert.Contains("e.GetDeferral()", shelfCode, StringComparison.Ordinal);
+        Assert.Contains("e.GetDeferral()", notchCode, StringComparison.Ordinal);
+        Assert.Contains("deferral.Complete()", shelfCode, StringComparison.Ordinal);
+        Assert.Contains("deferral.Complete()", notchCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("Window_Activated", shelfCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("CloseShelfAndDropletsAsync", mainCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ShelfFlyout(_shelf) { Owner = this }", notchCode, StringComparison.Ordinal);
+        Assert.Contains("!_settings.Current.Shelf.Enabled", mainCode, StringComparison.Ordinal);
     }
 
     [Fact]

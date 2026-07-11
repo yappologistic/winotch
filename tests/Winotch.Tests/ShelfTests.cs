@@ -1,3 +1,5 @@
+using Windows.ApplicationModel.DataTransfer;
+
 namespace Winotch.Tests;
 
 public class ShelfTests
@@ -107,6 +109,39 @@ public class ShelfTests
 
         Assert.Equal(["https://example.com"], ShelfLaunchTargets.For(link));
         Assert.Empty(ShelfLaunchTargets.For(text));
+    }
+
+    [Fact]
+    public void ShelfAcceptsEverySupportedWindowsDropFormat()
+    {
+        var supported = new[]
+        {
+            StandardDataFormats.StorageItems,
+            StandardDataFormats.Bitmap,
+            StandardDataFormats.Text,
+            StandardDataFormats.WebLink,
+            StandardDataFormats.ApplicationLink
+        };
+
+        Assert.All(supported, format => Assert.True(ShelfService.SupportsDropFormats([format])));
+    }
+
+    [Fact]
+    public void ShelfRejectsUnsupportedDropPayloads()
+    {
+        Assert.False(ShelfService.SupportsDropFormats([]));
+        Assert.False(ShelfService.SupportsDropFormats([StandardDataFormats.Html]));
+    }
+
+    [Fact]
+    public async Task ShelfStagesARealWindowsTextDropPayload()
+    {
+        var package = new DataPackage();
+        package.SetText("dropped note");
+        var shelf = new ShelfService(new ShelfSettings());
+
+        Assert.True(await shelf.StageDropAsync(package.GetView(), Now));
+        Assert.Equal("dropped note", Assert.Single(shelf.Items).Preview);
     }
 
     private static ShelfItem Text(string value, DateTimeOffset? stagedAt = null) =>

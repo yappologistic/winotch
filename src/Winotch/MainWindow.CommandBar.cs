@@ -133,7 +133,6 @@ public partial class MainWindow
         SetMouseTransparent(false);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
-        ShellAnimator.Hide(DateText, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         ShellAnimator.Hide(MediaToastPanel, _animationFrameRate);
         ShellAnimator.Hide(NotificationToastPanel, _animationFrameRate);

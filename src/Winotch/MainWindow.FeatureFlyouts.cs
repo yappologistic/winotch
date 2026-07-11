@@ -10,12 +10,6 @@ public partial class MainWindow
         ApplyDropletSettings(settings.Droplets);
     }
 
-    private async Task CloseShelfAndDropletsAsync()
-    {
-        await CloseShelfAsync();
-        await CloseDropletsAsync();
-    }
-
     private void PositionShelfAndDroplets()
     {
         PositionShelf();

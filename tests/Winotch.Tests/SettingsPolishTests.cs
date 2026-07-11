@@ -270,7 +270,9 @@ public class SettingsPolishTests
 
         Assert.Contains("\"Connected. Location needed to scan Wi-Fi.\"", mainWindow);
         Assert.DoesNotContain("Scan needs Windows Location permission", mainWindow);
-        Assert.Equal(2, mainWindow.Split("SetMouseTransparent(isFullBar && !_expanded)").Length - 1);
+        Assert.Equal(
+            2,
+            mainWindow.Split("SetMouseTransparent(isFullBar && !_expanded && !_settings.Current.Shelf.Enabled)").Length - 1);
         Assert.Contains("WindowChromeInterop.SetMouseTransparent(this, enabled && !_expanded && DetailPanel.Opacity <= 0);", mainWindow);
         Assert.DoesNotContain("Notification listener is not available", notifications);
         Assert.DoesNotContain("Notification access unavailable:", notifications);

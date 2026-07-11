@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Windows.ApplicationModel.DataTransfer;
 
@@ -13,6 +16,7 @@ public partial class MainWindow
         _shelf.ApplySettings(settings);
         ShelfButton.Visibility = settings.Enabled ? Visibility.Visible : Visibility.Collapsed;
         NotchShell.AllowDrop = settings.Enabled;
+        SetMouseTransparent(_currentShellMode == ShellMode.FullBar && !settings.Enabled);
         if (!settings.Enabled)
         {
             _ = CloseShelfAsync();
@@ -21,26 +25,43 @@ public partial class MainWindow
 
     private void Notch_DragOver(object sender, DragEventArgs e)
     {
-        e.AcceptedOperation = _settings.Current.Shelf.Enabled
+        e.AcceptedOperation = _settings.Current.Shelf.Enabled &&
+            ShelfService.SupportsDropFormats(e.DataView.AvailableFormats)
             ? DataPackageOperation.Copy
             : DataPackageOperation.None;
+        if (e.AcceptedOperation == DataPackageOperation.Copy)
+        {
+            e.DragUIOverride.Caption = "Add to Shelf";
+            e.DragUIOverride.IsCaptionVisible = true;
+        }
+
         e.Handled = true;
     }
 
     private async void Notch_Drop(object sender, DragEventArgs e)
     {
+        e.Handled = true;
         if (!_settings.Current.Shelf.Enabled)
         {
             return;
         }
 
-        var item = await _shelf.ReadDropAsync(e.DataView, DateTimeOffset.Now);
-        if (_shelf.Stage(item))
+        var deferral = e.GetDeferral();
+        try
         {
-            ShowShelfFlyout();
+            if (await _shelf.StageDropAsync(e.DataView, DateTimeOffset.Now))
+            {
+                ShowShelfFlyout();
+            }
         }
-
-        e.Handled = true;
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or COMException)
+        {
+            Debug.WriteLine($"Unable to add dropped content to the shelf: {ex}");
+        }
+        finally
+        {
+            deferral.Complete();
+        }
     }
 
     private async void ShelfButton_Click(object sender, RoutedEventArgs e)
@@ -58,7 +79,7 @@ public partial class MainWindow
     {
         if (_shelfFlyout is null)
         {
-            _shelfFlyout = new ShelfFlyout(_shelf) { Owner = this };
+            _shelfFlyout = new ShelfFlyout(_shelf);
             _shelfFlyout.Closed += ShelfFlyout_Closed;
             PositionShelf();
             _shelfFlyout.Show();
@@ -97,5 +118,24 @@ public partial class MainWindow
         }
 
         PositionFlyoutBelowNotch(_shelfFlyout);
+    }
+
+    private async Task RunShelfSmokeTestAsync()
+    {
+        await Task.Delay(400);
+        var package = new DataPackage
+        {
+            RequestedOperation = DataPackageOperation.Copy
+        };
+        package.SetText("Shelf smoke-test item");
+        _ = await _shelf.StageDropAsync(package.GetView(), DateTimeOffset.Now);
+        ShowShelfFlyout();
+
+        await Task.Delay(700);
+        SetNotchPaused(true);
+        await Task.Delay(700);
+        SetNotchPaused(false);
+        await Task.Delay(700);
+        ExitFromTray();
     }
 }

@@ -6,6 +6,24 @@ namespace Winotch.Tests;
 public class LifecycleTests
 {
     [Fact]
+    public void TransitionSmokeTestRequiresAnExplicitLaunchArgument()
+    {
+        Assert.True(App.IsTransitionSmokeTest(["Winotch.exe", App.TransitionSmokeTestArgument]));
+        Assert.True(App.IsTransitionSmokeTest(["Winotch.exe", "--TRANSITION-SMOKE-TEST"]));
+        Assert.False(App.IsTransitionSmokeTest(["Winotch.exe"]));
+        Assert.False(App.IsTransitionSmokeTest(["Winotch.exe", "--transition-smoke"]));
+    }
+
+    [Fact]
+    public void ShelfSmokeTestRequiresAnExplicitLaunchArgument()
+    {
+        Assert.True(App.IsShelfSmokeTest(["Winotch.exe", App.ShelfSmokeTestArgument]));
+        Assert.True(App.IsShelfSmokeTest(["Winotch.exe", "--SHELF-SMOKE-TEST"]));
+        Assert.False(App.IsShelfSmokeTest(["Winotch.exe"]));
+        Assert.False(App.IsShelfSmokeTest(["Winotch.exe", App.TransitionSmokeTestArgument]));
+    }
+
+    [Fact]
     public void SingleInstanceGuardRejectsSecondOwner()
     {
         var mutexName = $@"Local\Winotch.Tests.{Guid.NewGuid():N}";
