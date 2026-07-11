@@ -115,6 +115,7 @@ public partial class MainWindow : FluentWindow
         LoadFocusTimer();
         ApplyCalendarSettings(_settings.Current);
         ApplyFeatureSettings(_settings.Current);
+        InitializeNativeShelfDropTarget();
         UpdateClock();
         RefreshFocusTimer();
         _clockTimer.Start();
@@ -1703,6 +1704,8 @@ public partial class MainWindow : FluentWindow
         _clipboardHistory.Dispose();
         _calendarTimer.Stop();
         _calendarRefresh.Dispose();
+        _nativeShelfDropTarget?.Dispose();
+        _nativeShelfDropTarget = null;
         DisposeCommandBar();
         SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;

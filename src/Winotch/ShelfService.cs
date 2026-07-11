@@ -1,4 +1,5 @@
 using Windows.ApplicationModel.DataTransfer;
+using Windows.Storage.Streams;
 
 namespace Winotch;
 
@@ -80,6 +81,26 @@ public sealed class ShelfService
 
     public async Task<bool> StageDropAsync(DataPackageView data, DateTimeOffset stagedAt) =>
         Stage(await ReadDropAsync(data, stagedAt));
+
+    public async Task<bool> StageNativeDropAsync(NativeDropPayload payload, DateTimeOffset stagedAt)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        if (payload.FilePaths.Count > 0)
+        {
+            return Stage(ShelfItem.FromFiles(payload.FilePaths, stagedAt));
+        }
+
+        if (payload.ImagePng is { Length: > 0 })
+        {
+            using var stream = await ClipboardThumbnail.ToRandomAccessStreamAsync(payload.ImagePng);
+            var thumbnail = await ClipboardThumbnail.FromStreamReferenceAsync(
+                RandomAccessStreamReference.CreateFromStream(stream));
+            return Stage(ShelfItem.FromImage(thumbnail, stagedAt));
+        }
+
+        return Stage(ShelfItem.FromText(payload.Text, stagedAt));
+    }
 
     /// <summary>
     /// Reads an actual WinUI drag payload. The privacy markers are evaluated before

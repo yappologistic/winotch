@@ -10,6 +10,26 @@ public partial class MainWindow
 {
     private readonly ShelfService _shelf = new(new ShelfSettings());
     private ShelfFlyout? _shelfFlyout;
+    private NativeDropTarget? _nativeShelfDropTarget;
+
+    private void InitializeNativeShelfDropTarget()
+    {
+        _nativeShelfDropTarget ??= NativeDropTarget.Attach(this, HandleNativeShelfDropAsync);
+        if (_nativeShelfDropTarget is null)
+        {
+            Debug.WriteLine("The native notch drop target could not be initialized.");
+            Title = "Winotch - shelf drop unavailable";
+        }
+    }
+
+    private async Task HandleNativeShelfDropAsync(NativeDropPayload payload)
+    {
+        if (_settings.Current.Shelf.Enabled &&
+            await _shelf.StageNativeDropAsync(payload, DateTimeOffset.Now))
+        {
+            ShowShelfFlyout();
+        }
+    }
 
     private void ApplyShelfSettings(ShelfSettings settings)
     {

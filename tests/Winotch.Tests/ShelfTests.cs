@@ -1,3 +1,6 @@
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
@@ -209,6 +212,81 @@ public class ShelfTests
         Assert.NotEmpty(item.ThumbnailPng!);
     }
 
+    [Fact]
+    public async Task ShelfStagesNativeFileTextLinkAndImagePayloads()
+    {
+        var shelf = new ShelfService(new ShelfSettings());
+        var filePath = @"C:\temp\native-drop.txt";
+
+        Assert.True(await shelf.StageNativeDropAsync(new NativeDropPayload([filePath], null, null), Now));
+        Assert.Equal(filePath, Assert.Single(shelf.Items).FilePaths.Single());
+
+        Assert.True(await shelf.StageNativeDropAsync(new NativeDropPayload([], "native note", null), Now));
+        Assert.Equal(ShelfItemKind.Text, shelf.Items[0].Kind);
+
+        Assert.True(await shelf.StageNativeDropAsync(
+            new NativeDropPayload([], "https://example.com/native", null),
+            Now));
+        Assert.Equal(ShelfItemKind.Link, shelf.Items[0].Kind);
+
+        using var stream = new InMemoryRandomAccessStream();
+        var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
+        encoder.SetPixelData(
+            BitmapPixelFormat.Rgba8,
+            BitmapAlphaMode.Straight,
+            1,
+            1,
+            96,
+            96,
+            [0x33, 0x99, 0xEE, 0xFF]);
+        await encoder.FlushAsync();
+        stream.Seek(0);
+        using var reader = new DataReader(stream.GetInputStreamAt(0));
+        await reader.LoadAsync((uint)stream.Size);
+        var png = new byte[(int)stream.Size];
+        reader.ReadBytes(png);
+
+        Assert.True(await shelf.StageNativeDropAsync(new NativeDropPayload([], null, png), Now));
+        Assert.Equal(ShelfItemKind.Image, shelf.Items[0].Kind);
+        Assert.NotEmpty(shelf.Items[0].ThumbnailPng!);
+    }
+
+    [Fact]
+    public void NativeDibReaderBuildsAWindowsBitmapFileHeader()
+    {
+        var dib = new byte[44];
+        BitConverter.GetBytes(40u).CopyTo(dib, 0);
+        BitConverter.GetBytes(1).CopyTo(dib, 4);
+        BitConverter.GetBytes(1).CopyTo(dib, 8);
+        BitConverter.GetBytes((ushort)1).CopyTo(dib, 12);
+        BitConverter.GetBytes((ushort)32).CopyTo(dib, 14);
+        dib[40] = 0x22;
+        dib[41] = 0x66;
+        dib[42] = 0xCC;
+        dib[43] = 0xFF;
+
+        Assert.True(NativeDropDataReader.TryBuildBitmapFile(dib, out var bitmapFile));
+        Assert.Equal((byte)'B', bitmapFile[0]);
+        Assert.Equal((byte)'M', bitmapFile[1]);
+        Assert.Equal(54u, BitConverter.ToUInt32(bitmapFile, 10));
+        Assert.NotEmpty(NativeDropDataReader.DecodeDibToPng(dib)!);
+    }
+
+    [Fact]
+    public void NativeOleReaderExtractsExplorerFilesAndUnicodeText()
+    {
+        var files = NativeDropDataReader.Read(FakeOleDataObject.ForFiles([
+            @"C:\temp\one.txt",
+            @"C:\temp\two.png"
+        ]));
+        Assert.Equal([@"C:\temp\one.txt", @"C:\temp\two.png"], files.FilePaths);
+        Assert.Null(files.Text);
+
+        var text = NativeDropDataReader.Read(FakeOleDataObject.ForUnicodeText("native dragged text"));
+        Assert.Empty(text.FilePaths);
+        Assert.Equal("native dragged text", text.Text);
+    }
+
     private static ShelfItem Text(string value, DateTimeOffset? stagedAt = null) =>
         ShelfItem.FromText(value, stagedAt ?? Now)!;
 
@@ -226,5 +304,107 @@ public class ShelfTests
 
         public bool TryGetData(string formatName, out object? data) =>
             _formats.TryGetValue(formatName, out data);
+    }
+
+    private sealed class FakeOleDataObject : IDataObject
+    {
+        private const uint GmemMoveable = 0x0002;
+        private const uint GmemZeroInit = 0x0040;
+        private readonly short _format;
+        private readonly byte[] _data;
+
+        private FakeOleDataObject(short format, byte[] data)
+        {
+            _format = format;
+            _data = data;
+        }
+
+        public static FakeOleDataObject ForUnicodeText(string text) =>
+            new(13, Encoding.Unicode.GetBytes(text + '\0'));
+
+        public static FakeOleDataObject ForFiles(IReadOnlyList<string> paths)
+        {
+            var names = Encoding.Unicode.GetBytes(string.Join('\0', paths) + "\0\0");
+            var dropFiles = new byte[20 + names.Length];
+            BitConverter.GetBytes(20u).CopyTo(dropFiles, 0);
+            BitConverter.GetBytes(1).CopyTo(dropFiles, 16);
+            names.CopyTo(dropFiles, 20);
+            return new FakeOleDataObject(15, dropFiles);
+        }
+
+        public void GetData(ref FORMATETC format, out STGMEDIUM medium)
+        {
+            if (QueryGetData(ref format) != 0)
+            {
+                throw new COMException("Unsupported test format", unchecked((int)0x80040064));
+            }
+
+            var memory = GlobalAlloc(GmemMoveable | GmemZeroInit, (UIntPtr)_data.Length);
+            if (memory == IntPtr.Zero)
+            {
+                throw new OutOfMemoryException();
+            }
+
+            var pointer = GlobalLock(memory);
+            try
+            {
+                Marshal.Copy(_data, 0, pointer, _data.Length);
+            }
+            finally
+            {
+                _ = GlobalUnlock(memory);
+            }
+
+            medium = new STGMEDIUM
+            {
+                tymed = TYMED.TYMED_HGLOBAL,
+                unionmember = memory,
+                pUnkForRelease = null
+            };
+        }
+
+        public int QueryGetData(ref FORMATETC format) =>
+            format.cfFormat == _format && (format.tymed & TYMED.TYMED_HGLOBAL) != 0
+                ? 0
+                : unchecked((int)0x80040064);
+
+        public void GetDataHere(ref FORMATETC format, ref STGMEDIUM medium) =>
+            throw new NotSupportedException();
+
+        public int GetCanonicalFormatEtc(ref FORMATETC formatIn, out FORMATETC formatOut)
+        {
+            formatOut = formatIn;
+            formatOut.ptd = IntPtr.Zero;
+            return 1;
+        }
+
+        public void SetData(ref FORMATETC formatIn, ref STGMEDIUM medium, bool release) =>
+            throw new NotSupportedException();
+
+        public IEnumFORMATETC EnumFormatEtc(DATADIR direction) => throw new NotSupportedException();
+
+        public int DAdvise(ref FORMATETC pFormatetc, ADVF advf, IAdviseSink adviseSink, out int connection)
+        {
+            connection = 0;
+            return unchecked((int)0x80040003);
+        }
+
+        public void DUnadvise(int connection) => throw new NotSupportedException();
+
+        public int EnumDAdvise(out IEnumSTATDATA enumAdvise)
+        {
+            enumAdvise = null!;
+            return unchecked((int)0x80040003);
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalAlloc(uint flags, UIntPtr bytes);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalLock(IntPtr memory);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalUnlock(IntPtr memory);
     }
 }

@@ -41,6 +41,7 @@ public sealed partial class ShelfFlyout : FluentWindow
     private InMemoryRandomAccessStream? _activeDragImageStream;
     private int _refreshVersion;
     private bool _closing;
+    private NativeDropTarget? _nativeDropTarget;
 
     public ShelfFlyout(ShelfService shelf)
     {
@@ -76,8 +77,18 @@ public sealed partial class ShelfFlyout : FluentWindow
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
+        _nativeDropTarget ??= NativeDropTarget.Attach(this, HandleNativeDropAsync);
+        if (_nativeDropTarget is null)
+        {
+            Title = "Shelf - drop unavailable";
+        }
         FlyoutChrome.Focus(FocusState.Programmatic);
         AnimateIn();
+    }
+
+    private async Task HandleNativeDropAsync(NativeDropPayload payload)
+    {
+        _ = await _shelf.StageNativeDropAsync(payload, DateTimeOffset.Now);
     }
 
     private void Shelf_DragOver(object sender, DragEventArgs e)
@@ -385,6 +396,8 @@ public sealed partial class ShelfFlyout : FluentWindow
     private void Window_Closed(object sender, WindowEventArgs args)
     {
         _shelf.Changed -= Shelf_Changed;
+        _nativeDropTarget?.Dispose();
+        _nativeDropTarget = null;
         _activeDragImageStream?.Dispose();
         _activeDragImageStream = null;
     }

@@ -193,6 +193,8 @@ public sealed class UiMarkupTests
         Assert.Contains("Drop=\"Notch_Drop\"", notchXaml, StringComparison.Ordinal);
         Assert.Contains("StageDropAsync(e.DataView", shelfCode, StringComparison.Ordinal);
         Assert.Contains("StageDropAsync(e.DataView", notchCode, StringComparison.Ordinal);
+        Assert.Contains("NativeDropTarget.Attach(this, HandleNativeShelfDropAsync)", notchCode, StringComparison.Ordinal);
+        Assert.Contains("NativeDropTarget.Attach(this, HandleNativeDropAsync)", shelfCode, StringComparison.Ordinal);
         Assert.Contains("e.GetDeferral()", shelfCode, StringComparison.Ordinal);
         Assert.Contains("e.GetDeferral()", notchCode, StringComparison.Ordinal);
         Assert.Contains("deferral.Complete()", shelfCode, StringComparison.Ordinal);
