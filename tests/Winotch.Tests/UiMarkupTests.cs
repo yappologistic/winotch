@@ -36,6 +36,8 @@ public sealed class UiMarkupTests
         Assert.Contains("ItemContainerStyle=\"{StaticResource CommandResultItem}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("MaxWidth=\"112\"", xaml, StringComparison.Ordinal);
         Assert.Contains("TextWrapping=\"NoWrap\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Padding=\"14,13,14,0\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("VerticalContentAlignment=\"Top\"", xaml, StringComparison.Ordinal);
 
         var code = ReadRepoFile("src", "Winotch", "MainWindow.CommandBar.cs");
         Assert.Contains("ResizeCommandBarForResults(results.Count)", code, StringComparison.Ordinal);

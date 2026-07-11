@@ -22,8 +22,8 @@
         <TextBox
             x:Name="CommandInputBox"
             Height="54"
-            Padding="14,0"
-            VerticalContentAlignment="Center"
+            Padding="14,13,14,0"
+            VerticalContentAlignment="Top"
             AutomationProperties.Name="Command"
             Background="{StaticResource NotchPanel}"
             BorderBrush="{StaticResource NotchStroke}"
