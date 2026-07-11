@@ -29,6 +29,13 @@ packages/
 TestResults/
 coverage/
 coverage*.xml
+# Screenshots and clipboard captures
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.webp
+codex-clipboard-*
 screenshots/
 qa-screenshots/
 captures/
