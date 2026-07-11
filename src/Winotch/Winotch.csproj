@@ -9,6 +9,7 @@
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\WinotchTray.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -16,6 +17,10 @@
 
   <ItemGroup>
     <Resource Include="Resources\WinotchTray.ico" />
+    <Content Include="Resources\WinotchTray.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>Resources\WinotchTray.ico</TargetPath>
+    </Content>
     <Manifest Include="$(ApplicationManifest)" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
     <PackageReference Include="Microsoft.Win32.SystemEvents" Version="8.0.0" />

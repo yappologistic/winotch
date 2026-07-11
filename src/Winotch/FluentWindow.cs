@@ -32,6 +32,7 @@ public class FluentWindow : Window
 
     public FluentWindow()
     {
+        ApplyWindowIcon();
         Activated += (_, args) =>
         {
             _isActive = args.WindowActivationState != WindowActivationState.Deactivated;
@@ -73,6 +74,21 @@ public class FluentWindow : Window
                 ApplyWindowRegion();
             }
         };
+    }
+
+    private void ApplyWindowIcon()
+    {
+        var iconPaths = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "Resources", "WinotchTray.ico"),
+            Path.Combine(AppContext.BaseDirectory, "WinotchTray.ico")
+        };
+
+        var iconPath = iconPaths.FirstOrDefault(File.Exists);
+        if (iconPath is not null)
+        {
+            AppWindow.SetIcon(iconPath);
+        }
     }
 
     public double Width

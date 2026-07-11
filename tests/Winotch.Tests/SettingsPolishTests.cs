@@ -91,7 +91,15 @@ public class SettingsPolishTests
 
         Assert.Contains(project.Descendants("Resource"), resource =>
             (string?)resource.Attribute("Include") == "Resources\\WinotchTray.ico");
+        var copiedIcon = project.Descendants("Content").Single(element =>
+            (string?)element.Attribute("Include") == "Resources\\WinotchTray.ico");
+        Assert.Equal(
+            "Resources\\WinotchTray.ico",
+            project.Descendants("ApplicationIcon").Single().Value);
+        Assert.Equal("PreserveNewest", copiedIcon.Element("CopyToOutputDirectory")?.Value);
+        Assert.Equal("Resources\\WinotchTray.ico", copiedIcon.Element("TargetPath")?.Value);
         Assert.Contains("Path.Combine(AppContext.BaseDirectory, \"Resources\", \"WinotchTray.ico\")", tray);
+        Assert.Contains("AppWindow.SetIcon(iconPath)", ReadRepoFile("src", "Winotch", "FluentWindow.cs"));
         Assert.True(File.Exists(Path.Combine(FindRepoRoot(), "src", "Winotch", "Resources", "WinotchTray.ico")));
     }
 
