@@ -123,6 +123,7 @@ public static class ShellAnimator
         var host = crossesMonitors
             ? geometry with { ShellHeight = geometry.WindowHeight }
             : UnionHost(current, geometry, currentHost);
+        host = window.ResolveShellHostGeometry(host);
 
         // Moving a real HWND between monitors is committed atomically so a
         // transition never spans two DPI coordinate systems.
@@ -159,28 +160,51 @@ public static class ShellAnimator
         var leftInset = CreateInsetAnimation(compositor, fromHorizontalInset, toHorizontalInset, easing);
         var rightInset = CreateInsetAnimation(compositor, fromHorizontalInset, toHorizontalInset, easing);
         var bottomInset = CreateInsetAnimation(compositor, fromBottomInset, toBottomInset, easing);
-        var transition = new GeometryTransition(current, geometry, Stopwatch.GetTimestamp());
-        StartVisibleRegionAnimation(window, shell, host, transition, state, generation, frameRate);
 
-        var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
-        batch.Completed += (_, _) =>
+        // Resizing a Desktop Acrylic target and revealing its new pixels in the
+        // same compositor frame can expose the swap-chain clear color for one
+        // frame. Hold the old visible region for three 60 Hz frames so WinUI and
+        // DWM can paint the destination surface before motion starts.
+        state.Transition = new GeometryTransition(current, current, Stopwatch.GetTimestamp());
+        window.ApplyVisibleShellRegion(current, host);
+        var warmupTimer = new DispatcherTimer
         {
+            Interval = ShellAnimationTiming.BackdropWarmupDuration
+        };
+        warmupTimer.Tick += (_, _) =>
+        {
+            warmupTimer.Stop();
             if (state.Generation != generation)
             {
                 return;
             }
 
-            state.StopTimer();
-            StopShellVisual(shell);
-            ApplyShellGeometry(window, shell, geometry, geometry);
-            state.Transition = null;
-        };
-        clip.StartAnimation(nameof(InsetClip.LeftInset), leftInset);
-        clip.StartAnimation(nameof(InsetClip.RightInset), rightInset);
-        clip.StartAnimation(nameof(InsetClip.BottomInset), bottomInset);
-        batch.End();
+            window.FlushDwmComposition();
+            state.Timer = null;
+            var transition = new GeometryTransition(current, geometry, Stopwatch.GetTimestamp());
+            state.Transition = transition;
+            StartVisibleRegionAnimation(window, shell, host, transition, state, generation, frameRate);
 
-        state.Transition = transition;
+            var batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
+            batch.Completed += (_, _) =>
+            {
+                if (state.Generation != generation)
+                {
+                    return;
+                }
+
+                state.StopTimer();
+                StopShellVisual(shell);
+                ApplyShellGeometry(window, shell, geometry, host);
+                state.Transition = null;
+            };
+            clip.StartAnimation(nameof(InsetClip.LeftInset), leftInset);
+            clip.StartAnimation(nameof(InsetClip.RightInset), rightInset);
+            clip.StartAnimation(nameof(InsetClip.BottomInset), bottomInset);
+            batch.End();
+        };
+        state.Timer = warmupTimer;
+        warmupTimer.Start();
     }
 
     private static ScalarKeyFrameAnimation CreateInsetAnimation(
@@ -221,7 +245,7 @@ public static class ShellAnimator
             {
                 timer.Stop();
                 StopShellVisual(shell);
-                ApplyShellGeometry(window, shell, transition.To, transition.To);
+                ApplyShellGeometry(window, shell, transition.To, host);
                 state.Timer = null;
                 state.Transition = null;
                 return;
@@ -247,7 +271,11 @@ public static class ShellAnimator
         state.StopTimer();
         state.Transition = null;
         StopShellVisual(shell);
-        ApplyShellGeometry(window, shell, shellGeometry, hostGeometry);
+        var currentHost = CurrentHostGeometry(window);
+        var resolvedHost = CrossesMonitorBoundary(currentHost, shellGeometry)
+            ? hostGeometry
+            : UnionHost(shellGeometry, hostGeometry, currentHost);
+        ApplyShellGeometry(window, shell, shellGeometry, resolvedHost);
     }
 
     public static void Clear(FluentWindow window, FrameworkElement shell, FrameworkElement detail)
@@ -478,6 +506,7 @@ public static class ShellAnimator
         ShellGeometry hostGeometry,
         ShellGeometry? visibleGeometry = null)
     {
+        hostGeometry = window.ResolveShellHostGeometry(hostGeometry);
         // Set the visible HRGN before enlarging the native union host. Without
         // this ordering, WM_SIZE can briefly restore the full opaque host and
         // expose a black rectangle around the acrylic shell.

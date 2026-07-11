@@ -7,11 +7,13 @@
         xmlns:local="using:Winotch"
         mc:Ignorable="d"
         Title="Winotch"
-        Width="680"
+        Width="260"
         Height="68"
         Background="Transparent"
         Topmost="True"
         ShowInTaskbar="False"
+        MinimumShellHostWidth="960"
+        MinimumShellHostHeight="520"
         BottomCornerRadius="34"
         Loaded="Window_Loaded">
     <Grid KeyDown="Window_KeyDown">

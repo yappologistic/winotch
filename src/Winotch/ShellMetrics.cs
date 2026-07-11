@@ -84,6 +84,22 @@ public static class ShellMetrics
         };
     }
 
+    internal static ShellGeometry ExpandHost(
+        ShellGeometry host,
+        double minimumWidth,
+        double minimumHeight)
+    {
+        var width = Math.Max(host.Width, Math.Max(0, minimumWidth));
+        var height = Math.Max(host.WindowHeight, Math.Max(0, minimumHeight));
+        return host with
+        {
+            Width = width,
+            ShellHeight = height,
+            WindowHeight = height,
+            Left = host.Left - ((width - host.Width) / 2)
+        };
+    }
+
     private static double FitWidth(double width, double screenWidth) =>
         Math.Max(0, Math.Min(width, screenWidth));
 }

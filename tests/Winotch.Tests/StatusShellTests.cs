@@ -855,6 +855,24 @@ public class StatusShellTests
     }
 
     [Fact]
+    public void ShellHostExpandsAroundTheVisibleShellAndKeepsItsTopEdge()
+    {
+        var mini = new ShellGeometry(260, 68, 68, 830, 0, 1);
+
+        var host = ShellMetrics.ExpandHost(mini, 960, 520);
+
+        Assert.Equal(new ShellGeometry(960, 520, 520, 480, 0, 1), host);
+    }
+
+    [Fact]
+    public void ShellHostDoesNotShrinkExistingBackingBounds()
+    {
+        var existing = new ShellGeometry(1920, 520, 520, 0, 0, 1.5);
+
+        Assert.Equal(existing, ShellMetrics.ExpandHost(existing, 960, 520));
+    }
+
+    [Fact]
     public void MainShellIsCenteredInsideAnimatingHostWindow()
     {
         var path = Path.Combine(FindRepoRoot(), "src", "Winotch", "MainWindow.xaml");
@@ -915,8 +933,18 @@ public class StatusShellTests
     public void HoverCollapseGuardOutlastsShellMotion()
     {
         Assert.True(
-            ShellAnimationTiming.CollapseGuardMilliseconds >= ShellAnimationTiming.MotionMilliseconds + 150,
+            ShellAnimationTiming.CollapseGuardMilliseconds >=
+            ShellAnimationTiming.BackdropWarmupMilliseconds + ShellAnimationTiming.MotionMilliseconds + 150,
             "Pointer-exit collapse must not interrupt the mini-to-expanded shell animation.");
+    }
+
+    [Fact]
+    public void BackdropWarmupCoversTwoFramesBeforeMotionAndContentReveal()
+    {
+        Assert.InRange(ShellAnimationTiming.BackdropWarmupMilliseconds, 34, 50);
+        Assert.True(
+            ShellAnimationTiming.DetailRevealDelayMilliseconds >=
+            ShellAnimationTiming.BackdropWarmupMilliseconds + 40);
     }
 
     [Fact]

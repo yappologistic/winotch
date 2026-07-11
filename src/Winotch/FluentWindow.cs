@@ -169,6 +169,10 @@ public class FluentWindow : Window
 
     public bool UseOverlayChrome { get; set; } = true;
 
+    public double MinimumShellHostWidth { get; set; }
+
+    public double MinimumShellHostHeight { get; set; }
+
     public Brush? Background { get; set; }
 
     /// <summary>
@@ -440,6 +444,11 @@ public class FluentWindow : Window
         return (_width, _height);
     }
 
+    internal void FlushDwmComposition() => _ = DwmFlush();
+
+    internal ShellGeometry ResolveShellHostGeometry(ShellGeometry host) =>
+        ShellMetrics.ExpandHost(host, MinimumShellHostWidth, MinimumShellHostHeight);
+
     private void ApplyBounds(double? scaleOverride = null)
     {
         if (AppWindow is null)
@@ -655,6 +664,9 @@ public class FluentWindow : Window
         int attribute,
         ref uint value,
         int valueSize);
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmFlush();
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);

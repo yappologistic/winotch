@@ -12,7 +12,8 @@ public static class ShellAnimationTiming
 {
     public const int MotionMilliseconds = 360;
     public const int FadeMilliseconds = 180;
-    public const int DetailRevealDelayMilliseconds = 55;
+    public const int BackdropWarmupMilliseconds = 50;
+    public const int DetailRevealDelayMilliseconds = 105;
     public const int CollapseGuardMilliseconds = 650;
     public const int MediaToastMilliseconds = 3800;
     public const int ForegroundPollMilliseconds = 200;
@@ -21,6 +22,7 @@ public static class ShellAnimationTiming
 
     public static TimeSpan MotionDuration => TimeSpan.FromMilliseconds(MotionMilliseconds);
     public static TimeSpan FadeDuration => TimeSpan.FromMilliseconds(FadeMilliseconds);
+    public static TimeSpan BackdropWarmupDuration => TimeSpan.FromMilliseconds(BackdropWarmupMilliseconds);
     public static TimeSpan DetailRevealDelay => TimeSpan.FromMilliseconds(DetailRevealDelayMilliseconds);
     public static TimeSpan DetailRevealCompletionDelay => MotionDuration - DetailRevealDelay;
     public static TimeSpan CollapseGuard => TimeSpan.FromMilliseconds(CollapseGuardMilliseconds);

@@ -88,6 +88,9 @@ public sealed class UiMarkupTests
 
         Assert.Equal("FluentWindow", doc.Root?.Name.LocalName);
         Assert.Equal("using:Winotch", doc.Root?.GetNamespaceOfPrefix("local")?.NamespaceName);
+        Assert.Equal("260", (string?)doc.Root?.Attribute("Width"));
+        Assert.Equal("960", (string?)doc.Root?.Attribute("MinimumShellHostWidth"));
+        Assert.Equal("520", (string?)doc.Root?.Attribute("MinimumShellHostHeight"));
         Assert.Equal("260", (string?)shell.Attribute("Width"));
         Assert.Equal("68", (string?)shell.Attribute("Height"));
         Assert.Equal("0,0,34,34", (string?)shell.Attribute("CornerRadius"));
@@ -134,6 +137,12 @@ public sealed class UiMarkupTests
             "ApplyShellGeometry(window, shell, displayedGeometry, host, current)",
             animator,
             StringComparison.Ordinal);
+        Assert.Contains("ShellAnimationTiming.BackdropWarmupDuration", animator, StringComparison.Ordinal);
+        Assert.Contains("new GeometryTransition(current, current", animator, StringComparison.Ordinal);
+        Assert.Contains("window.FlushDwmComposition()", animator, StringComparison.Ordinal);
+        Assert.Contains("warmupTimer.Start()", animator, StringComparison.Ordinal);
+        Assert.Contains("window.ResolveShellHostGeometry(host)", animator, StringComparison.Ordinal);
+        Assert.Contains("ApplyShellGeometry(window, shell, geometry, host)", animator, StringComparison.Ordinal);
         Assert.True(
             animator.IndexOf("window.PrepareVisibleShellRegion", StringComparison.Ordinal) <
             animator.IndexOf("window.MoveAndResizeAtScale", StringComparison.Ordinal));
