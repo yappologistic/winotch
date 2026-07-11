@@ -481,6 +481,7 @@ public partial class SettingsWindow : FluentWindow
         presenter.IsMaximizable = false;
         presenter.IsMinimizable = false;
         presenter.IsAlwaysOnTop = false;
+        SuppressDwmNonClientEffects();
     }
 
     private void CenterOnFirstShow()

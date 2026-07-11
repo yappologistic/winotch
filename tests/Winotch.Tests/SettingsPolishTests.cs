@@ -11,6 +11,9 @@ public class SettingsPolishTests
         var doc = XDocument.Parse(xaml);
         XNamespace ui = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 
+        Assert.Equal("540", (string?)doc.Root?.Attribute("Width"));
+        Assert.Equal("640", (string?)doc.Root?.Attribute("Height"));
+
         var toggleStyle = doc.Descendants(ui + "Style")
             .Single(style => (string?)style.Attribute(XName.Get("Key", "http://schemas.microsoft.com/winfx/2006/xaml")) == "SettingsToggle");
 
@@ -47,6 +50,9 @@ public class SettingsPolishTests
         Assert.Contains("presenter.IsResizable = false", code);
         Assert.Contains("presenter.IsMaximizable = false", code);
         Assert.Contains("presenter.IsMinimizable = false", code);
+        Assert.Contains("SuppressDwmNonClientEffects()", code);
+        Assert.Equal("True", (string?)doc.Root?.Attribute("UseWindowRegion"));
+        Assert.Equal("False", (string?)doc.Root?.Attribute("AttachToTopEdge"));
         Assert.Contains("var clientSize = GetClientSizeInDips()", code);
         Assert.Contains("SettingsRoot.Width = clientSize.Width", code);
         Assert.Contains("SettingsRoot.Height = clientSize.Height", code);

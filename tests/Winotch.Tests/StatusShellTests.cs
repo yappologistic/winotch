@@ -834,9 +834,9 @@ public class StatusShellTests
     public void CommandShellHeightFollowsVisibleResultsAndCapsAtFourRows()
     {
         Assert.Equal(120, ShellMetrics.Command(1920, 0).ShellHeight);
-        Assert.Equal(256, ShellMetrics.Command(1920, 2).ShellHeight);
-        Assert.Equal(392, ShellMetrics.Command(1920, 4).ShellHeight);
-        Assert.Equal(392, ShellMetrics.Command(1920, 20).ShellHeight);
+        Assert.Equal(232, ShellMetrics.Command(1920, 2).ShellHeight);
+        Assert.Equal(344, ShellMetrics.Command(1920, 4).ShellHeight);
+        Assert.Equal(344, ShellMetrics.Command(1920, 20).ShellHeight);
     }
 
     [Fact]

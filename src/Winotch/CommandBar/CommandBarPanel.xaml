@@ -4,6 +4,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     IsTabStop="False">
     <Grid>
+        <Grid.Resources>
+            <Style
+                x:Key="CommandResultItem"
+                TargetType="ListViewItem"
+                BasedOn="{StaticResource NotchListBoxItem}">
+                <Setter Property="Height" Value="56" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Padding" Value="10,3" />
+            </Style>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="58" />
             <RowDefinition Height="Auto" />
@@ -23,12 +33,12 @@
         <ListView
             x:Name="CommandResultsList"
             Grid.Row="1"
-            MaxHeight="272"
+            MaxHeight="224"
             Margin="0,10,0,0"
             Background="Transparent"
             BorderThickness="0"
             Foreground="{StaticResource NotchText}"
-            ItemContainerStyle="{StaticResource NotchListBoxItem}"
+            ItemContainerStyle="{StaticResource CommandResultItem}"
             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
             ScrollViewer.VerticalScrollBarVisibility="Hidden"
             SelectionMode="Single">

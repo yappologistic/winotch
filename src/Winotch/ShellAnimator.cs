@@ -135,7 +135,10 @@ public static class ShellAnimator
 
         var expanding = geometry.Width >= current.Width && geometry.ShellHeight >= current.ShellHeight;
         var displayedGeometry = expanding ? geometry : current;
-        ApplyShellGeometry(window, shell, displayedGeometry, host);
+        // Preserve the currently visible HRGN while the backing HWND grows to
+        // the union host. Revealing the destination region before this resize
+        // lets an unpainted client frame escape as a large black rectangle.
+        ApplyShellGeometry(window, shell, displayedGeometry, host, current);
         shell.UpdateLayout();
 
         var visual = ElementCompositionPreview.GetElementVisual(shell);
@@ -472,12 +475,13 @@ public static class ShellAnimator
         FluentWindow window,
         FrameworkElement shell,
         ShellGeometry shellGeometry,
-        ShellGeometry hostGeometry)
+        ShellGeometry hostGeometry,
+        ShellGeometry? visibleGeometry = null)
     {
         // Set the visible HRGN before enlarging the native union host. Without
         // this ordering, WM_SIZE can briefly restore the full opaque host and
         // expose a black rectangle around the acrylic shell.
-        window.PrepareVisibleShellRegion(shellGeometry, hostGeometry);
+        window.PrepareVisibleShellRegion(visibleGeometry ?? shellGeometry, hostGeometry);
         if (hostGeometry.DpiScale > 0)
         {
             window.MoveAndResizeAtScale(

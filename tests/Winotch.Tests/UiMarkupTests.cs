@@ -30,7 +30,10 @@ public sealed class UiMarkupTests
         var xaml = ReadRepoFile("src", "Winotch", "CommandBar", "CommandBarPanel.xaml");
 
         Assert.Contains("MinHeight=\"50\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("MaxHeight=\"272\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("MaxHeight=\"224\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"CommandResultItem\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("<Setter Property=\"Height\" Value=\"56\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("ItemContainerStyle=\"{StaticResource CommandResultItem}\"", xaml, StringComparison.Ordinal);
         Assert.Contains("MaxWidth=\"112\"", xaml, StringComparison.Ordinal);
         Assert.Contains("TextWrapping=\"NoWrap\"", xaml, StringComparison.Ordinal);
 
@@ -122,8 +125,15 @@ public sealed class UiMarkupTests
         Assert.Contains("OverlappedPresenterState.Maximized", code, StringComparison.Ordinal);
         Assert.Contains("_visibleShellRegion", code, StringComparison.Ordinal);
         Assert.Contains("PrepareVisibleShellRegion", code, StringComparison.Ordinal);
+        Assert.Contains("DwmwaNcRenderingPolicy", code, StringComparison.Ordinal);
+        Assert.Contains("DwmwaTransitionsForcedDisabled", code, StringComparison.Ordinal);
+        Assert.Contains("DwmwaWindowCornerPreference", code, StringComparison.Ordinal);
 
         var animator = ReadRepoFile("src", "Winotch", "ShellAnimator.cs");
+        Assert.Contains(
+            "ApplyShellGeometry(window, shell, displayedGeometry, host, current)",
+            animator,
+            StringComparison.Ordinal);
         Assert.True(
             animator.IndexOf("window.PrepareVisibleShellRegion", StringComparison.Ordinal) <
             animator.IndexOf("window.MoveAndResizeAtScale", StringComparison.Ordinal));

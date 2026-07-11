@@ -338,11 +338,25 @@ public class FluentWindow : Window
             return;
         }
 
+        SuppressDwmNonClientEffects();
+    }
+
+    protected void SuppressDwmNonClientEffects()
+    {
+
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         if (hwnd == IntPtr.Zero)
         {
             return;
         }
+
+        // The shell owns its rounded HRGN and composition motion. Disable DWM's
+        // independent non-client rounding, transition, and shadow so it cannot
+        // leave a second lower plate behind the acrylic surface.
+        var disabled = 1u;
+        _ = DwmSetWindowAttribute(hwnd, DwmwaNcRenderingPolicy, ref disabled, sizeof(uint));
+        _ = DwmSetWindowAttribute(hwnd, DwmwaTransitionsForcedDisabled, ref disabled, sizeof(uint));
+        _ = DwmSetWindowAttribute(hwnd, DwmwaWindowCornerPreference, ref disabled, sizeof(uint));
 
         // Windows 11 otherwise draws a one-pixel non-client border even when
         // the title bar is disabled. COLOR_NONE removes that outer stripe.
@@ -579,6 +593,9 @@ public class FluentWindow : Window
 
     private const int GwlHwndParent = -8;
     private const int GwlStyle = -16;
+    private const int DwmwaNcRenderingPolicy = 2;
+    private const int DwmwaTransitionsForcedDisabled = 3;
+    private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwaBorderColor = 34;
     private const uint DwmColorNone = 0xFFFFFFFE;
     private const long WsBorder = 0x00800000L;

@@ -4,12 +4,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Winotch"
     Title="Winotch Settings"
-    Width="640"
-    Height="780"
+    Width="540"
+    Height="640"
     ShowInTaskbar="True"
     Topmost="False"
     UseOverlayChrome="False"
-    UseWindowRegion="False"
+    UseWindowRegion="True"
+    AttachToTopEdge="False"
     BottomCornerRadius="12">
     <local:FluentWindow.SystemBackdrop>
         <local:PersistentDesktopAcrylicBackdrop />
