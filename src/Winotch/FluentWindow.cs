@@ -27,6 +27,8 @@ public class FluentWindow : Window
     private FluentWindow? _owner;
     private bool _isLoaded;
     private bool _isPointerOver;
+    private ShellGeometry? _visibleShellRegion;
+    private ShellGeometry? _visibleShellHost;
 
     public FluentWindow()
     {
@@ -410,6 +412,20 @@ public class FluentWindow : Window
         }
     }
 
+    internal (double Width, double Height) GetClientSizeInDips()
+    {
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var scale = RasterizationScale;
+        if (hwnd != IntPtr.Zero && GetClientRect(hwnd, out var clientRect))
+        {
+            return (
+                Math.Max(1, (clientRect.Right - clientRect.Left) / scale),
+                Math.Max(1, (clientRect.Bottom - clientRect.Top) / scale));
+        }
+
+        return (_width, _height);
+    }
+
     private void ApplyBounds(double? scaleOverride = null)
     {
         if (AppWindow is null)
@@ -455,6 +471,12 @@ public class FluentWindow : Window
             return;
         }
 
+        if (_visibleShellRegion is { } shell && _visibleShellHost is { } host)
+        {
+            ApplyVisibleShellRegionCore(shell, host);
+            return;
+        }
+
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         if (hwnd == IntPtr.Zero)
         {
@@ -474,6 +496,30 @@ public class FluentWindow : Window
     }
 
     internal void ApplyVisibleShellRegion(ShellGeometry shell, ShellGeometry host)
+    {
+        if (!UseWindowRegion || !UseOverlayChrome)
+        {
+            return;
+        }
+
+        _visibleShellRegion = shell;
+        _visibleShellHost = host;
+        ApplyVisibleShellRegionCore(shell, host);
+    }
+
+    /// <summary>
+    /// Commits the clipped shell region before the backing HWND grows. AppWindow
+    /// size notifications can then only reapply the clipped region, never the
+    /// temporarily larger union host used by the composition animation.
+    /// </summary>
+    internal void PrepareVisibleShellRegion(ShellGeometry shell, ShellGeometry host)
+    {
+        _visibleShellRegion = shell;
+        _visibleShellHost = host;
+        ApplyVisibleShellRegionCore(shell, host);
+    }
+
+    private void ApplyVisibleShellRegionCore(ShellGeometry shell, ShellGeometry host)
     {
         if (!UseWindowRegion || !UseOverlayChrome)
         {
@@ -596,10 +642,23 @@ public class FluentWindow : Window
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetClientRect(IntPtr hwnd, out NativeRect rectangle);
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool ReleaseCapture();
 
     [DllImport("user32.dll")]
     private static extern IntPtr SendMessage(IntPtr hwnd, uint message, int wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
 }

@@ -17,7 +17,7 @@ internal static class FlyoutClosePolicy
 
         await Task.Delay(DeactivationSettleDelay);
 
-        if (!flyout.IsVisible || flyout.IsActive || flyout.Owner?.IsActive == true)
+        if (!flyout.IsVisible || flyout.IsActive)
         {
             return false;
         }
@@ -28,8 +28,26 @@ internal static class FlyoutClosePolicy
             return true;
         }
 
-        _ = GetWindowThreadProcessId(foreground, out var processId);
-        return processId != Environment.ProcessId;
+        var flyoutHandle = WinRT.Interop.WindowNative.GetWindowHandle(flyout);
+        return foreground != flyoutHandle && !IsOwnedBy(foreground, flyoutHandle);
+    }
+
+    private static bool IsOwnedBy(IntPtr window, IntPtr potentialOwner)
+    {
+        if (potentialOwner == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        for (var owner = GetWindow(window, GwOwner); owner != IntPtr.Zero; owner = GetWindow(owner, GwOwner))
+        {
+            if (owner == potentialOwner)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool IsAnyMouseButtonPressed() =>
@@ -43,6 +61,8 @@ internal static class FlyoutClosePolicy
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
+    private const uint GwOwner = 4;
+
     [DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out int processId);
+    private static extern IntPtr GetWindow(IntPtr hwnd, uint command);
 }

@@ -25,12 +25,10 @@ public class SettingsPolishTests
         Assert.Contains("AutomationProperties.Name=\"ICS subscription URLs\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Request notification access\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Copy diagnostics\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"Toggle full screen\"", xaml);
-        Assert.Contains("AutomationProperties.Name=\"Minimize Settings\"", xaml);
         Assert.Contains("AutomationProperties.Name=\"Close Settings\"", xaml);
-        Assert.Contains("Click=\"ToggleSettingsMaximizeClick\"", xaml);
-        Assert.Contains("Click=\"MinimizeSettingsClick\"", xaml);
         Assert.Contains("Click=\"CloseSettingsClick\"", xaml);
+        Assert.DoesNotContain("AutomationProperties.Name=\"Maximize", xaml);
+        Assert.DoesNotContain("AutomationProperties.Name=\"Minimize", xaml);
         Assert.Contains("AutomationProperties.LiveSetting=\"Polite\"", xaml);
         Assert.Contains("Click=\"RequestNotificationAccessClick\"", xaml);
         Assert.Contains("Click=\"CopyDiagnosticsClick\"", xaml);
@@ -41,13 +39,21 @@ public class SettingsPolishTests
 
         var code = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml.cs");
         Assert.Contains("presenter.Restore()", code);
-        Assert.Contains("presenter.Minimize()", code);
-        Assert.Contains("AppWindowPresenterKind.FullScreen", code);
-        Assert.Contains("AppWindowPresenterKind.Default", code);
-        Assert.Contains("AppWindow.MoveAndResize(bounds)", code);
-        Assert.Contains("_settingsRestoreBounds", code);
-        Assert.Contains("SettingsRoot.Width = double.NaN", code);
-        Assert.Contains("SettingsRoot.Height = double.NaN", code);
+        Assert.DoesNotContain("presenter.Maximize()", code);
+        Assert.DoesNotContain("presenter.Minimize()", code);
+        Assert.DoesNotContain("AppWindowPresenterKind.FullScreen", code);
+        Assert.DoesNotContain("_settingsRestoreBounds", code);
+        Assert.Contains("presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false)", code);
+        Assert.Contains("presenter.IsResizable = false", code);
+        Assert.Contains("presenter.IsMaximizable = false", code);
+        Assert.Contains("presenter.IsMinimizable = false", code);
+        Assert.Contains("var clientSize = GetClientSizeInDips()", code);
+        Assert.Contains("SettingsRoot.Width = clientSize.Width", code);
+        Assert.Contains("SettingsRoot.Height = clientSize.Height", code);
+
+        var windowHost = ReadRepoFile("src", "Winotch", "FluentWindow.cs");
+        Assert.Contains("GetClientRect(hwnd, out var clientRect)", windowHost);
+        Assert.Contains("GetClientSizeInDips()", windowHost);
     }
 
     [Fact]
@@ -55,12 +61,17 @@ public class SettingsPolishTests
     {
         var shell = ReadRepoFile("src", "Winotch", "MainWindow.xaml.cs");
         var tray = ReadRepoFile("src", "Winotch", "TrayIconService.cs");
+        var settingsWindow = ReadRepoFile("src", "Winotch", "SettingsWindow.xaml.cs");
 
         Assert.Contains("internal void PrepareForSettings()", shell);
         Assert.Contains("SetExpanded(false, animate: false)", shell);
         Assert.Contains("animate: false, force: true", shell);
         Assert.Contains("_mainWindow.PrepareForSettings();", tray);
         Assert.DoesNotContain("_settingsWindow.Owner = _mainWindow", tray);
+        Assert.Contains("_settingsWindow.RestoreAndActivate();", tray);
+        Assert.Contains("_settingsWindow.Closed += SettingsWindow_Closed;", tray);
+        Assert.Equal(1, tray.Split("new SettingsWindow(").Length - 1);
+        Assert.Contains("if (IsVisible)", settingsWindow);
         Assert.True(
             tray.IndexOf("_mainWindow.PrepareForSettings();", StringComparison.Ordinal) <
             tray.IndexOf("_settingsWindow.Show();", StringComparison.Ordinal));

@@ -120,6 +120,24 @@ public sealed class UiMarkupTests
         Assert.Contains("SwpFrameChanged", code, StringComparison.Ordinal);
         Assert.Contains("HwndTopmost", code, StringComparison.Ordinal);
         Assert.Contains("OverlappedPresenterState.Maximized", code, StringComparison.Ordinal);
+        Assert.Contains("_visibleShellRegion", code, StringComparison.Ordinal);
+        Assert.Contains("PrepareVisibleShellRegion", code, StringComparison.Ordinal);
+
+        var animator = ReadRepoFile("src", "Winotch", "ShellAnimator.cs");
+        Assert.True(
+            animator.IndexOf("window.PrepareVisibleShellRegion", StringComparison.Ordinal) <
+            animator.IndexOf("window.MoveAndResizeAtScale", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FlyoutsDismissOnRealOwnerClicksButIgnoreOwnedPopups()
+    {
+        var code = ReadRepoFile("src", "Winotch", "FlyoutClosePolicy.cs");
+
+        Assert.Contains("!IsAnyMouseButtonPressed()", code, StringComparison.Ordinal);
+        Assert.Contains("!IsOwnedBy(foreground, flyoutHandle)", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("flyout.Owner?.IsActive", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("processId != Environment.ProcessId", code, StringComparison.Ordinal);
     }
 
     [Fact]

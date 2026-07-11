@@ -474,6 +474,10 @@ public static class ShellAnimator
         ShellGeometry shellGeometry,
         ShellGeometry hostGeometry)
     {
+        // Set the visible HRGN before enlarging the native union host. Without
+        // this ordering, WM_SIZE can briefly restore the full opaque host and
+        // expose a black rectangle around the acrylic shell.
+        window.PrepareVisibleShellRegion(shellGeometry, hostGeometry);
         if (hostGeometry.DpiScale > 0)
         {
             window.MoveAndResizeAtScale(

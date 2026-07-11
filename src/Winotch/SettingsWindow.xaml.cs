@@ -15,8 +15,6 @@ public partial class SettingsWindow : FluentWindow
     private readonly NotificationService _notifications;
     private bool _syncing;
     private bool _centered;
-    private bool _settingsFullScreen;
-    private Windows.Graphics.RectInt32? _settingsRestoreBounds;
     private readonly DispatcherTimer _scrollIndicatorTimer = new()
     {
         Interval = TimeSpan.FromMilliseconds(750)
@@ -43,14 +41,35 @@ public partial class SettingsWindow : FluentWindow
     }
 
     /// <summary>
-    /// FluentWindow defaults to overlay chrome. Settings is a long-lived app
-    /// surface, so restore the native resizable presenter after showing it.
+    /// Settings is intentionally a fixed utility surface. Keeping one stable
+    /// size avoids a sparse full-screen layout and leaves closing as its only
+    /// custom caption action.
     /// </summary>
     public new void Show()
     {
+        if (IsVisible)
+        {
+            RestoreAndActivate();
+            return;
+        }
+
         base.Show();
         ConfigureSettingsPresenter();
         CenterOnFirstShow();
+    }
+
+    internal void RestoreAndActivate()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter
+            {
+                State: OverlappedPresenterState.Minimized
+            } presenter)
+        {
+            presenter.Restore();
+        }
+
+        Activate();
+        QueueSettingsLayoutSync();
     }
 
     private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
@@ -67,75 +86,11 @@ public partial class SettingsWindow : FluentWindow
         _settings.Changed -= Settings_Changed;
     }
 
-    private void ToggleSettingsMaximizeClick(object sender, RoutedEventArgs e)
-    {
-        if (_settingsFullScreen)
-        {
-            RestoreSettingsBounds();
-            return;
-        }
-
-        if (AppWindow.Presenter is OverlappedPresenter presenter &&
-            presenter.State != OverlappedPresenterState.Restored)
-        {
-            presenter.Restore();
-        }
-
-        _settingsRestoreBounds = new Windows.Graphics.RectInt32(
-            AppWindow.Position.X,
-            AppWindow.Position.Y,
-            AppWindow.Size.Width,
-            AppWindow.Size.Height);
-        _settingsFullScreen = true;
-        SettingsRoot.Width = double.NaN;
-        SettingsRoot.Height = double.NaN;
-        AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
-        Activate();
-        QueueSettingsLayoutSync();
-        UpdateSettingsCaptionState();
-    }
-
-    private void RestoreSettingsBounds()
-    {
-        if (_settingsRestoreBounds is not { } restoreBounds)
-        {
-            return;
-        }
-
-        _settingsFullScreen = false;
-        AppWindow.SetPresenter(AppWindowPresenterKind.Default);
-        ConfigureSettingsPresenter();
-        ApplySettingsBounds(restoreBounds);
-        _settingsRestoreBounds = null;
-        UpdateSettingsCaptionState();
-    }
-
-    private void ApplySettingsBounds(Windows.Graphics.RectInt32 bounds)
-    {
-        SettingsRoot.Width = double.NaN;
-        SettingsRoot.Height = double.NaN;
-        AppWindow.MoveAndResize(bounds);
-        QueueSettingsLayoutSync();
-    }
-
-    private void MinimizeSettingsClick(object sender, RoutedEventArgs e)
-    {
-        if (_settingsFullScreen)
-        {
-            RestoreSettingsBounds();
-        }
-
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
-        {
-            presenter.Minimize();
-        }
-    }
-
     private void CloseSettingsClick(object sender, RoutedEventArgs e) => Close();
 
     private void SettingsAppWindow_Changed(AppWindow sender, AppWindowChangedEventArgs args)
     {
-        if (args.DidSizeChange || args.DidPresenterChange)
+        if (args.DidSizeChange)
         {
             QueueSettingsLayoutSync();
         }
@@ -144,23 +99,13 @@ public partial class SettingsWindow : FluentWindow
     private void QueueSettingsLayoutSync() =>
         DispatcherQueue.TryEnqueue(
             Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
-            () =>
-            {
-                SyncSettingsLayoutToClient();
-                UpdateSettingsCaptionState();
-            });
+            SyncSettingsLayoutToClient);
 
     private void SyncSettingsLayoutToClient()
     {
-        SettingsRoot.Width = double.NaN;
-        SettingsRoot.Height = double.NaN;
-    }
-
-    private void UpdateSettingsCaptionState()
-    {
-        SettingsMaximizeGlyph.Text = _settingsFullScreen
-            ? "\uE923"
-            : "\uE922";
+        var clientSize = GetClientSizeInDips();
+        SettingsRoot.Width = clientSize.Width;
+        SettingsRoot.Height = clientSize.Height;
     }
 
     private void SettingsScrollViewer_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
@@ -531,10 +476,10 @@ public partial class SettingsWindow : FluentWindow
             return;
         }
 
-        presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: true);
-        presenter.IsResizable = true;
-        presenter.IsMaximizable = true;
-        presenter.IsMinimizable = true;
+        presenter.SetBorderAndTitleBar(hasBorder: true, hasTitleBar: false);
+        presenter.IsResizable = false;
+        presenter.IsMaximizable = false;
+        presenter.IsMinimizable = false;
         presenter.IsAlwaysOnTop = false;
     }
 

@@ -57,14 +57,27 @@ public sealed class TrayIconService : IDisposable
 
         _mainWindow.PrepareForSettings();
 
-        if (_settingsWindow is null)
+        if (_settingsWindow is not null)
         {
-            _settingsWindow = new SettingsWindow(_settings, _startup, _notifications);
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.RestoreAndActivate();
+            return;
         }
 
+        _settingsWindow = new SettingsWindow(_settings, _startup, _notifications);
+        _settingsWindow.Closed += SettingsWindow_Closed;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    private void SettingsWindow_Closed(object sender, Microsoft.UI.Xaml.WindowEventArgs args)
+    {
+        if (!ReferenceEquals(sender, _settingsWindow))
+        {
+            return;
+        }
+
+        _settingsWindow.Closed -= SettingsWindow_Closed;
+        _settingsWindow = null;
     }
 
     private NativeTrayMenuState GetMenuState()
