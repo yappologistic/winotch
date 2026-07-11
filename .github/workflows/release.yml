@@ -1,0 +1,63 @@
+name: Release Windows x64
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'        # e.g. v0.2.0, v1.0.0
+  workflow_dispatch:    # Manual trigger from GitHub UI
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build & Publish x64 (Self-contained Single File)
+        run: |
+          dotnet publish src/Winotch/Winotch.csproj \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=None \
+            -p:PublishTrimmed=false \   # Keep false for WinUI compatibility
+            -o ./publish/Winotch-x64
+
+      - name: Generate SHA256 checksum
+        run: |
+          Get-FileHash ./publish/Winotch-x64/Winotch.exe -Algorithm SHA256 |
+          Select-Object Hash |
+          ForEach-Object { $_.Hash } > ./publish/Winotch-x64/Winotch-x64.sha256.txt
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Winotch-x64
+          path: ./publish/Winotch-x64/
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            ./publish/Winotch-x64/Winotch.exe
+            ./publish/Winotch-x64/Winotch-x64.sha256.txt
+          generate_release_notes: true
+          draft: true                    # Start as draft → review before publishing
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
