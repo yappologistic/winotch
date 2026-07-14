@@ -112,8 +112,6 @@
                             <TextBlock Style="{StaticResource SettingsLabel}" Text="Start with Windows" />
                             <ToggleSwitch x:Name="StartWithWindowsToggle" AutomationProperties.Name="Start with Windows" Style="{StaticResource SettingsToggle}" Toggled="StartWithWindowsChanged" />
                         </Grid>
-
-                        <!-- اسلایدر عرض ناچ -->
                         <Grid Style="{StaticResource SettingsRow}">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource SettingsLabel}" Text="Notch Width" />
@@ -128,8 +126,6 @@
                                     Style="{StaticResource ModernSlider}"
                                     ValueChanged="GeneralSettingChanged" />
                         </Grid>
-                        
-                        <!-- اسلایدر ارتفاع ناچ -->
                         <Grid Style="{StaticResource SettingsRow}">
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource SettingsLabel}" Text="Notch Height" />
@@ -144,7 +140,6 @@
                                     Style="{StaticResource ModernSlider}"
                                     ValueChanged="GeneralSettingChanged" />
                         </Grid>
-
                         <TextBlock
                             x:Name="StartupStatusText"
                             Style="{StaticResource SettingsDescription}"

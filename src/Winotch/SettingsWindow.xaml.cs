@@ -214,13 +214,11 @@ public partial class SettingsWindow : FluentWindow
             {
                 Use24HourClock = Use24HourClockToggle.IsOn,
                 ShowDate = ShowDateToggle.IsOn,
-                // ذخیره‌سازی ابعاد دریافتی از اسلایدرها
                 NotchWidth = NotchWidthSlider.Value,
                 NotchHeight = NotchHeightSlider.Value
             }
         });
 
-        // بروزرسانی متون توضیحات اسلایدرها
         if (NotchWidthValueText is not null && NotchHeightValueText is not null)
         {
             NotchWidthValueText.Text = $"{Math.Round(NotchWidthSlider.Value)} DIPs";
