@@ -1,0 +1,61 @@
+name: Release Windows x64
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Publish x64 (Self-contained Single File)
+        run: |
+          dotnet publish src/Winotch/Winotch.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableMsixTooling=true `
+            -p:WindowsAppSDKSelfContained=true `
+            -p:DebugType=None `
+            -p:PublishTrimmed=false `
+            -o ./publish/Winotch-x64
+
+      - name: Generate SHA256 checksum
+        run: |
+          Get-FileHash ./publish/Winotch-x64/Winotch.exe -Algorithm SHA256 |
+            Select-Object Hash |
+            ForEach-Object { $_.Hash } > ./publish/Winotch-x64/Winotch-x64.sha256.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            ./publish/Winotch-x64/Winotch.exe
+            ./publish/Winotch-x64/Winotch-x64.sha256.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
