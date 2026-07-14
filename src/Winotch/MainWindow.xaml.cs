@@ -285,6 +285,10 @@ public partial class MainWindow : FluentWindow
             await RefreshControlCenterAsync(priorityStatus);
         }
 
+        ApplyMiniPrivacyDots(
+            priorityStatus.MicrophoneActive && !ReadCaptureMuted(), 
+            priorityStatus.CameraActive && !ShouldSuppressCameraAlert);
+
         var notifications = await ReadNotificationStatusAsync();
         ApplyNotificationStatus(notifications);
         if (_notificationChanges.ShouldPop(notifications.Items) &&
@@ -891,6 +895,7 @@ public partial class MainWindow : FluentWindow
         if (expanded)
         {
             HideCompactToast(restoreShell: false);
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
         }
 
         _expanded = expanded;
@@ -902,6 +907,12 @@ public partial class MainWindow : FluentWindow
             StopSystemStats();
             // Tool flyouts are independent windows; collapsing the notch back to Mini should not dismiss them.
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate, force: true);
+            if (_latestLivePriority is not null)
+            {
+                ApplyMiniPrivacyDots(
+                    _latestLivePriority.MicrophoneActive && !ReadCaptureMuted(),
+                    _latestLivePriority.CameraActive && !ShouldSuppressCameraAlert);
+            }
             return;
         }
 
@@ -1834,4 +1845,33 @@ public partial class MainWindow : FluentWindow
 
     private static double ClampToRange(double value, double minimum, double maximum) =>
         maximum < minimum ? minimum : Math.Min(Math.Max(minimum, value), maximum);
+
+    private void ApplyMiniPrivacyDots(bool micActive, bool cameraActive)
+    {
+        // اگر ناچ هاور شده و پنل باز است، نقطه را مخفی کن
+        if (_expanded) 
+        {
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
+            ToolTipService.SetToolTip(MiniPrivacyDot, null);
+            return;
+        }
+
+        if (cameraActive)
+        {
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 159, 10)); 
+            MiniPrivacyDot.Visibility = Visibility.Visible;
+            ToolTipService.SetToolTip(MiniPrivacyDot, "Camera in use");
+        }
+        else if (micActive)
+        {
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 69, 58)); 
+            MiniPrivacyDot.Visibility = Visibility.Visible;
+            ToolTipService.SetToolTip(MiniPrivacyDot, "Microphone in use");
+        }
+        else
+        {
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
+            ToolTipService.SetToolTip(MiniPrivacyDot, null);
+        }
+    }
 }

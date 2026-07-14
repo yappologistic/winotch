@@ -34,7 +34,7 @@ public partial class MainWindow
     }
 
     private ShellMode DesiredShellModeForLiveActivity(ShellMode foregroundMode) =>
-        foregroundMode == ShellMode.Mini && _currentLiveActivity.Kind != LiveActivityKind.None
+        foregroundMode == ShellMode.Mini && _currentLiveActivity.ShellMode == ShellMode.Live
             ? ShellMode.Live
             : foregroundMode;
 
