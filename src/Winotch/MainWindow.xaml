@@ -339,7 +339,7 @@
                                                         <TextBlock Text="Default output and live levels" FontSize="12" Foreground="{StaticResource NotchMutedText}" />
                                                     </StackPanel>
                                                 </Grid>
-                                                <Border Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="10" Padding="10,9" Margin="0,0,0,8">
+                                                <Border Background="{StaticResource NotchPanel}" BorderBrush="{StaticResource NotchStroke}" BorderThickness="1" CornerRadius="10" Padding="10,9" Margin="0,0,0,8" Visibility="Collapsed">
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="22" />
@@ -354,15 +354,13 @@
                                                         <TextBlock Grid.Column="2" Style="{StaticResource IconText}" Text="&#xE73E;" FontSize="11" Foreground="{StaticResource NotchMutedText}" Margin="8,0,0,0" />
                                                     </Grid>
                                                 </Border>
-                                                <Grid Margin="0,2,0,8">
+                                                <Grid Height="31" Margin="0,0,0,5" ToolTipService.ToolTip="{Binding Name}">
                                                     <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="24" />
-                                                        <ColumnDefinition Width="70" />
-                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="32" />
+                                                        <ColumnDefinition Width="*"/>
                                                     </Grid.ColumnDefinitions>
-                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" />
-                                                    <TextBlock Grid.Column="1" Text="Master" FontSize="12" VerticalAlignment="Center" />
-                                                    <Slider x:Name="VolumeSlider" Grid.Column="2" Style="{StaticResource ModernSlider}" Minimum="0" Maximum="100" ValueChanged="VolumeSlider_ValueChanged" />
+                                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE767;" FontSize="13" />
+                                                    <Slider x:Name="VolumeSlider" Grid.Column="1" Style="{StaticResource ModernSlider}" AutomationProperties.Name="{Binding Name}" Minimum="0" Maximum="100" Value="{Binding Percent}" ValueChanged="VolumeSlider_ValueChanged" />
                                                 </Grid>
                                                 <Grid Margin="0,0,0,8">
                                                     <Grid.ColumnDefinitions>
