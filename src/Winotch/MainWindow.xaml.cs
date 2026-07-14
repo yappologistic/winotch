@@ -875,6 +875,10 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        ShellContent.VerticalAlignment = VerticalAlignment.Stretch;
+        HeaderRow.Height = new GridLength(48);
+        DetailRow.Height = new GridLength(1, GridUnitType.Star);
+        ShellContent.Margin = new Thickness(18, 8, 18, 12);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
@@ -1178,6 +1182,9 @@ public partial class MainWindow : FluentWindow
             isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
             monitor);
 
+        ShellContent.VerticalAlignment = VerticalAlignment.Center; 
+        HeaderRow.Height = new GridLength(isLive ? 52 : 44);
+        DetailRow.Height = new GridLength(0);
         ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;
         ClockGroup.Opacity = isLive ? 0 : 1;
         StatusGroup.Visibility = isFullBar ? Visibility.Visible : Visibility.Collapsed;
@@ -1190,8 +1197,8 @@ public partial class MainWindow : FluentWindow
         ShellContent.Margin = isFullBar
             ? new Thickness(10, 2, 10, 2)
             : isLive
-                ? new Thickness(12, 10, 12, 14)
-                : new Thickness(16, 10, 16, 14);
+                ? new Thickness(12, 0, 12, 0)
+                : new Thickness(16, 0, 16, 0);
         SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34);
         if (isFullBar)
         {

@@ -65,7 +65,7 @@
                 <Grid x:Name="ShellContent" Margin="16,10,16,14">
                     <Grid.RowDefinitions>
                         <RowDefinition x:Name="HeaderRow" Height="44" />
-                        <RowDefinition Height="*" />
+                        <RowDefinition x:Name="DetailRow" Height="*" />
                     </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0">
@@ -74,14 +74,14 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel x:Name="ClockGroup" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <StackPanel x:Name="ClockGroup" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="-3,0,3,0">
                         <Border x:Name="LogoBadge" Width="44" Height="44" CornerRadius="22" Background="{StaticResource NotchPanel}" Margin="0,0,12,0">
                             <Grid>
                                 <Ellipse x:Name="LogoAccountPicture" Visibility="Collapsed" />
                                 <TextBlock x:Name="LogoFallbackText" Text="W" FontWeight="SemiBold" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Grid>
                         </Border>
-                        <TextBlock x:Name="TimeText" FontFamily="{StaticResource WinotchDisplayFont}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" MinWidth="88" />
+                        <TextBlock x:Name="TimeText" FontFamily="{StaticResource WinotchDisplayFont}" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,-3,0,0" />
                         <StackPanel x:Name="FocusLiveActivity" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed" Margin="12,0,0,0">
                             <Grid Width="184" Height="3" VerticalAlignment="Center" Margin="0,0,7,0">
                                 <Border Background="{StaticResource NotchStroke}" CornerRadius="2" />
