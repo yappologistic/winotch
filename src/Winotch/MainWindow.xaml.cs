@@ -1113,7 +1113,10 @@ public partial class MainWindow : FluentWindow
         _compactToastVisible = true;
         _activeCompactToast = panel;
 
-        _appBar.Release();
+        if (!_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.Release();
+        }
         SetMouseTransparent(false);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
@@ -1458,8 +1461,10 @@ public partial class MainWindow : FluentWindow
 
         ControlsTabContent.Visibility = activityActive ? Visibility.Collapsed : Visibility.Visible;
         ActivitySection.Visibility = activityActive ? Visibility.Visible : Visibility.Collapsed;
+        ControlsGroupContainer.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         AudioControlsSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         NowPlayingSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
+        ToolsSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         NowSection.Margin = timerActive ? new Thickness(0) : new Thickness(0, 0, 0, 12);
         Grid.SetColumn(TimerColumn, timerActive ? 0 : 1);
         Grid.SetColumnSpan(TimerColumn, timerActive ? 2 : 1);
