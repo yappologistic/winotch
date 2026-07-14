@@ -947,7 +947,7 @@ public partial class MainWindow : FluentWindow
         if (snapshot is null)
         {
             valueText.Text = "";
-        ToolTipService.SetToolTip(valueText, null);
+            ToolTipService.SetToolTip(valueText, null);
             return;
         }
 
