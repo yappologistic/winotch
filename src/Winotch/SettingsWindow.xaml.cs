@@ -166,6 +166,11 @@ public partial class SettingsWindow : FluentWindow
 
         SelectHoverAction(settings.General.HoverAction);
 
+        ReserveScreenSpaceRow.Visibility = settings.General.HoverAction == HoverBehavior.Expand 
+            ? Visibility.Visible 
+            : Visibility.Collapsed;
+        ReserveScreenSpaceToggle.IsOn = settings.General.ReserveScreenSpace;
+
         MediaToastsToggle.IsOn = settings.Toasts.MediaToastsEnabled;
         NotificationToastsToggle.IsOn = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsOn = settings.Toasts.PriorityAlertsEnabled;
@@ -217,7 +222,15 @@ public partial class SettingsWindow : FluentWindow
                 Use24HourClock = Use24HourClockToggle.IsOn,
                 ShowDate = ShowDateToggle.IsOn,
                 NotchWidth = NotchWidthSlider.Value,
-                NotchHeight = NotchHeightSlider.Value
+                NotchHeight = NotchHeightSlider.Value,
+
+                HoverAction = HoverActionComboBox?.SelectedItem is ComboBoxItem item && 
+                              item.Tag is string text && 
+                              Enum.TryParse<HoverBehavior>(text, out var action)
+                    ? action
+                    : settings.General.HoverAction,
+
+                ReserveScreenSpace = ReserveScreenSpaceToggle.IsOn
             }
         });
 
@@ -547,13 +560,26 @@ public partial class SettingsWindow : FluentWindow
         }
 
         var selected = HoverActionComboBox.SelectedItem is ComboBoxItem { Tag: string text } &&
-            Enum.TryParse<HoverBehavior>(text, out var action)
+                       Enum.TryParse<HoverBehavior>(text, out var action)
             ? action
             : HoverBehavior.Expand;
 
-        _settings.Update(settings => settings with
+        _settings.Update(settings =>
         {
-            General = settings.General with { HoverAction = selected }
+            var reserveSpaceValue = selected == HoverBehavior.Expand && settings.General.ReserveScreenSpace;
+
+            return settings with
+            {
+                General = settings.General with 
+                { 
+                    HoverAction = selected,
+                    ReserveScreenSpace = reserveSpaceValue
+                }
+            };
         });
+
+        ReserveScreenSpaceRow.Visibility = selected == HoverBehavior.Expand 
+            ? Visibility.Visible 
+            : Visibility.Collapsed;
     }
 }

@@ -232,6 +232,7 @@ public sealed record GeneralSettings
     public double NotchHeight { get; init; } = 68;
 
     public HoverBehavior HoverAction { get; init; } = HoverBehavior.Expand;
+    public bool ReserveScreenSpace { get; init; } = false;
 }
 
 public sealed record ToastSettings

@@ -162,6 +162,20 @@
                                 <ComboBoxItem Content="Slide out of screen" Tag="SlideOut" />
                             </ComboBox>
                         </Grid>
+                        <Grid x:Name="ReserveScreenSpaceRow" Style="{StaticResource SettingsRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingsLabel}" Text="Reserve top screen space" />
+                                <TextBlock Style="{StaticResource SettingsDescription}" Text="Prevent maximized windows from under the notch" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ReserveScreenSpaceToggle" 
+                                          AutomationProperties.Name="Reserve top screen space" 
+                                          Style="{StaticResource SettingsToggle}" 
+                                          Toggled="GeneralSettingChanged" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 

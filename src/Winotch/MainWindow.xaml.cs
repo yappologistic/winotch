@@ -914,7 +914,10 @@ public partial class MainWindow : FluentWindow
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
         ApplyHeaderDensity(isFullBar: false);
-        _appBar.Release();
+        if (!_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.Release();
+        }
         SetMouseTransparent(false);
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
         SetAudioMoreExpanded(false);
@@ -1228,16 +1231,24 @@ public partial class MainWindow : FluentWindow
         LiveStrip.Opacity = isLive ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
         ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        ShellContent.VerticalAlignment = VerticalAlignment.Center;
         HeaderRow.Height = new GridLength(isLive ? 52 : 44);
+        DetailRow.Height = new GridLength(0); 
+
         ShellContent.Margin = isFullBar
             ? new Thickness(10, 2, 10, 2)
             : isLive
                 ? new Thickness(12, 0, 12, 0)
                 : new Thickness(16, 0, 16, 0);
         SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34);
+
         if (isFullBar)
         {
             _appBar.ReserveTop(this, geometry.WindowHeight, monitor);
+        }
+        else if (_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.ReserveTop(this, _settings.Current.General.NotchHeight, monitor);
         }
         else
         {
