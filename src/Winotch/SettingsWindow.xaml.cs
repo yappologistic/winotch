@@ -158,6 +158,12 @@ public partial class SettingsWindow : FluentWindow
         Use24HourClockToggle.IsOn = settings.General.Use24HourClock;
         ShowDateToggle.IsOn = settings.General.ShowDate;
         StartWithWindowsToggle.IsOn = settings.General.StartWithWindows;
+
+        NotchWidthSlider.Value = settings.General.NotchWidth;
+        NotchWidthValueText.Text = $"{settings.General.NotchWidth} DIPs";
+        NotchHeightSlider.Value = settings.General.NotchHeight;
+        NotchHeightValueText.Text = $"{settings.General.NotchHeight} DIPs";
+
         MediaToastsToggle.IsOn = settings.Toasts.MediaToastsEnabled;
         NotificationToastsToggle.IsOn = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsOn = settings.Toasts.PriorityAlertsEnabled;
@@ -207,9 +213,19 @@ public partial class SettingsWindow : FluentWindow
             General = settings.General with
             {
                 Use24HourClock = Use24HourClockToggle.IsOn,
-                ShowDate = ShowDateToggle.IsOn
+                ShowDate = ShowDateToggle.IsOn,
+                // ذخیره‌سازی ابعاد دریافتی از اسلایدرها
+                NotchWidth = NotchWidthSlider.Value,
+                NotchHeight = NotchHeightSlider.Value
             }
         });
+
+        // بروزرسانی متون توضیحات اسلایدرها
+        if (NotchWidthValueText is not null && NotchHeightValueText is not null)
+        {
+            NotchWidthValueText.Text = $"{Math.Round(NotchWidthSlider.Value)} DIPs";
+            NotchHeightValueText.Text = $"{Math.Round(NotchHeightSlider.Value)} DIPs";
+        }
     }
 
     private void ToastSettingChanged(object sender, RoutedEventArgs e)

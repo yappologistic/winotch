@@ -35,13 +35,13 @@ public static class ShellMetrics
     public static double ToDeviceIndependentWidth(double physicalScreenWidth, double dpiScale) =>
         physicalScreenWidth / (dpiScale > 0 ? dpiScale : 1);
 
-    public static ShellGeometry ForMode(bool isFullBar, double screenWidth)
+    public static ShellGeometry ForMode(bool isFullBar, double screenWidth, double customWidth = MiniWidth, double customHeight = MiniShellHeight)
     {
-        var width = isFullBar ? Math.Max(0, screenWidth) : FitWidth(MiniWidth, screenWidth);
+        var width = isFullBar ? Math.Max(0, screenWidth) : FitWidth(customWidth, screenWidth);
         return new ShellGeometry(
             width,
-            isFullBar ? FullBarShellHeight : MiniShellHeight,
-            isFullBar ? FullBarWindowHeight : MiniWindowHeight,
+            isFullBar ? FullBarShellHeight : customHeight,
+            isFullBar ? FullBarWindowHeight : customHeight,
             isFullBar ? 0 : CenterLeft(screenWidth, width));
     }
 

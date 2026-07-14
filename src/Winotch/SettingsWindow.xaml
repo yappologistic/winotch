@@ -112,6 +112,39 @@
                             <TextBlock Style="{StaticResource SettingsLabel}" Text="Start with Windows" />
                             <ToggleSwitch x:Name="StartWithWindowsToggle" AutomationProperties.Name="Start with Windows" Style="{StaticResource SettingsToggle}" Toggled="StartWithWindowsChanged" />
                         </Grid>
+
+                        <!-- اسلایدر عرض ناچ -->
+                        <Grid Style="{StaticResource SettingsRow}">
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingsLabel}" Text="Notch Width" />
+                                <TextBlock x:Name="NotchWidthValueText" Style="{StaticResource SettingsDescription}" Text="260 DIPs" />
+                            </StackPanel>
+                            <Slider x:Name="NotchWidthSlider" 
+                                    Grid.Column="1" 
+                                    Width="150" 
+                                    Minimum="160" 
+                                    Maximum="500" 
+                                    StepFrequency="5" 
+                                    Style="{StaticResource ModernSlider}"
+                                    ValueChanged="GeneralSettingChanged" />
+                        </Grid>
+                        
+                        <!-- اسلایدر ارتفاع ناچ -->
+                        <Grid Style="{StaticResource SettingsRow}">
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingsLabel}" Text="Notch Height" />
+                                <TextBlock x:Name="NotchHeightValueText" Style="{StaticResource SettingsDescription}" Text="68 DIPs" />
+                            </StackPanel>
+                            <Slider x:Name="NotchHeightSlider" 
+                                    Grid.Column="1" 
+                                    Width="150" 
+                                    Minimum="40" 
+                                    Maximum="120" 
+                                    StepFrequency="2" 
+                                    Style="{StaticResource ModernSlider}"
+                                    ValueChanged="GeneralSettingChanged" />
+                        </Grid>
+
                         <TextBlock
                             x:Name="StartupStatusText"
                             Style="{StaticResource SettingsDescription}"

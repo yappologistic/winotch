@@ -1175,7 +1175,7 @@ public partial class MainWindow : FluentWindow
         var isLive = mode == ShellMode.Live;
         var monitor = CurrentMonitor();
         var geometry = ShellMetrics.PlaceOnMonitor(
-            isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip),
+            isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
             monitor);
 
         ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;

@@ -206,7 +206,11 @@ public sealed record WinotchSettings
 
     public WinotchSettings Normalize() => this with
     {
-        General = General is null ? new GeneralSettings() : General,
+        General = General is null ? new GeneralSettings() : General with
+        {
+            NotchWidth = General.NotchWidth is >= 160 and <= 500 ? Math.Round(General.NotchWidth) : 260,
+            NotchHeight = General.NotchHeight is >= 40 and <= 120 ? Math.Round(General.NotchHeight) : 68
+        },
         Toasts = Toasts is null ? new ToastSettings() : Toasts.Normalize(),
         Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize(),
         Features = Features is null ? new FeatureSettings() : Features,
@@ -222,6 +226,9 @@ public sealed record GeneralSettings
     public bool Use24HourClock { get; init; }
     public bool ShowDate { get; init; } = true;
     public bool StartWithWindows { get; init; }
+
+    public double NotchWidth { get; init; } = 260;
+    public double NotchHeight { get; init; } = 68;
 }
 
 public sealed record ToastSettings
