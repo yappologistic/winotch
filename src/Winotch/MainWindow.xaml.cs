@@ -285,6 +285,10 @@ public partial class MainWindow : FluentWindow
             await RefreshControlCenterAsync(priorityStatus);
         }
 
+        ApplyMiniPrivacyDots(
+            priorityStatus.MicrophoneActive && !ReadCaptureMuted(), 
+            priorityStatus.CameraActive && !ShouldSuppressCameraAlert);
+
         var notifications = await ReadNotificationStatusAsync();
         ApplyNotificationStatus(notifications);
         if (_notificationChanges.ShouldPop(notifications.Items) &&
@@ -858,9 +862,40 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (_settings.Current.General.HoverAction == HoverBehavior.SlideOut)
+        {
+            _expanded = expanded;
+            var activeMonitor = CurrentMonitor(); 
+            var normalGeometry = ShellMetrics.PlaceOnMonitor(
+                ShellMetrics.ForMode(_currentShellMode == ShellMode.FullBar, activeMonitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
+                activeMonitor);
+
+            ShellGeometry targetGeometry;
+            if (expanded)
+            {
+                var offset = -(_settings.Current.General.NotchHeight - 2);
+                targetGeometry = normalGeometry with { Top = normalGeometry.Top + offset };
+            }
+            else
+            {
+                targetGeometry = normalGeometry;
+            }
+
+            if (animate)
+            {
+                ShellAnimator.AnimateShell(this, NotchShell, targetGeometry, _animationFrameRate);
+            }
+            else
+            {
+                ShellAnimator.SetShellGeometry(this, NotchShell, targetGeometry, targetGeometry);
+            }
+            return;
+        }
+
         if (expanded)
         {
             HideCompactToast(restoreShell: false);
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
         }
 
         _expanded = expanded;
@@ -872,15 +907,28 @@ public partial class MainWindow : FluentWindow
             StopSystemStats();
             // Tool flyouts are independent windows; collapsing the notch back to Mini should not dismiss them.
             ApplyForegroundState(ForegroundWindowService.DetectForeground(), animate, force: true);
+            if (_latestLivePriority is not null)
+            {
+                ApplyMiniPrivacyDots(
+                    _latestLivePriority.MicrophoneActive && !ReadCaptureMuted(),
+                    _latestLivePriority.CameraActive && !ShouldSuppressCameraAlert);
+            }
             return;
         }
 
+        ShellContent.VerticalAlignment = VerticalAlignment.Stretch;
+        HeaderRow.Height = new GridLength(48);
+        DetailRow.Height = new GridLength(1, GridUnitType.Star);
+        ShellContent.Margin = new Thickness(18, 8, 18, 12);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
         ShellAnimator.Hide(LiveStrip, _animationFrameRate);
         ClockGroup.HorizontalAlignment = HorizontalAlignment.Left;
         ApplyHeaderDensity(isFullBar: false);
-        _appBar.Release();
+        if (!_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.Release();
+        }
         SetMouseTransparent(false);
         SelectExpandedPanelMode(ExpandedPanelMode.Controls);
         SetAudioMoreExpanded(false);
@@ -1076,7 +1124,10 @@ public partial class MainWindow : FluentWindow
         _compactToastVisible = true;
         _activeCompactToast = panel;
 
-        _appBar.Release();
+        if (!_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.Release();
+        }
         SetMouseTransparent(false);
         ShellAnimator.Hide(ClockGroup, _animationFrameRate);
         ShellAnimator.Hide(StatusGroup, _animationFrameRate);
@@ -1157,6 +1208,11 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (_settings.Current.General.HoverAction == HoverBehavior.SlideOut)
+        {
+            return;
+        }
+
         SetMouseTransparent(false);
         ShellAnimator.Animate(DetailPanel, UIElement.OpacityProperty, 1, _animationFrameRate);
         ShellAnimator.Show(ClockGroup, _animationFrameRate);
@@ -1175,9 +1231,12 @@ public partial class MainWindow : FluentWindow
         var isLive = mode == ShellMode.Live;
         var monitor = CurrentMonitor();
         var geometry = ShellMetrics.PlaceOnMonitor(
-            isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip),
+            isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
             monitor);
 
+        ShellContent.VerticalAlignment = VerticalAlignment.Center; 
+        HeaderRow.Height = new GridLength(isLive ? 52 : 44);
+        DetailRow.Height = new GridLength(0);
         ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;
         ClockGroup.Opacity = isLive ? 0 : 1;
         StatusGroup.Visibility = isFullBar ? Visibility.Visible : Visibility.Collapsed;
@@ -1186,16 +1245,24 @@ public partial class MainWindow : FluentWindow
         LiveStrip.Opacity = isLive ? 1 : 0;
         ApplyHeaderDensity(isFullBar);
         ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        ShellContent.VerticalAlignment = VerticalAlignment.Center;
         HeaderRow.Height = new GridLength(isLive ? 52 : 44);
+        DetailRow.Height = new GridLength(0); 
+
         ShellContent.Margin = isFullBar
             ? new Thickness(10, 2, 10, 2)
             : isLive
-                ? new Thickness(12, 10, 12, 14)
-                : new Thickness(16, 10, 16, 14);
+                ? new Thickness(12, 0, 12, 0)
+                : new Thickness(16, 0, 16, 0);
         SetShellCornerRadius(isFullBar ? 0 : isLive ? 38 : 34);
+
         if (isFullBar)
         {
             _appBar.ReserveTop(this, geometry.WindowHeight, monitor);
+        }
+        else if (_settings.Current.General.ReserveScreenSpace)
+        {
+            _appBar.ReserveTop(this, _settings.Current.General.NotchHeight, monitor);
         }
         else
         {
@@ -1405,8 +1472,10 @@ public partial class MainWindow : FluentWindow
 
         ControlsTabContent.Visibility = activityActive ? Visibility.Collapsed : Visibility.Visible;
         ActivitySection.Visibility = activityActive ? Visibility.Visible : Visibility.Collapsed;
+        ControlsGroupContainer.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         AudioControlsSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         NowPlayingSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
+        ToolsSection.Visibility = timerActive ? Visibility.Collapsed : Visibility.Visible;
         NowSection.Margin = timerActive ? new Thickness(0) : new Thickness(0, 0, 0, 12);
         Grid.SetColumn(TimerColumn, timerActive ? 0 : 1);
         Grid.SetColumnSpan(TimerColumn, timerActive ? 2 : 1);
@@ -1776,4 +1845,33 @@ public partial class MainWindow : FluentWindow
 
     private static double ClampToRange(double value, double minimum, double maximum) =>
         maximum < minimum ? minimum : Math.Min(Math.Max(minimum, value), maximum);
+
+    private void ApplyMiniPrivacyDots(bool micActive, bool cameraActive)
+    {
+        // اگر ناچ هاور شده و پنل باز است، نقطه را مخفی کن
+        if (_expanded) 
+        {
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
+            ToolTipService.SetToolTip(MiniPrivacyDot, null);
+            return;
+        }
+
+        if (cameraActive)
+        {
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 159, 10)); 
+            MiniPrivacyDot.Visibility = Visibility.Visible;
+            ToolTipService.SetToolTip(MiniPrivacyDot, "Camera in use");
+        }
+        else if (micActive)
+        {
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 69, 58)); 
+            MiniPrivacyDot.Visibility = Visibility.Visible;
+            ToolTipService.SetToolTip(MiniPrivacyDot, "Microphone in use");
+        }
+        else
+        {
+            MiniPrivacyDot.Visibility = Visibility.Collapsed;
+            ToolTipService.SetToolTip(MiniPrivacyDot, null);
+        }
+    }
 }

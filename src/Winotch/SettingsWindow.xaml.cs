@@ -158,6 +158,19 @@ public partial class SettingsWindow : FluentWindow
         Use24HourClockToggle.IsOn = settings.General.Use24HourClock;
         ShowDateToggle.IsOn = settings.General.ShowDate;
         StartWithWindowsToggle.IsOn = settings.General.StartWithWindows;
+
+        NotchWidthSlider.Value = settings.General.NotchWidth;
+        NotchWidthValueText.Text = $"{settings.General.NotchWidth} DIPs";
+        NotchHeightSlider.Value = settings.General.NotchHeight;
+        NotchHeightValueText.Text = $"{settings.General.NotchHeight} DIPs";
+
+        SelectHoverAction(settings.General.HoverAction);
+
+        ReserveScreenSpaceRow.Visibility = settings.General.HoverAction == HoverBehavior.Expand 
+            ? Visibility.Visible 
+            : Visibility.Collapsed;
+        ReserveScreenSpaceToggle.IsOn = settings.General.ReserveScreenSpace;
+
         MediaToastsToggle.IsOn = settings.Toasts.MediaToastsEnabled;
         NotificationToastsToggle.IsOn = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsOn = settings.Toasts.PriorityAlertsEnabled;
@@ -207,9 +220,25 @@ public partial class SettingsWindow : FluentWindow
             General = settings.General with
             {
                 Use24HourClock = Use24HourClockToggle.IsOn,
-                ShowDate = ShowDateToggle.IsOn
+                ShowDate = ShowDateToggle.IsOn,
+                NotchWidth = NotchWidthSlider.Value,
+                NotchHeight = NotchHeightSlider.Value,
+
+                HoverAction = HoverActionComboBox?.SelectedItem is ComboBoxItem item && 
+                              item.Tag is string text && 
+                              Enum.TryParse<HoverBehavior>(text, out var action)
+                    ? action
+                    : settings.General.HoverAction,
+
+                ReserveScreenSpace = ReserveScreenSpaceToggle.IsOn
             }
         });
+
+        if (NotchWidthValueText is not null && NotchHeightValueText is not null)
+        {
+            NotchWidthValueText.Text = $"{Math.Round(NotchWidthSlider.Value)} DIPs";
+            NotchHeightValueText.Text = $"{Math.Round(NotchHeightSlider.Value)} DIPs";
+        }
     }
 
     private void ToastSettingChanged(object sender, RoutedEventArgs e)
@@ -506,5 +535,51 @@ public partial class SettingsWindow : FluentWindow
             (workArea.X + Math.Max(0, (workArea.Width - widthPixels) / 2)) / scale,
             (workArea.Y + Math.Max(0, (workArea.Height - heightPixels) / 2)) / scale,
             scale);
+    }
+
+    private void SelectHoverAction(HoverBehavior action)
+    {
+        foreach (var candidate in HoverActionComboBox.Items)
+        {
+            if (candidate is ComboBoxItem item &&
+                item.Tag is string text &&
+                Enum.TryParse<HoverBehavior>(text, out var itemAction) &&
+                itemAction == action)
+            {
+                HoverActionComboBox.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
+    private void HoverActionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        var selected = HoverActionComboBox.SelectedItem is ComboBoxItem { Tag: string text } &&
+                       Enum.TryParse<HoverBehavior>(text, out var action)
+            ? action
+            : HoverBehavior.Expand;
+
+        _settings.Update(settings =>
+        {
+            var reserveSpaceValue = selected == HoverBehavior.Expand && settings.General.ReserveScreenSpace;
+
+            return settings with
+            {
+                General = settings.General with 
+                { 
+                    HoverAction = selected,
+                    ReserveScreenSpace = reserveSpaceValue
+                }
+            };
+        });
+
+        ReserveScreenSpaceRow.Visibility = selected == HoverBehavior.Expand 
+            ? Visibility.Visible 
+            : Visibility.Collapsed;
     }
 }

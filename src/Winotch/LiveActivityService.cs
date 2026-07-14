@@ -78,7 +78,7 @@ public sealed class LiveActivityService
         {
             return new LiveActivity(
                 LiveActivityKind.ActivityDots,
-                ShellMode.Live,
+                ShellMode.Mini,
                 "Live",
                 string.Join(" · ", dots.Select(dot => dot.Label)),
                 "",
