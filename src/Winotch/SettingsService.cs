@@ -209,7 +209,8 @@ public sealed record WinotchSettings
         General = General is null ? new GeneralSettings() : General with
         {
             NotchWidth = General.NotchWidth is >= 160 and <= 500 ? Math.Round(General.NotchWidth) : 260,
-            NotchHeight = General.NotchHeight is >= 40 and <= 120 ? Math.Round(General.NotchHeight) : 68
+            NotchHeight = General.NotchHeight is >= 40 and <= 120 ? Math.Round(General.NotchHeight) : 68,
+            HoverAction = Enum.IsDefined(typeof(HoverBehavior), General.HoverAction) ? General.HoverAction : HoverBehavior.Expand
         },
         Toasts = Toasts is null ? new ToastSettings() : Toasts.Normalize(),
         Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize(),
@@ -229,6 +230,8 @@ public sealed record GeneralSettings
 
     public double NotchWidth { get; init; } = 260;
     public double NotchHeight { get; init; } = 68;
+
+    public HoverBehavior HoverAction { get; init; } = HoverBehavior.Expand;
 }
 
 public sealed record ToastSettings
@@ -283,4 +286,10 @@ public static class ToastDurationScaleExtensions
         ToastDurationScale.Long => 1.5,
         _ => 1.0
     };
+}
+
+public enum HoverBehavior
+{
+    Expand,
+    SlideOut
 }

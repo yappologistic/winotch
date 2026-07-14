@@ -144,6 +144,24 @@
                             x:Name="StartupStatusText"
                             Style="{StaticResource SettingsDescription}"
                             Visibility="Collapsed" />
+                        <Grid Style="{StaticResource SettingsRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingsLabel}" Text="Hover Behavior" />
+                                <TextBlock Style="{StaticResource SettingsDescription}" Text="Action when hovering over the notch" />
+                            </StackPanel>
+                            <ComboBox x:Name="HoverActionComboBox"
+                                      Grid.Column="1"
+                                      MinWidth="150"
+                                      AutomationProperties.Name="Hover behavior"
+                                      SelectionChanged="HoverActionChanged">
+                                <ComboBoxItem Content="Show expanded panel" Tag="Expand" />
+                                <ComboBoxItem Content="Slide out of screen" Tag="SlideOut" />
+                            </ComboBox>
+                        </Grid>
                     </StackPanel>
                 </Border>
 

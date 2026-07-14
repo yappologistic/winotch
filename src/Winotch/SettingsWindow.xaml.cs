@@ -164,6 +164,8 @@ public partial class SettingsWindow : FluentWindow
         NotchHeightSlider.Value = settings.General.NotchHeight;
         NotchHeightValueText.Text = $"{settings.General.NotchHeight} DIPs";
 
+        SelectHoverAction(settings.General.HoverAction);
+
         MediaToastsToggle.IsOn = settings.Toasts.MediaToastsEnabled;
         NotificationToastsToggle.IsOn = settings.Toasts.NotificationToastsEnabled;
         PriorityAlertsToggle.IsOn = settings.Toasts.PriorityAlertsEnabled;
@@ -520,5 +522,38 @@ public partial class SettingsWindow : FluentWindow
             (workArea.X + Math.Max(0, (workArea.Width - widthPixels) / 2)) / scale,
             (workArea.Y + Math.Max(0, (workArea.Height - heightPixels) / 2)) / scale,
             scale);
+    }
+
+    private void SelectHoverAction(HoverBehavior action)
+    {
+        foreach (var candidate in HoverActionComboBox.Items)
+        {
+            if (candidate is ComboBoxItem item &&
+                item.Tag is string text &&
+                Enum.TryParse<HoverBehavior>(text, out var itemAction) &&
+                itemAction == action)
+            {
+                HoverActionComboBox.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
+    private void HoverActionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        var selected = HoverActionComboBox.SelectedItem is ComboBoxItem { Tag: string text } &&
+            Enum.TryParse<HoverBehavior>(text, out var action)
+            ? action
+            : HoverBehavior.Expand;
+
+        _settings.Update(settings => settings with
+        {
+            General = settings.General with { HoverAction = selected }
+        });
     }
 }

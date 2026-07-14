@@ -858,6 +858,36 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (_settings.Current.General.HoverAction == HoverBehavior.SlideOut)
+        {
+            _expanded = expanded;
+            var activeMonitor = CurrentMonitor(); 
+            var normalGeometry = ShellMetrics.PlaceOnMonitor(
+                ShellMetrics.ForMode(_currentShellMode == ShellMode.FullBar, activeMonitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
+                activeMonitor);
+
+            ShellGeometry targetGeometry;
+            if (expanded)
+            {
+                var offset = -(_settings.Current.General.NotchHeight - 2);
+                targetGeometry = normalGeometry with { Top = normalGeometry.Top + offset };
+            }
+            else
+            {
+                targetGeometry = normalGeometry;
+            }
+
+            if (animate)
+            {
+                ShellAnimator.AnimateShell(this, NotchShell, targetGeometry, _animationFrameRate);
+            }
+            else
+            {
+                ShellAnimator.SetShellGeometry(this, NotchShell, targetGeometry, targetGeometry);
+            }
+            return;
+        }
+
         if (expanded)
         {
             HideCompactToast(restoreShell: false);
@@ -1157,6 +1187,11 @@ public partial class MainWindow : FluentWindow
         }
 
         if (!_expanded || cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (_settings.Current.General.HoverAction == HoverBehavior.SlideOut)
         {
             return;
         }

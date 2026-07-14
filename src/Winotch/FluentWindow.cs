@@ -577,7 +577,7 @@ public class FluentWindow : Window
         var width = Math.Max(1, (int)Math.Round(shell.Width * scale));
         var height = Math.Max(1, (int)Math.Round(shell.WindowHeight * scale));
         var radius = Math.Max(1, (int)Math.Round(BottomCornerRadius * scale));
-        var regionTop = AttachToTopEdge && top == 0 ? -radius : top;
+        var regionTop = AttachToTopEdge ? top - radius : top;
         var region = CreateRoundRectRgn(
             left,
             regionTop,
