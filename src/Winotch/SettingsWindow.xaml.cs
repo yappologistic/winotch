@@ -165,6 +165,7 @@ public partial class SettingsWindow : FluentWindow
         NotchHeightValueText.Text = $"{settings.General.NotchHeight} DIPs";
 
         SelectHoverAction(settings.General.HoverAction);
+        SelectOpenBehavior(settings.General.OpenBehavior);
 
         ReserveScreenSpaceRow.Visibility = settings.General.HoverAction == HoverBehavior.Expand 
             ? Visibility.Visible 
@@ -539,6 +540,7 @@ public partial class SettingsWindow : FluentWindow
 
     private void SelectHoverAction(HoverBehavior action)
     {
+        if (HoverActionComboBox is null) return;
         foreach (var candidate in HoverActionComboBox.Items)
         {
             if (candidate is ComboBoxItem item &&
@@ -547,6 +549,22 @@ public partial class SettingsWindow : FluentWindow
                 itemAction == action)
             {
                 HoverActionComboBox.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
+    private void SelectOpenBehavior(HoverOpenBehavior behavior)
+    {
+        if (OpenBehaviorComboBox is null) return;
+        foreach (var candidate in OpenBehaviorComboBox.Items)
+        {
+            if (candidate is ComboBoxItem item &&
+                item.Tag is string text &&
+                Enum.TryParse<HoverOpenBehavior>(text, out var itemBehavior) &&
+                itemBehavior == behavior)
+            {
+                OpenBehaviorComboBox.SelectedItem = item;
                 return;
             }
         }
@@ -578,8 +596,29 @@ public partial class SettingsWindow : FluentWindow
             };
         });
 
-        ReserveScreenSpaceRow.Visibility = selected == HoverBehavior.Expand 
-            ? Visibility.Visible 
-            : Visibility.Collapsed;
+        if (ReserveScreenSpaceRow is not null)
+        {
+            ReserveScreenSpaceRow.Visibility = selected == HoverBehavior.Expand 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+        }
+    }
+
+    private void OpenBehaviorChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        var selectedBehavior = OpenBehaviorComboBox.SelectedItem is ComboBoxItem { Tag: string text } &&
+                               Enum.TryParse<HoverOpenBehavior>(text, out var action)
+            ? action
+            : HoverOpenBehavior.Hover;
+
+        _settings.Update(settings => settings with
+        {
+            General = settings.General with { OpenBehavior = selectedBehavior }
+        });
     }
 }

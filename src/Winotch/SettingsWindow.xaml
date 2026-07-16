@@ -150,6 +150,24 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SettingsLabel}" Text="Open behavior" />
+                                <TextBlock Style="{StaticResource SettingsDescription}" Text="How the expanded panel opens" />
+                            </StackPanel>
+                            <ComboBox x:Name="OpenBehaviorComboBox"
+                                      Grid.Column="1"
+                                      MinWidth="150"
+                                      AutomationProperties.Name="Open behavior"
+                                      SelectionChanged="OpenBehaviorChanged">
+                                <ComboBoxItem Content="On Hover" Tag="Hover" />
+                                <ComboBoxItem Content="On Click" Tag="Click" />
+                            </ComboBox>
+                        </Grid>
+                        <Grid Style="{StaticResource SettingsRow}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource SettingsLabel}" Text="Hover Behavior" />
                                 <TextBlock Style="{StaticResource SettingsDescription}" Text="Action when hovering over the notch" />
                             </StackPanel>

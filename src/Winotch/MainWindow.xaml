@@ -51,7 +51,8 @@
                 CornerRadius="0,0,34,34"
                 Padding="0"
                 PointerEntered="Window_MouseEnter"
-                PointerExited="Window_MouseLeave">
+                PointerExited="Window_MouseLeave"
+                PointerPressed="NotchShell_PointerPressed">
 
             <Grid>
                 <!-- Native Windows compositor material. The translucent shell only

@@ -831,6 +831,11 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (_settings.Current.General.OpenBehavior == HoverOpenBehavior.Click)
+        {
+            return;
+        }
+
         _collapseTimer.Stop();
         SetExpanded(true);
     }
@@ -1872,6 +1877,20 @@ public partial class MainWindow : FluentWindow
         {
             MiniPrivacyDot.Visibility = Visibility.Collapsed;
             ToolTipService.SetToolTip(MiniPrivacyDot, null);
+        }
+    }
+
+    private void NotchShell_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (_commandBarVisible || _compactToastVisible)
+        {
+            return;
+        }
+
+        if (_settings.Current.General.OpenBehavior == HoverOpenBehavior.Click)
+        {
+            _collapseTimer.Stop();
+            SetExpanded(!_expanded);
         }
     }
 }
