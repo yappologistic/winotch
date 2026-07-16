@@ -13,7 +13,7 @@
         Topmost="True"
         ShowInTaskbar="False"
         MinimumShellHostWidth="960"
-        MinimumShellHostHeight="580"
+        MinimumShellHostHeight="520"
         BottomCornerRadius="34"
         Loaded="Window_Loaded">
     <Grid x:Name="ShellHost"
@@ -525,7 +525,8 @@
                             </Grid>
                             <StackPanel x:Name="TimerColumn" Grid.Column="1" MaxWidth="640" VerticalAlignment="Top">
                                 <Border x:Name="NowSection" Style="{StaticResource FluentSectionCard}" Margin="0,0,0,12">
-                                    <StackPanel>
+                                    <StackPanel x:Name="FocusTimerSection">
+                                        <TextBlock Text="Timer" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,10" />
                                         <TextBlock Text="Pomodoro" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource NotchMutedText}" Margin="0,0,0,8" />
                                         <StackPanel x:Name="FocusSetupPanel" Margin="0,7,0,0">
                                             <StackPanel Orientation="Horizontal" Spacing="6">
