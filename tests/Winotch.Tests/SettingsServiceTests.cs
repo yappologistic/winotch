@@ -19,6 +19,7 @@ public class SettingsServiceTests
         Assert.True(service.Current.Features.ShowAppMixer);
         Assert.True(service.Current.Features.SystemStatsEnabled);
         Assert.True(service.Current.Features.FollowActiveMonitor);
+        Assert.Equal(HoverOpenBehavior.Hover, service.Current.General.OpenBehavior);
     }
 
     [Fact]
@@ -29,7 +30,12 @@ public class SettingsServiceTests
 
         service.Update(settings => settings with
         {
-            General = settings.General with { Use24HourClock = true, ShowDate = false },
+            General = settings.General with
+            {
+                Use24HourClock = true,
+                ShowDate = false,
+                OpenBehavior = HoverOpenBehavior.Click
+            },
             Toasts = settings.Toasts with
             {
                 NotificationToastsEnabled = false,
@@ -60,6 +66,7 @@ public class SettingsServiceTests
         Assert.False(reloaded.Current.Features.ClipboardHistoryEnabled);
         Assert.False(reloaded.Current.Features.ShowAppMixer);
         Assert.False(reloaded.Current.Features.FollowActiveMonitor);
+        Assert.Equal(HoverOpenBehavior.Click, reloaded.Current.General.OpenBehavior);
         Assert.Contains(Environment.NewLine, File.ReadAllText(temp.SettingsPath));
     }
 
@@ -76,6 +83,21 @@ public class SettingsServiceTests
         Assert.True(service.Current.Features.ShowAppMixer);
         Assert.True(service.Current.Features.SystemStatsEnabled);
         Assert.True(service.Current.Features.FollowActiveMonitor);
+        Assert.Equal(HoverOpenBehavior.Hover, service.Current.General.OpenBehavior);
+    }
+
+    [Fact]
+    public void SettingsServiceDefaultsUnknownOpenBehaviorWithoutDroppingOtherSettings()
+    {
+        using var temp = new TempSettingsDirectory();
+        File.WriteAllText(
+            temp.SettingsPath,
+            """{"general":{"showDate":false,"openBehavior":42}}""");
+
+        var service = new SettingsService(temp.SettingsPath);
+
+        Assert.False(service.Current.General.ShowDate);
+        Assert.Equal(HoverOpenBehavior.Hover, service.Current.General.OpenBehavior);
     }
 
     [Fact]

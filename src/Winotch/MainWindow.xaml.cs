@@ -286,7 +286,7 @@ public partial class MainWindow : FluentWindow
         }
 
         ApplyMiniPrivacyDots(
-            priorityStatus.MicrophoneActive && !ReadCaptureMuted(), 
+            priorityStatus.MicrophoneActive && !ReadCaptureMuted(),
             priorityStatus.CameraActive && !ShouldSuppressCameraAlert);
 
         var notifications = await ReadNotificationStatusAsync();
@@ -831,6 +831,11 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
+        if (_settings.Current.General.OpenBehavior == HoverOpenBehavior.Click)
+        {
+            return;
+        }
+
         _collapseTimer.Stop();
         SetExpanded(true);
     }
@@ -865,7 +870,7 @@ public partial class MainWindow : FluentWindow
         if (_settings.Current.General.HoverAction == HoverBehavior.SlideOut)
         {
             _expanded = expanded;
-            var activeMonitor = CurrentMonitor(); 
+            var activeMonitor = CurrentMonitor();
             var normalGeometry = ShellMetrics.PlaceOnMonitor(
                 ShellMetrics.ForMode(_currentShellMode == ShellMode.FullBar, activeMonitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
                 activeMonitor);
@@ -1234,7 +1239,7 @@ public partial class MainWindow : FluentWindow
             isLive ? ShellMetrics.LiveStrip(monitor.WidthDip) : ShellMetrics.ForMode(isFullBar, monitor.WidthDip, _settings.Current.General.NotchWidth, _settings.Current.General.NotchHeight),
             monitor);
 
-        ShellContent.VerticalAlignment = VerticalAlignment.Center; 
+        ShellContent.VerticalAlignment = VerticalAlignment.Center;
         HeaderRow.Height = new GridLength(isLive ? 52 : 44);
         DetailRow.Height = new GridLength(0);
         ClockGroup.Visibility = isLive ? Visibility.Collapsed : Visibility.Visible;
@@ -1247,7 +1252,7 @@ public partial class MainWindow : FluentWindow
         ClockGroup.HorizontalAlignment = isFullBar ? HorizontalAlignment.Left : HorizontalAlignment.Center;
         ShellContent.VerticalAlignment = VerticalAlignment.Center;
         HeaderRow.Height = new GridLength(isLive ? 52 : 44);
-        DetailRow.Height = new GridLength(0); 
+        DetailRow.Height = new GridLength(0);
 
         ShellContent.Margin = isFullBar
             ? new Thickness(10, 2, 10, 2)
@@ -1849,7 +1854,7 @@ public partial class MainWindow : FluentWindow
     private void ApplyMiniPrivacyDots(bool micActive, bool cameraActive)
     {
         // اگر ناچ هاور شده و پنل باز است، نقطه را مخفی کن
-        if (_expanded) 
+        if (_expanded)
         {
             MiniPrivacyDot.Visibility = Visibility.Collapsed;
             ToolTipService.SetToolTip(MiniPrivacyDot, null);
@@ -1858,13 +1863,13 @@ public partial class MainWindow : FluentWindow
 
         if (cameraActive)
         {
-            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 159, 10)); 
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 159, 10));
             MiniPrivacyDot.Visibility = Visibility.Visible;
             ToolTipService.SetToolTip(MiniPrivacyDot, "Camera in use");
         }
         else if (micActive)
         {
-            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 69, 58)); 
+            MiniPrivacyDot.Background = new SolidColorBrush(Color.FromArgb(255, 255, 69, 58));
             MiniPrivacyDot.Visibility = Visibility.Visible;
             ToolTipService.SetToolTip(MiniPrivacyDot, "Microphone in use");
         }
@@ -1873,5 +1878,42 @@ public partial class MainWindow : FluentWindow
             MiniPrivacyDot.Visibility = Visibility.Collapsed;
             ToolTipService.SetToolTip(MiniPrivacyDot, null);
         }
+    }
+
+    private void NotchShell_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (_commandBarVisible ||
+            _compactToastVisible ||
+            _settings.Current.General.OpenBehavior != HoverOpenBehavior.Click)
+        {
+            return;
+        }
+
+        var pointerProperties = e.GetCurrentPoint(NotchShell).Properties;
+        if (pointerProperties.IsRightButtonPressed ||
+            pointerProperties.IsMiddleButtonPressed ||
+            OriginatesFromControl(e.OriginalSource as DependencyObject, NotchShell))
+        {
+            return;
+        }
+
+        _collapseTimer.Stop();
+        SetExpanded(!_expanded);
+        e.Handled = true;
+    }
+
+    private static bool OriginatesFromControl(DependencyObject? source, DependencyObject boundary)
+    {
+        for (var current = source;
+             current is not null && !ReferenceEquals(current, boundary);
+             current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is Control)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

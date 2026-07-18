@@ -210,7 +210,8 @@ public sealed record WinotchSettings
         {
             NotchWidth = General.NotchWidth is >= 160 and <= 500 ? Math.Round(General.NotchWidth) : 260,
             NotchHeight = General.NotchHeight is >= 40 and <= 120 ? Math.Round(General.NotchHeight) : 68,
-            HoverAction = Enum.IsDefined(typeof(HoverBehavior), General.HoverAction) ? General.HoverAction : HoverBehavior.Expand
+            HoverAction = Enum.IsDefined(typeof(HoverBehavior), General.HoverAction) ? General.HoverAction : HoverBehavior.Expand,
+            OpenBehavior = Enum.IsDefined(typeof(HoverOpenBehavior), General.OpenBehavior) ? General.OpenBehavior : HoverOpenBehavior.Hover
         },
         Toasts = Toasts is null ? new ToastSettings() : Toasts.Normalize(),
         Calendar = Calendar is null ? new CalendarSettings() : Calendar.Normalize(),
@@ -232,6 +233,7 @@ public sealed record GeneralSettings
     public double NotchHeight { get; init; } = 68;
 
     public HoverBehavior HoverAction { get; init; } = HoverBehavior.Expand;
+    public HoverOpenBehavior OpenBehavior { get; init; } = HoverOpenBehavior.Hover;
     public bool ReserveScreenSpace { get; init; } = false;
 }
 
@@ -293,4 +295,10 @@ public enum HoverBehavior
 {
     Expand,
     SlideOut
+}
+
+public enum HoverOpenBehavior
+{
+    Click,
+    Hover
 }
