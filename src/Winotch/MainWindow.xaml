@@ -13,7 +13,7 @@
         Topmost="True"
         ShowInTaskbar="False"
         MinimumShellHostWidth="960"
-        MinimumShellHostHeight="520"
+        MinimumShellHostHeight="600"
         BottomCornerRadius="34"
         Loaded="Window_Loaded">
     <Grid x:Name="ShellHost"
